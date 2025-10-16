@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Addis",
+    "slug": "Data store",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["assets/**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.connxa.Addis-data"
+    },
+    "android": {
+      "package": "com.Addis-data"
+    }
+  }
+}
