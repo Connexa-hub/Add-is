@@ -26,7 +26,7 @@ export default function App() {
       try {
         // Preload fonts
         await Font.loadAsync({
-          'SpaceMono-Regular': require('./assets/fonts/LilitaOne-Regular.tff'),
+          'SpaceMono-Regular': require('./assets/fonts/LilitaOne-Regular.ttf'),
         });
         // Simulate additional loading (e.g., API calls, images)
         await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay for demo
