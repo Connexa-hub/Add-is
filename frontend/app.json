@@ -13,10 +13,10 @@
     "assetBundlePatterns": ["assets/**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.connxa.Addis-data"
+      "bundleIdentifier": "com.connxa.addis"
     },
     "android": {
-      "package": "com.Addis-data"
+      "package": "com.addis"
     }
   }
 }
