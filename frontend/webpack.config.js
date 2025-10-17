@@ -14,5 +14,15 @@ module.exports = async function (env, argv) {
     config.devServer.allowedHosts = 'all';
   }
 
+  // Add Node.js polyfills for browser
+  config.resolve.fallback = {
+    ...(config.resolve.fallback || {}),
+    crypto: require.resolve('crypto-browserify'),
+    stream: require.resolve('stream-browserify'),
+    process: require.resolve('process/browser'),
+    vm: require.resolve('vm-browserify'),
+    buffer: require.resolve('buffer/')
+  };
+
   return config;
 };
