@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Addis",
-    "slug": "Data store",
+    "slug": "data-store",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -13,7 +13,7 @@
     "assetBundlePatterns": ["assets/**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.connxa.addis"
+      "bundleIdentifier": "com.connexa.addis"
     },
     "android": {
       "package": "com.addis"
