@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from 'react-native-reanimated';
-import { Slot } from 'expo-router';
+import AppNavigator from './src/navigation/AppNavigator';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,11 +57,7 @@ export default function App() {
     );
   }
 
-  return (
-    <View style={{ flex: 1 }}>
-      <Slot />
-    </View>
-  );
+  return <AppNavigator />;
 }
 
 const styles = StyleSheet.create({
