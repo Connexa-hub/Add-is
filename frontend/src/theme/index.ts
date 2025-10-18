@@ -5,6 +5,14 @@ import { spacing } from './spacing';
 import { radius } from './radius';
 import { shadows } from './shadows';
 
+export const tokens = {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+} as const;
+
 export const theme = {
   ...MD3LightTheme,
   colors: {
@@ -29,13 +37,7 @@ export const theme = {
     error: colors.error.main,
     onError: colors.error.contrast,
   },
-  tokens: {
-    colors,
-    typography,
-    spacing,
-    radius,
-    shadows,
-  },
+  tokens,
 } as const;
 
 export type AppTheme = typeof theme;
