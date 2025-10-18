@@ -56,14 +56,18 @@ export default function Layout({ children }) {
           <div className="flex items-center justify-between">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
-                <Building2 size={28} className="text-blue-400" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-xl">C</span>
+                </div>
                 <div>
-                  <h2 className="text-lg font-bold">VTU Admin</h2>
-                  <p className="text-xs text-gray-400">Control Panel</p>
+                  <h2 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Connexa</h2>
+                  <p className="text-xs text-gray-400">Admin Portal</p>
                 </div>
               </div>
             ) : (
-              <Building2 size={28} className="text-blue-400 mx-auto" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg mx-auto">
+                <span className="text-white font-bold text-xl">C</span>
+              </div>
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -81,10 +85,10 @@ export default function Layout({ children }) {
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                     location.pathname === item.path
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-cyan-400'
                   }`}
                 >
                   <item.icon size={20} />
@@ -125,7 +129,7 @@ export default function Layout({ children }) {
                 <input
                   type="text"
                   placeholder="Search users, transactions..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -139,9 +143,9 @@ export default function Layout({ children }) {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg"
+                  className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
                     A
                   </div>
                   <ChevronDown size={16} className="text-gray-600" />
