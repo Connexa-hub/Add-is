@@ -1,111 +1,262 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { Avatar, Text, Button, TextInput, ActivityIndicator } from 'react-native-paper';
+
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { Appbar, Card, Text, List, Divider, Avatar, Button, ActivityIndicator } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { API_BASE_URL } from '../constants/api';
 
-export default function ProfileScreen({ navigation }: any) {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+export default function ProfileScreen({ navigation }) {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState('');
+  const [stats, setStats] = useState({
+    totalTransactions: 0,
+    totalSpent: 0,
+    totalCashback: 0,
+  });
 
-  // Fetch profile on mount
   useEffect(() => {
-    (async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-          return;
-        }
-        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_BASE}/api/users/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUsername(res.data.username);
-        setEmail(res.data.email);
-      } catch (err) {
-        setError('Failed to load profile');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadUserData();
   }, []);
 
-  const handleUpdate = async () => {
-    setUpdating(true);
-    setError('');
+  const loadUserData = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        return;
+      
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setUser(data.user);
+        loadUserStats(token);
       }
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_BASE}/api/users/profile`,
-        { username },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setError('Profile updated successfully!');
-    } catch {
-      setError('Failed to update profile');
+    } catch (error) {
+      console.error('Error loading profile:', error);
     } finally {
-      setUpdating(false);
+      setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem('token');
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  const loadUserStats = async (token) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/transactions/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#6200ee" />
       </View>
     );
+  }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Avatar.Icon icon="account" size={120} style={styles.avatar} />
-      <Text variant="titleLarge" style={styles.emailText}>{email}</Text>
+    <View style={styles.container}>
+      <Appbar.Header>
+        <Appbar.Content title="Profile" />
+      </Appbar.Header>
 
-      <TextInput
-        label="Username"
-        value={username}
-        onChangeText={setUsername}
-        style={styles.input}
-        mode="outlined"
-      />
+      <ScrollView style={styles.scrollView}>
+        {/* Profile Header */}
+        <Card style={styles.profileCard}>
+          <Card.Content style={styles.profileContent}>
+            <Avatar.Text 
+              size={80} 
+              label={user?.name?.substring(0, 2).toUpperCase() || 'U'} 
+              style={styles.avatar}
+            />
+            <Text style={styles.name}>{user?.name}</Text>
+            <Text style={styles.email}>{user?.email}</Text>
+            <Text style={styles.phone}>{user?.phone || 'No phone number'}</Text>
+          </Card.Content>
+        </Card>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {/* Stats Cards */}
+        <View style={styles.statsContainer}>
+          <Card style={styles.statCard}>
+            <Card.Content>
+              <Text style={styles.statValue}>{stats.totalTransactions}</Text>
+              <Text style={styles.statLabel}>Transactions</Text>
+            </Card.Content>
+          </Card>
 
-      <Button
-        mode="contained"
-        onPress={handleUpdate}
-        loading={updating}
-        disabled={updating}
-        style={styles.button}
-      >
-        Update Profile
-      </Button>
+          <Card style={styles.statCard}>
+            <Card.Content>
+              <Text style={styles.statValue}>₦{(stats.totalSpent || 0).toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Total Spent</Text>
+            </Card.Content>
+          </Card>
 
-      <Button mode="outlined" onPress={handleLogout} style={styles.logoutButton}>
-        Logout
-      </Button>
-    </KeyboardAvoidingView>
+          <Card style={styles.statCard}>
+            <Card.Content>
+              <Text style={styles.statValue}>₦{(stats.totalCashback || 0).toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Cashback</Text>
+            </Card.Content>
+          </Card>
+        </View>
+
+        {/* Account Information */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardTitle}>Account Information</Text>
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Wallet Balance"
+              description={`₦${(user?.walletBalance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`}
+              left={props => <List.Icon {...props} icon="wallet" />}
+            />
+            
+            {user?.virtualAccountNumber && (
+              <>
+                <List.Item
+                  title="Virtual Account"
+                  description={user.virtualAccountNumber}
+                  left={props => <List.Icon {...props} icon="bank" />}
+                />
+                <List.Item
+                  title="Bank Name"
+                  description={user.virtualBankName}
+                  left={props => <List.Icon {...props} icon="office-building" />}
+                />
+              </>
+            )}
+            
+            <List.Item
+              title="Account Status"
+              description={user?.isVerified ? 'Verified' : 'Not Verified'}
+              left={props => <List.Icon {...props} icon="check-circle" />}
+            />
+          </Card.Content>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.cardTitle}>Quick Actions</Text>
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Transaction History"
+              left={props => <List.Icon {...props} icon="history" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => navigation.navigate('History')}
+            />
+            
+            <List.Item
+              title="Fund Wallet"
+              left={props => <List.Icon {...props} icon="cash-plus" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => navigation.navigate('Wallet')}
+            />
+            
+            <List.Item
+              title="Settings"
+              left={props => <List.Icon {...props} icon="cog" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => navigation.navigate('Settings')}
+            />
+          </Card.Content>
+        </Card>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, alignItems: 'center', backgroundColor: '#fff' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  avatar: { marginBottom: 20 },
-  emailText: { marginBottom: 20, fontSize: 16, color: '#666' },
-  input: { width: '100%', marginBottom: 20 },
-  button: { width: '100%', marginBottom: 10, backgroundColor: '#6200ee' },
-  logoutButton: { width: '100%', backgroundColor: '#d32f2f' },
-  errorText: { color: 'red', marginBottom: 10 },
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  profileCard: {
+    margin: 16,
+    backgroundColor: '#fff',
+    elevation: 2,
+  },
+  profileContent: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  avatar: {
+    backgroundColor: '#6200ee',
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 12,
+    color: '#333',
+  },
+  email: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 4,
+  },
+  phone: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    marginHorizontal: 4,
+    backgroundColor: '#fff',
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#6200ee',
+    textAlign: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  divider: {
+    marginVertical: 12,
+  },
 });
