@@ -1,27 +1,44 @@
-# Node.js
+# Dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
+.npm
+.yarn
 
-# Expo / React Native
-.expo/
-.expo-shared/
-*.log
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
 
 # Build outputs
 dist/
 build/
-.output/
-.next/
-.turbo/
-
-# Environment files
-.env.local
-.env.production
-
-# macOS
-.DS_Store
+.expo/
+.expo-shared/
 
 # Logs
-logs/
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Misc
+.replit
+replit.nix
