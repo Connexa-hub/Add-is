@@ -260,4 +260,371 @@ router.get('/analytics', verifyToken, isAdmin, async (req, res, next) => {
   }
 });
 
+// Get revenue trends
+router.get('/analytics/revenue-trends', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { period = 'daily', days = 30 } = req.query;
+    const startDate = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000);
+    
+    let dateFormat;
+    switch (period) {
+      case 'monthly':
+        dateFormat = '%Y-%m';
+        break;
+      case 'weekly':
+        dateFormat = '%Y-W%V';
+        break;
+      default:
+        dateFormat = '%Y-%m-%d';
+    }
+    
+    const trends = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: dateFormat, date: '$createdAt' } },
+          totalRevenue: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$amount', 0] } },
+          totalTransactions: { $sum: 1 },
+          successfulTransactions: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          failedTransactions: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    res.json({
+      success: true,
+      data: trends
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get user growth analytics
+router.get('/analytics/user-growth', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { days = 30 } = req.query;
+    const startDate = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000);
+    
+    const growth = await User.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          newUsers: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    const totalUsers = await User.countDocuments();
+    const activeUsers = await User.countDocuments({ 
+      lastLogin: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } 
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        growth,
+        totalUsers,
+        activeUsers,
+        inactiveUsers: totalUsers - activeUsers
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get transaction volume analytics
+router.get('/analytics/transaction-volume', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { days = 30 } = req.query;
+    const startDate = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000);
+    
+    const volume = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$amount' },
+          avgAmount: { $avg: '$amount' },
+          byCategory: {
+            $push: { category: '$category', amount: '$amount', status: '$status' }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    const categoryBreakdown = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: startDate }, status: 'completed' } },
+      {
+        $group: {
+          _id: '$category',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$amount' },
+          avgAmount: { $avg: '$amount' }
+        }
+      },
+      { $sort: { totalAmount: -1 } }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        volume,
+        categoryBreakdown
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get enhanced dashboard stats with wallet balance
+router.get('/stats/enhanced', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const activeUsers = await User.countDocuments({ 
+      lastLogin: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } 
+    });
+    
+    const totalTransactions = await Transaction.countDocuments();
+    const totalRevenue = await Transaction.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    const totalWalletBalance = await User.aggregate([
+      { $group: { _id: null, total: { $sum: '$walletBalance' } } }
+    ]);
+    
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const todayStats = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: todayStart } } },
+      {
+        $group: {
+          _id: null,
+          transactions: { $sum: 1 },
+          revenue: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$amount', 0] } },
+          failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
+        }
+      }
+    ]);
+    
+    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const prevWeekStart = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    
+    const weekRevenue = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: weekStart }, status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    const prevWeekRevenue = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: prevWeekStart, $lt: weekStart }, status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    const revenueChange = prevWeekRevenue[0]?.total > 0
+      ? ((weekRevenue[0]?.total || 0) - prevWeekRevenue[0].total) / prevWeekRevenue[0].total * 100
+      : 0;
+    
+    res.json({
+      success: true,
+      totalUsers,
+      activeUsers,
+      totalTransactions,
+      totalRevenue: totalRevenue[0]?.total || 0,
+      totalWalletBalance: totalWalletBalance[0]?.total || 0,
+      todayTransactions: todayStats[0]?.transactions || 0,
+      todayRevenue: todayStats[0]?.revenue || 0,
+      todayFailed: todayStats[0]?.failed || 0,
+      revenueChange: revenueChange.toFixed(1)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get user activity and insights
+router.get('/users/:userId/insights', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const transactions = await Transaction.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    
+    const stats = await Transaction.aggregate([
+      { $match: { userId: user._id } },
+      {
+        $group: {
+          _id: null,
+          totalSpent: { $sum: { $cond: [{ $eq: ['$type', 'debit'] }, '$amount', 0] } },
+          totalReceived: { $sum: { $cond: [{ $eq: ['$type', 'credit'] }, '$amount', 0] } },
+          transactionCount: { $sum: 1 },
+          avgTransactionAmount: { $avg: '$amount' }
+        }
+      }
+    ]);
+    
+    const categorySpending = await Transaction.aggregate([
+      { $match: { userId: user._id, type: 'debit', status: 'completed' } },
+      {
+        $group: {
+          _id: '$category',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { total: -1 } }
+    ]);
+    
+    const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const activityTimeline = await Transaction.find({ 
+      userId,
+      createdAt: { $gte: last30Days }
+    })
+      .select('type category amount status createdAt description')
+      .sort({ createdAt: -1 })
+      .limit(20);
+    
+    const lifetimeValue = stats[0]?.totalSpent || 0;
+    const riskScore = calculateRiskScore(user, transactions);
+    
+    res.json({
+      success: true,
+      data: {
+        user,
+        stats: stats[0] || {},
+        categorySpending,
+        activityTimeline,
+        lifetimeValue,
+        riskScore
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Export transactions to CSV
+router.get('/transactions/export', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { status, type, startDate, endDate } = req.query;
+    
+    const query = {};
+    if (status) query.status = status;
+    if (type) query.category = type;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    
+    const transactions = await Transaction.find(query)
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(10000);
+    
+    const csv = [
+      'Reference,User,Email,Type,Category,Amount,Status,Payment Gateway,Date',
+      ...transactions.map(t => 
+        `${t.reference || 'N/A'},${t.userId?.name || 'N/A'},${t.userId?.email || 'N/A'},${t.type},${t.category},${t.amount},${t.status},${t.paymentGateway || 'N/A'},${new Date(t.createdAt).toISOString()}`
+      )
+    ].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=transactions.csv');
+    res.send(csv);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get payment gateway balances
+router.get('/payment-gateway/balances', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const monnifyClient = require('../utils/monnifyClient');
+    const vtpassClient = require('../utils/vtpassClient');
+    
+    let monnifyBalance = { available: 0, ledger: 0, error: null };
+    let vtpassBalance = { available: 0, error: null };
+    
+    try {
+      const monnifyData = await monnifyClient.getAccountBalance();
+      monnifyBalance = {
+        available: monnifyData.availableBalance || 0,
+        ledger: monnifyData.ledgerBalance || 0,
+        error: null
+      };
+    } catch (error) {
+      monnifyBalance.error = error.message;
+    }
+    
+    try {
+      const vtpassData = await vtpassClient.getBalance();
+      vtpassBalance = {
+        available: vtpassData.balance || 0,
+        error: null
+      };
+    } catch (error) {
+      vtpassBalance.error = error.message;
+    }
+    
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const gatewayStats = await Transaction.aggregate([
+      { $match: { createdAt: { $gte: last24Hours } } },
+      {
+        $group: {
+          _id: '$paymentGateway',
+          totalAmount: { $sum: '$amount' },
+          count: { $sum: 1 },
+          successful: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } }
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        monnify: monnifyBalance,
+        vtpass: vtpassBalance,
+        gatewayStats,
+        lastUpdated: new Date()
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Helper function to calculate risk score
+function calculateRiskScore(user, transactions) {
+  let score = 50;
+  
+  if (!user.isEmailVerified) score += 15;
+  if (!user.isActive) score += 20;
+  
+  const failedTransactions = transactions.filter(t => t.status === 'failed').length;
+  const failureRate = transactions.length > 0 ? failedTransactions / transactions.length : 0;
+  score += failureRate * 30;
+  
+  const accountAge = (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+  if (accountAge < 7) score += 10;
+  
+  return Math.min(100, Math.max(0, Math.round(score)));
+}
+
 module.exports = router;
