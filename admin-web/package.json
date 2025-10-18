@@ -1,14 +1,16 @@
 {
   "name": "admin-web",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "VTU Bill Payment Admin Dashboard",
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",
     "axios": "^1.12.2",
