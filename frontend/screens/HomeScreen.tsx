@@ -24,16 +24,22 @@ interface Transaction {
   recipient?: string;
 }
 
+interface User {
+  id: string;
+  role: 'user' | 'admin';
+}
+
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { tokens } = useAppTheme();
-  
+
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [promoBannerVisible, setPromoBannerVisible] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
 
   const fetchData = async () => {
     try {
@@ -48,9 +54,10 @@ const HomeScreen = () => {
         'Content-Type': 'application/json',
       };
 
-      const [walletResponse, transactionsResponse] = await Promise.all([
+      const [walletResponse, transactionsResponse, userResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/auth/wallet`, { headers }),
         fetch(`${API_BASE_URL}/transactions/recent?limit=5`, { headers }),
+        fetch(`${API_BASE_URL}/auth/user`, { headers }),
       ]);
 
       if (walletResponse.ok) {
@@ -61,6 +68,11 @@ const HomeScreen = () => {
       if (transactionsResponse.ok) {
         const transactionsJson = await transactionsResponse.json();
         setTransactions(transactionsJson);
+      }
+
+      if (userResponse.ok) {
+        const userJson = await userResponse.json();
+        setUser(userJson);
       }
 
       setError(null);
@@ -226,9 +238,9 @@ const HomeScreen = () => {
 
         <View style={[styles.actionButtons, { marginTop: tokens.spacing.md, gap: tokens.spacing.md }]}>
           <View style={{ flex: 1 }}>
-            <AppButton 
-              onPress={handleFundWallet} 
-              variant="primary" 
+            <AppButton
+              onPress={handleFundWallet}
+              variant="primary"
               size="md"
               icon={<Ionicons name="add-circle" size={20} color={tokens.colors.text.inverse} />}
             >
@@ -236,9 +248,9 @@ const HomeScreen = () => {
             </AppButton>
           </View>
           <View style={{ flex: 1 }}>
-            <AppButton 
-              onPress={handleWithdraw} 
-              variant="outline" 
+            <AppButton
+              onPress={handleWithdraw}
+              variant="outline"
               size="md"
               icon={<Ionicons name="arrow-up-circle" size={20} color={tokens.colors.primary.main} />}
             >
@@ -247,21 +259,53 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        <AppText variant="h3" weight="bold" style={{ marginTop: tokens.spacing.xl, marginBottom: tokens.spacing.md }}>
-          Quick Actions
-        </AppText>
-
-        <View style={styles.servicesGrid}>
-          {services.map((service, index) => (
-            <View key={index} style={[styles.serviceCardContainer, { marginBottom: tokens.spacing.md }]}>
-              <ServiceCard
-                title={service.title}
-                icon={service.icon}
-                badge={service.badge}
-                onPress={() => navigation.navigate(service.screen as never)}
-              />
+        {/* Admin Access */}
+        {user?.role === 'admin' && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: tokens.colors.error.main,
+              padding: tokens.spacing.lg,
+              borderRadius: tokens.radius.lg,
+              marginBottom: tokens.spacing.lg,
+              ...tokens.shadows.md,
+            }}
+            onPress={() => navigation.navigate('AdminDashboard')}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="shield-checkmark" size={24} color="#fff" />
+                <View style={{ marginLeft: tokens.spacing.md }}>
+                  <AppText variant="subtitle1" weight="bold" style={{ color: '#fff' }}>
+                    Admin Control Panel
+                  </AppText>
+                  <AppText variant="caption" style={{ color: '#fff', opacity: 0.9 }}>
+                    Manage users, transactions & more
+                  </AppText>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#fff" />
             </View>
-          ))}
+          </TouchableOpacity>
+        )}
+
+        {/* Quick Actions */}
+        <View style={{ marginBottom: tokens.spacing.xl }}>
+          <AppText variant="h3" weight="bold" style={{ marginTop: tokens.spacing.xl, marginBottom: tokens.spacing.md }}>
+            Quick Actions
+          </AppText>
+
+          <View style={styles.servicesGrid}>
+            {services.map((service, index) => (
+              <View key={index} style={[styles.serviceCardContainer, { marginBottom: tokens.spacing.md }]}>
+                <ServiceCard
+                  title={service.title}
+                  icon={service.icon}
+                  badge={service.badge}
+                  onPress={() => navigation.navigate(service.screen as never)}
+                />
+              </View>
+            ))}
+          </View>
         </View>
 
         {promoBannerVisible && (

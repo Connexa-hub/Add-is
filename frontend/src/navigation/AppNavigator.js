@@ -17,6 +17,8 @@ import SettingsScreen from '../../screens/SettingsScreen';
 import DataScreen from '../../screens/DataScreen';
 import TVScreen from '../../screens/TVScreen';
 import ElectricityScreen from '../../screens/ElectricityScreen';
+import AdminDashboardScreen from '../../screens/AdminDashboardScreen';
+import AdminUsersScreen from '../../screens/AdminUsersScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -51,6 +53,10 @@ export default function AppNavigator() {
         <Stack.Screen name="TV" component={TVScreen} />
         <Stack.Screen name="Electricity" component={ElectricityScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        
+        {/* Admin Screens */}
+        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+        <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

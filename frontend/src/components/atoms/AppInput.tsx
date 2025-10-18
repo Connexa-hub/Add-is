@@ -10,6 +10,7 @@ export interface AppInputProps extends Omit<TextInputProps, 'style'> {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   containerStyle?: object;
+  disabled?: boolean;
 }
 
 export const AppInput: React.FC<AppInputProps> = ({
@@ -19,6 +20,7 @@ export const AppInput: React.FC<AppInputProps> = ({
   leftIcon,
   rightIcon,
   containerStyle,
+  disabled,
   ...props
 }) => {
   const { tokens } = useAppTheme();
@@ -46,26 +48,23 @@ export const AppInput: React.FC<AppInputProps> = ({
             paddingHorizontal: tokens.spacing.md,
             paddingVertical: tokens.spacing.md,
             backgroundColor: tokens.colors.background.default,
-            pointerEvents: 'box-none',
           },
         ]}
       >
-        {leftIcon && <View style={{ marginRight: tokens.spacing.sm, pointerEvents: 'none' }}>{leftIcon}</View>}
+        {leftIcon && <View style={{ marginRight: tokens.spacing.sm }}>{leftIcon}</View>}
         <TextInput
           style={[
             styles.input,
-            {
-              fontSize: tokens.typography.variants.body1.fontSize,
-              color: tokens.colors.text.primary,
-              pointerEvents: 'auto',
-            },
+            { color: tokens.colors.text.primary },
+            disabled && { opacity: 0.6 },
           ]}
           placeholderTextColor={tokens.colors.text.disabled}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          editable={!disabled}
           {...props}
         />
-        {rightIcon && <View style={{ marginLeft: tokens.spacing.sm, pointerEvents: 'box-none' }}>{rightIcon}</View>}
+        {rightIcon && <View style={{ marginLeft: tokens.spacing.sm }}>{rightIcon}</View>}
       </View>
       {error && (
         <AppText variant="caption" style={{ marginTop: tokens.spacing.xs, color: tokens.colors.error.main }}>

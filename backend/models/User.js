@@ -5,7 +5,18 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
   biometricToken: String,
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  lastLogin: {
+    type: Date
+  },
   walletBalance: { type: Number, default: 0 },
   virtualAccountNumber: { type: String, default: () => '247' + Math.floor(Math.random() * 10000000).toString().padStart(7, '0') }
 }, { timestamps: true });
