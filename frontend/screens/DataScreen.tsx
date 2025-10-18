@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  TextInput,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -67,11 +76,11 @@ export default function DataScreen() {
       const token = await AsyncStorage.getItem('token');
       const response = await axios.post(
         `${API_BASE_URL}/services/buy-data`,
-        { 
-          phoneNumber, 
-          plan: selectedPlan.id, 
+        {
+          phoneNumber,
+          plan: selectedPlan.id,
           network: selectedNetwork,
-          amount: selectedPlan.price 
+          amount: selectedPlan.price
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -94,9 +103,9 @@ export default function DataScreen() {
   return (
     <View style={[styles.container, { backgroundColor: tokens.colors.background.default }]}>
       <View style={[styles.header, { backgroundColor: tokens.colors.primary.main, paddingTop: 50 }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        </Pressable>
         <AppText variant="h2" weight="bold" color="#FFFFFF">
           Buy Data
         </AppText>
@@ -109,15 +118,15 @@ export default function DataScreen() {
           </AppText>
           <View style={styles.networkGrid}>
             {networks.map((network) => (
-              <TouchableOpacity
+              <Pressable
                 key={network.id}
                 style={[
                   styles.networkCard,
                   {
                     backgroundColor: tokens.colors.background.paper,
                     borderWidth: 2,
-                    borderColor: selectedNetwork === network.id 
-                      ? tokens.colors.primary.main 
+                    borderColor: selectedNetwork === network.id
+                      ? tokens.colors.primary.main
                       : tokens.colors.border.default,
                     borderRadius: tokens.radius.lg,
                     ...tokens.shadows.sm,
@@ -131,7 +140,7 @@ export default function DataScreen() {
                 <AppText variant="body2" weight="semibold" style={{ marginTop: tokens.spacing.xs }}>
                   {network.name}
                 </AppText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -157,15 +166,15 @@ export default function DataScreen() {
             Select Data Plan
           </AppText>
           {dataPlans.map((plan) => (
-            <TouchableOpacity
+            <Pressable
               key={plan.id}
               style={[
                 styles.planCard,
                 {
                   backgroundColor: tokens.colors.background.paper,
                   borderWidth: 2,
-                  borderColor: selectedPlan?.id === plan.id 
-                    ? tokens.colors.primary.main 
+                  borderColor: selectedPlan?.id === plan.id
+                    ? tokens.colors.primary.main
                     : tokens.colors.border.default,
                   borderRadius: tokens.radius.lg,
                   padding: tokens.spacing.md,
@@ -188,7 +197,7 @@ export default function DataScreen() {
                   ₦{plan.price}
                 </AppText>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 
@@ -272,32 +281,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-});
-
-  return (
-    <View style={styles.container}>
-      <Appbar.Header>
-        <Appbar.Content title="Buy Data" />
-      </Appbar.Header>
-      <View style={styles.form}>
-        <TextInput label="Phone Number" value={phoneNumber} onChangeText={setPhoneNumber} style={styles.input} mode="outlined" />
-        <TextInput label="Network" value={network} onChangeText={setNetwork} style={styles.input} mode="outlined" />
-        <TextInput label="Data Plan" value={plan} onChangeText={setPlan} style={styles.input} mode="outlined" />
-        <Button mode="contained" onPress={handleSubscribeData} style={styles.button}>Buy Data</Button>
-      </View>
-      <Portal>
-        <Modal visible={visible} onDismiss={() => setVisible(false)} contentContainerStyle={styles.modal}>
-          <Text>{message}</Text>
-        </Modal>
-      </Portal>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  form: { padding: 20 },
-  input: { marginBottom: 10 },
-  button: { marginVertical: 10, backgroundColor: '#6200ee' },
-  modal: { backgroundColor: 'white', padding: 20, margin: 20, borderRadius: 10, elevation: 4 },
+  selectedPlanCard: {
+    borderColor: '#007AFF',
+    borderWidth: 2,
+    backgroundColor: '#E3F2FD',
+  },
+  pressedPlanCard: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
+  },
+  pressedButton: {
+    opacity: 0.8,
+  },
 });
