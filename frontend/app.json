@@ -1,7 +1,8 @@
+
 {
   "expo": {
     "name": "Addis",
-    "slug": "data-store",
+    "slug": "addis",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -18,10 +19,15 @@
       "bundleIdentifier": "com.connexa.addis"
     },
     "android": {
-      "package": "com.addis"
+      "package": "com.connexa.addis",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "scheme": "addis"
   }
 }
