@@ -112,10 +112,10 @@ export default function RegisterScreen({ navigation }) {
           <ScrollView 
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
           >
-            <View style={[styles.container, { padding: tokens.spacing.lg }]}>
-              <View style={{ marginBottom: tokens.spacing.xl }}>
+            <View style={{ padding: tokens.spacing.lg }}>
+              <View style={{ marginBottom: tokens.spacing.xl, marginTop: tokens.spacing['2xl'] }}>
                 <View style={[styles.iconContainer, { 
                   backgroundColor: tokens.colors.primary.light,
                   marginBottom: tokens.spacing.lg,
@@ -302,11 +302,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 24,
+    paddingBottom: 40,
   },
   iconContainer: {
     alignItems: 'center',

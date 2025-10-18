@@ -75,10 +75,10 @@ export default function LoginScreen({ navigation }) {
           <ScrollView 
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
           >
-            <View style={[styles.container, { padding: tokens.spacing.lg }]}>
-              <View style={{ marginBottom: tokens.spacing['2xl'] }}>
+            <View style={{ padding: tokens.spacing.lg }}>
+              <View style={{ marginBottom: tokens.spacing['2xl'], marginTop: tokens.spacing['2xl'] }}>
                 <View style={[styles.iconContainer, { 
                   backgroundColor: tokens.colors.primary.light,
                   marginBottom: tokens.spacing.lg,
@@ -185,10 +185,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
   },
   iconContainer: {
     alignItems: 'center',
