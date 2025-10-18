@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -28,69 +27,119 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-cyan-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo & Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-500 shadow-2xl mb-4">
-            <span className="text-white font-bold text-4xl">C</span>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem'
+    }}>
+      <div style={{ width: '100%', maxWidth: '440px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '90px',
+            height: '90px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #2BE2FA 0%, #10B981 100%)',
+            boxShadow: '0 20px 40px rgba(43, 226, 250, 0.3)',
+            marginBottom: '1.5rem'
+          }}>
+            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '3rem' }}>C</span>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent mb-2">
+          <h1 style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, #2BE2FA 0%, #10B981 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '0.5rem'
+          }}>
             Connexa
           </h1>
-          <p className="text-gray-600 font-medium">Admin Portal</p>
+          <p style={{ color: '#667eea', fontWeight: '600', fontSize: '1.1rem' }}>Admin Portal</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
-            <p className="text-gray-600">Sign in to access your dashboard</p>
+        <div className="card" style={{
+          padding: '2.5rem',
+          background: 'white',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)'
+        }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--gray-900)', marginBottom: '0.5rem' }}>
+              Welcome back
+            </h2>
+            <p style={{ color: 'var(--gray-600)' }}>Sign in to access your dashboard</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label className="input-label">Email Address</label>
+              <div style={{ position: 'relative' }}>
+                <Mail style={{
+                  position: 'absolute',
+                  left: '1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--gray-400)'
+                }} size={20} />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white transition-all text-gray-900"
+                  className="input-field"
+                  style={{ paddingLeft: '3rem' }}
                   placeholder="admin@connexa.com"
                   required
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <div className="input-group">
+              <label className="input-label">Password</label>
+              <div style={{ position: 'relative' }}>
+                <Lock style={{
+                  position: 'absolute',
+                  left: '1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--gray-400)'
+                }} size={20} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white transition-all text-gray-900"
+                  className="input-field"
+                  style={{ paddingLeft: '3rem', paddingRight: '3rem' }}
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  style={{
+                    position: 'absolute',
+                    right: '1rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--gray-400)',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -100,25 +149,37 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+              className="btn btn-primary btn-lg"
+              style={{
+                width: '100%',
+                marginTop: '0.5rem',
+                background: 'linear-gradient(135deg, #2BE2FA 0%, #10B981 100%)',
+                border: 'none',
+                boxShadow: '0 4px 15px rgba(43, 226, 250, 0.4)',
+                fontSize: '1.1rem'
+              }}
             >
               {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <div className="loading-spinner"></div>
                   <span>Signing in...</span>
-                </>
+                </span>
               ) : (
-                <>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <LogIn size={20} />
                   <span>Sign In</span>
-                </>
+                </span>
               )}
             </button>
           </form>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p style={{
+          textAlign: 'center',
+          color: 'rgba(255, 255, 255, 0.9)',
+          marginTop: '2rem',
+          fontSize: '0.9rem'
+        }}>
           Secure admin access powered by Connexa
         </p>
       </div>
