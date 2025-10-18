@@ -100,6 +100,7 @@ export default function Login() {
                   className="input-field"
                   style={{ paddingLeft: '3rem' }}
                   placeholder="admin@connexa.com"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -122,6 +123,7 @@ export default function Login() {
                   className="input-field"
                   style={{ paddingLeft: '3rem', paddingRight: '3rem' }}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   required
                 />
                 <button
