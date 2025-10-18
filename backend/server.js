@@ -2,9 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
 
 dotenv.config();
 const app = express();
+
+// Production configuration
+const isProduction = process.env.NODE_ENV === 'production';
 
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
@@ -12,6 +16,11 @@ const errorHandler = require('./middleware/errorHandler');
 app.use(cors());
 app.use(express.json());
 app.use(logger);
+
+// Serve admin dashboard static files in production
+if (isProduction) {
+  app.use(express.static(path.join(__dirname, '../admin-web/dist')));
+}
 
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
@@ -38,6 +47,17 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/support', supportRoutes);
 app.use('/api/admin/cashback', cashbackRoutes);
 app.use('/api/admin/settings', settingsRoutes);
+
+// Serve admin dashboard SPA in production
+if (isProduction) {
+  app.get('*', (req, res, next) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(__dirname, '../admin-web/dist/index.html'));
+    } else {
+      next();
+    }
+  });
+}
 
 app.use((req, res) => {
   res.status(404).json({ 
