@@ -1,19 +1,20 @@
-
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const verifyToken = require('../middleware/verifyToken');
+const verifyAdmin = require('../middleware/verifyAdmin');
 
-// All routes require authentication
+router.post('/webhook/monnify', paymentController.monnifyWebhook);
+
 router.use(verifyToken);
 
-// Initialize payment
 router.post('/initialize', paymentController.initializePayment);
-
-// Verify payment
 router.get('/verify/:reference', paymentController.verifyPayment);
-
-// Get payment history
 router.get('/history', paymentController.getPaymentHistory);
+
+router.post('/virtual-account/create', paymentController.createVirtualAccount);
+router.get('/virtual-account', paymentController.getVirtualAccount);
+
+router.get('/monnify/balance', verifyAdmin, paymentController.getMonnifyBalance);
 
 module.exports = router;

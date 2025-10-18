@@ -18,6 +18,14 @@ const UserSchema = new mongoose.Schema({
     type: Date
   },
   walletBalance: { type: Number, default: 0 },
-  virtualAccountNumber: { type: String, default: () => '247' + Math.floor(Math.random() * 10000000).toString().padStart(7, '0') }
+  virtualAccountNumber: { type: String, default: () => '247' + Math.floor(Math.random() * 10000000).toString().padStart(7, '0') },
+  monnifyAccountReference: String,
+  monnifyAccounts: [{
+    accountNumber: String,
+    accountName: String,
+    bankName: String,
+    bankCode: String,
+    createdAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 module.exports = mongoose.model('User', UserSchema);
