@@ -257,10 +257,7 @@ export default function RegisterScreen({ navigation }) {
                 {agreeToTerms && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
               </View>
               <AppText variant="body2" color={tokens.colors.text.secondary} style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                I agree to the{' '}
-                <AppText variant="body2" color={tokens.colors.primary.main}>
-                  Terms and Conditions
-                </AppText>
+                I agree to the <AppText variant="body2" color={tokens.colors.primary.main}>Terms and Conditions</AppText>
               </AppText>
             </TouchableOpacity>
 
@@ -282,13 +279,8 @@ export default function RegisterScreen({ navigation }) {
 
             <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
               <AppText variant="body2" color={tokens.colors.text.secondary}>
-                Already have an account?{' '}
+                Already have an account? <AppText variant="subtitle2" color={tokens.colors.primary.main} onPress={() => navigation.navigate('Login')}>Sign In</AppText>
               </AppText>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <AppText variant="subtitle2" color={tokens.colors.primary.main}>
-                  Sign In
-                </AppText>
-              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>

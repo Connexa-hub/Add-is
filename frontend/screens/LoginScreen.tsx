@@ -160,13 +160,8 @@ export default function LoginScreen({ navigation }) {
 
             <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
               <AppText variant="body2" color={tokens.colors.text.secondary}>
-                Don't have an account?{' '}
+                Don't have an account? <AppText variant="subtitle2" color={tokens.colors.primary.main} onPress={() => navigation.navigate('Register')}>Sign Up</AppText>
               </AppText>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <AppText variant="subtitle2" color={tokens.colors.primary.main}>
-                  Sign Up
-                </AppText>
-              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>

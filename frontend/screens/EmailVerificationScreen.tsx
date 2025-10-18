@@ -133,13 +133,8 @@ export default function EmailVerificationScreen({ route, navigation }) {
               ) : (
                 <View style={styles.resendRow}>
                   <AppText variant="body2" color={tokens.colors.text.secondary}>
-                    Didn't receive the code?{' '}
+                    Didn't receive the code? <AppText variant="subtitle2" color={tokens.colors.primary.main} onPress={resendLoading ? undefined : handleResend}>{resendLoading ? 'Sending...' : 'Resend'}</AppText>
                   </AppText>
-                  <TouchableOpacity onPress={handleResend} disabled={resendLoading}>
-                    <AppText variant="subtitle2" color={tokens.colors.primary.main}>
-                      {resendLoading ? 'Sending...' : 'Resend'}
-                    </AppText>
-                  </TouchableOpacity>
                 </View>
               )}
             </View>
