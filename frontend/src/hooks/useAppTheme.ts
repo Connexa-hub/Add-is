@@ -1,7 +1,14 @@
 import { useTheme } from 'react-native-paper';
-import { AppTheme } from '../theme';
+import { AppTheme, theme as defaultTheme } from '../theme';
 
 export const useAppTheme = (): AppTheme => {
-  const theme = useTheme<AppTheme>();
-  return theme as AppTheme;
+  const paperTheme = useTheme();
+  
+  // Ensure the theme always has the tokens property
+  // by merging with our default theme
+  return {
+    ...paperTheme,
+    ...defaultTheme,
+    tokens: defaultTheme.tokens
+  } as AppTheme;
 };

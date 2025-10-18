@@ -12,10 +12,24 @@ This platform enables users to:
 - Receive cashback rewards
 - Get notifications and promotions
 
+## Quick Start (Replit)
+
+### Running the Application
+The project is already configured and running in Replit:
+- **Admin Dashboard**: Available at the main Replit URL (port 5000)
+- **Backend API**: Running on localhost:3001
+- **Frontend (Mobile App)**: React Native/Expo app (for development with Expo Go)
+
+### Environment Setup
+All environment variables are configured in `backend/.env`:
+- MongoDB Atlas database connected
+- VTPass integration in sandbox mode
+- JWT authentication enabled
+
 ## Project Structure
 
 ```
-├── backend/              # Node.js/Express API server
+├── backend/              # Node.js/Express API server (Port 3001)
 │   ├── config/          # Database configuration
 │   ├── controllers/     # Business logic
 │   ├── middleware/      # Auth, validation, logging
@@ -23,9 +37,63 @@ This platform enables users to:
 │   ├── routes/          # API endpoints
 │   └── utils/           # VTPass integration
 ├── frontend/            # React Native mobile app (Expo)
-├── admin-web/          # Admin dashboard (React + Vite)
-└── proxy-server.js     # Development proxy (deprecated)
+│   ├── src/            # Source code
+│   │   ├── components/ # Reusable UI components
+│   │   ├── theme/     # Design system (colors, typography, spacing)
+│   │   └── hooks/     # Custom React hooks
+│   └── screens/       # App screens (Login, Home, etc.)
+├── backend/admin-web/  # Admin dashboard (React + Vite, Port 5000)
+└── docs/              # Documentation guides
 ```
+
+## Recent Updates (October 18, 2025)
+
+### ✅ Replit Setup Completed
+1. **Backend Configuration**
+   - Created `.env` file with MongoDB connection, JWT secret, and VTPass credentials
+   - Installed all backend dependencies
+   - Environment validation added to prevent startup without required variables
+
+2. **Admin Dashboard Setup**
+   - Installed admin-web dependencies
+   - Configured Vite dev server on port 5000
+   - Enabled proxy to backend API on port 3001
+   - Host configuration set for Replit environment (0.0.0.0, allowedHosts: true)
+
+3. **Frontend (Mobile App) Setup**
+   - Installed all frontend dependencies
+   - Fixed runtime error: "Cannot read property 'colors' of undefined"
+   - Updated `useAppTheme` hook to properly return theme with tokens
+
+4. **Workflow Configuration**
+   - Single workflow runs both backend and admin-web
+   - Backend starts on localhost:3001
+   - Admin dashboard serves on 0.0.0.0:5000
+   - Both services start automatically
+
+### 📚 New Documentation
+Three comprehensive guides have been created:
+
+1. **KOYEB_DEPLOYMENT_GUIDE.md**
+   - Complete Koyeb deployment instructions
+   - Environment variable configuration
+   - Troubleshooting common deployment issues
+   - MongoDB Atlas setup
+   - Testing and monitoring guidelines
+
+2. **WALLET_FUNDING_GUIDE.md**
+   - Detailed explanation of wallet system
+   - How users fund their wallets
+   - Virtual account number system
+   - Payment gateway integration (Paystack/Monnify)
+   - Money flow and profit calculation
+   - Production setup timeline
+
+3. **MONEY_SYSTEM_DOCUMENTATION.md** (existing)
+   - Technical implementation details
+   - VTPass integration
+   - Cashback system
+   - Security measures
 
 ## Recent Changes
 
