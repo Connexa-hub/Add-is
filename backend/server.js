@@ -18,6 +18,9 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const supportRoutes = require('./routes/supportRoutes');
+const cashbackRoutes = require('./routes/cashbackRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -32,6 +35,9 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/support', supportRoutes);
+app.use('/api/admin/cashback', cashbackRoutes);
+app.use('/api/admin/settings', settingsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ 
