@@ -10,13 +10,18 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["assets/**/*"],
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.connexa.addis"
     },
     "android": {
       "package": "com.addis"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
