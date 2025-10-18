@@ -1,80 +1,86 @@
+
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
 const isAdmin = require('../middleware/isAdmin');
 const Cashback = require('../models/Cashback');
-const SystemSettings = require('../models/SystemSettings');
+const User = require('../models/User');
+const Transaction = require('../models/Transaction');
 
-router.get('/settings', verifyToken, isAdmin, async (req, res, next) => {
-  try {
-    let settings = await SystemSettings.findOne();
-    
-    if (!settings) {
-      settings = await SystemSettings.create({});
-    }
-    
-    res.json({
-      success: true,
-      data: settings.cashbackSettings
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.put('/settings', verifyToken, isAdmin, async (req, res, next) => {
-  try {
-    const updates = req.body;
-    
-    let settings = await SystemSettings.findOne();
-    
-    if (!settings) {
-      settings = await SystemSettings.create({});
-    }
-    
-    settings.cashbackSettings = { ...settings.cashbackSettings, ...updates };
-    settings.updatedAt = new Date();
-    await settings.save();
-    
-    res.json({
-      success: true,
-      message: 'Cashback settings updated',
-      data: settings.cashbackSettings
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
+// Get all cashback configurations (Admin only)
 router.get('/', verifyToken, isAdmin, async (req, res, next) => {
   try {
-    const { page = 1, limit = 50, status } = req.query;
-    const skip = (page - 1) * limit;
+    const cashbacks = await Cashback.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: cashbacks });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Create cashback configuration (Admin only)
+router.post('/', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { serviceType, percentage, minAmount, maxCashback, isActive } = req.body;
     
-    const query = {};
-    if (status) query.status = status;
-    
-    const cashbacks = await Cashback.find(query)
-      .populate('userId', 'name email')
-      .populate('transactionId')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    const total = await Cashback.countDocuments(query);
-    
-    res.json({
-      success: true,
-      data: {
-        cashbacks,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+    const cashback = await Cashback.create({
+      serviceType,
+      percentage,
+      minAmount,
+      maxCashback,
+      isActive
     });
+    
+    res.status(201).json({ success: true, data: cashback });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update cashback configuration (Admin only)
+router.put('/:id', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { percentage, minAmount, maxCashback, isActive } = req.body;
+    
+    const cashback = await Cashback.findByIdAndUpdate(
+      req.params.id,
+      { percentage, minAmount, maxCashback, isActive },
+      { new: true, runValidators: true }
+    );
+    
+    if (!cashback) {
+      return res.status(404).json({ success: false, message: 'Cashback configuration not found' });
+    }
+    
+    res.json({ success: true, data: cashback });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete cashback configuration (Admin only)
+router.delete('/:id', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const cashback = await Cashback.findByIdAndDelete(req.params.id);
+    
+    if (!cashback) {
+      return res.status(404).json({ success: false, message: 'Cashback configuration not found' });
+    }
+    
+    res.json({ success: true, message: 'Cashback configuration deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get user's cashback history
+router.get('/user/history', verifyToken, async (req, res, next) => {
+  try {
+    const transactions = await Transaction.find({
+      userId: req.userId,
+      cashbackAmount: { $gt: 0 }
+    }).sort({ createdAt: -1 });
+    
+    res.json({ success: true, data: transactions });
   } catch (error) {
     next(error);
   }

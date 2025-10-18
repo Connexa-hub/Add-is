@@ -33,6 +33,21 @@ exports.payElectricity = async (req, res, next) => {
       request_id: reference
     });
 
+    // Calculate cashback
+    const Cashback = require('../models/Cashback');
+    const cashbackConfig = await Cashback.findOne({ 
+      serviceType: 'Electricity', 
+      isActive: true 
+    });
+    
+    let cashbackAmount = 0;
+    if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
+      cashbackAmount = (amount * cashbackConfig.percentage) / 100;
+      if (cashbackConfig.maxCashback && cashbackAmount > cashbackConfig.maxCashback) {
+        cashbackAmount = cashbackConfig.maxCashback;
+      }
+    }
+
     const transaction = await Transaction.create({ 
       userId: req.userId, 
       type: 'Electricity', 
@@ -41,11 +56,27 @@ exports.payElectricity = async (req, res, next) => {
       reference,
       recipient: meterNumber,
       status: result.code === '000' ? 'success' : 'failed', 
-      details: result 
+      details: result,
+      cashbackAmount
     });
 
     if (result.code === '000') {
       user.walletBalance -= amount;
+      
+      // Add cashback to wallet
+      if (cashbackAmount > 0) {
+        user.walletBalance += cashbackAmount;
+        
+        // Create notification for cashback
+        const Notification = require('../models/Notification');
+        await Notification.create({
+          userId: req.userId,
+          title: 'Cashback Earned!',
+          message: `You've earned ₦${cashbackAmount.toFixed(2)} cashback on your electricity payment`,
+          type: 'cashback'
+        });
+      }
+      
       await user.save();
     }
 

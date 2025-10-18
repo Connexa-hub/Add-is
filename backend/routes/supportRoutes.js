@@ -1,108 +1,139 @@
+
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
 const isAdmin = require('../middleware/isAdmin');
 const SupportTicket = require('../models/SupportTicket');
+const User = require('../models/User');
 
-router.get('/tickets', verifyToken, isAdmin, async (req, res, next) => {
+// Create support ticket (User)
+router.post('/', verifyToken, async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, priority } = req.query;
-    const skip = (page - 1) * limit;
+    const { subject, message, category } = req.body;
     
-    const query = {};
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
-    
-    const tickets = await SupportTicket.find(query)
-      .populate('userId', 'name email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    const total = await SupportTicket.countDocuments(query);
-    
-    res.json({
-      success: true,
-      data: {
-        tickets,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+    const ticket = await SupportTicket.create({
+      userId: req.userId,
+      subject,
+      message,
+      category,
+      status: 'open'
     });
+    
+    res.status(201).json({ success: true, data: ticket });
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/tickets/:ticketId', verifyToken, isAdmin, async (req, res, next) => {
+// Get user's tickets
+router.get('/user', verifyToken, async (req, res, next) => {
   try {
-    const ticket = await SupportTicket.findById(req.params.ticketId)
-      .populate('userId', 'name email')
-      .populate('replies.userId', 'name email');
+    const tickets = await SupportTicket.find({ userId: req.userId })
+      .sort({ createdAt: -1 });
+    
+    res.json({ success: true, data: tickets });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get all tickets (Admin only)
+router.get('/', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { status, category } = req.query;
+    const filter = {};
+    
+    if (status) filter.status = status;
+    if (category) filter.category = category;
+    
+    const tickets = await SupportTicket.find(filter)
+      .populate('userId', 'name email phone')
+      .sort({ createdAt: -1 });
+    
+    res.json({ success: true, data: tickets });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get single ticket details
+router.get('/:id', verifyToken, async (req, res, next) => {
+  try {
+    const ticket = await SupportTicket.findById(req.params.id)
+      .populate('userId', 'name email phone');
     
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
     
-    res.json({
-      success: true,
-      data: ticket
-    });
+    // Check if user owns the ticket or is admin
+    const user = await User.findById(req.userId);
+    if (ticket.userId._id.toString() !== req.userId && user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    
+    res.json({ success: true, data: ticket });
   } catch (error) {
     next(error);
   }
 });
 
-router.put('/tickets/:ticketId/status', verifyToken, isAdmin, async (req, res, next) => {
+// Update ticket status (Admin only)
+router.put('/:id/status', verifyToken, isAdmin, async (req, res, next) => {
   try {
     const { status } = req.body;
     
     const ticket = await SupportTicket.findByIdAndUpdate(
-      req.params.ticketId,
-      { status, updatedAt: new Date() },
-      { new: true }
-    );
-    
-    res.json({
-      success: true,
-      message: 'Ticket status updated',
-      data: ticket
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post('/tickets/:ticketId/reply', verifyToken, isAdmin, async (req, res, next) => {
-  try {
-    const { message } = req.body;
-    
-    const ticket = await SupportTicket.findById(req.params.ticketId);
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate('userId', 'name email phone');
     
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
     
-    ticket.replies.push({
-      userId: req.userId,
-      message,
-      isAdmin: true,
-      createdAt: new Date()
-    });
+    res.json({ success: true, data: ticket });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Add response to ticket (Admin only)
+router.post('/:id/response', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { response } = req.body;
     
-    ticket.status = 'pending';
-    ticket.updatedAt = new Date();
-    await ticket.save();
+    const ticket = await SupportTicket.findByIdAndUpdate(
+      req.params.id,
+      { 
+        response,
+        status: 'resolved',
+        resolvedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    ).populate('userId', 'name email phone');
     
-    res.json({
-      success: true,
-      message: 'Reply sent successfully',
-      data: ticket
-    });
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+    
+    res.json({ success: true, data: ticket });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete ticket (Admin only)
+router.delete('/:id', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const ticket = await SupportTicket.findByIdAndDelete(req.params.id);
+    
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+    
+    res.json({ success: true, message: 'Ticket deleted successfully' });
   } catch (error) {
     next(error);
   }
