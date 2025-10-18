@@ -14,6 +14,12 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationOTP: String,
+  verificationExpires: Date,
   lastLogin: {
     type: Date
   },

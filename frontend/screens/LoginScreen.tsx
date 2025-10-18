@@ -51,14 +51,21 @@ export default function LoginScreen({ navigation }) {
         password 
       });
 
-      if (res.data.token) {
-        await AsyncStorage.setItem('token', res.data.token);
+      if (res.data.success && res.data.data.token) {
+        await AsyncStorage.setItem('token', res.data.data.token);
         navigation.replace('Main');
       }
     } catch (err) {
+      const errorData = err.response?.data;
+      
+      if (errorData?.requiresVerification && errorData?.email) {
+        navigation.navigate('EmailVerification', { email: errorData.email });
+        return;
+      }
+      
       setErrors({
         email: '',
-        password: err.response?.data?.message || 'Login failed. Please check your credentials.'
+        password: errorData?.message || 'Login failed. Please check your credentials.'
       });
     } finally {
       setLoading(false);

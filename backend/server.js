@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
@@ -11,17 +13,72 @@ validateEnv();
 
 const app = express();
 
-// Production configuration
 const isProduction = process.env.NODE_ENV === 'production';
-
-// Port configuration with fallback
 const PORT = process.env.PORT || 3001;
 
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 
-app.use(cors());
-app.use(express.json());
+app.use(helmet({
+  contentSecurityPolicy: isProduction ? undefined : false,
+  crossOriginEmbedderPolicy: isProduction ? undefined : false
+}));
+
+const allowedOrigins = isProduction 
+  ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)
+  : ['http://localhost:5000', 'http://localhost:3000', 'http://localhost:19006', 'exp://localhost:8081'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    
+    const isAllowed = allowedOrigins.some(allowed => {
+      try {
+        const allowedUrl = new URL(allowed);
+        const requestUrl = new URL(origin);
+        return allowedUrl.origin === requestUrl.origin;
+      } catch (e) {
+        return allowed === origin;
+      }
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(null, isProduction ? false : true);
+    }
+  },
+  credentials: true
+}));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { success: false, message: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/reset-password', authLimiter);
+app.use('/api/auth/verify-email', authLimiter);
+app.use('/api/auth/resend-verification', authLimiter);
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(logger);
 
 // Serve admin dashboard static files in production
@@ -79,14 +136,19 @@ app.use(errorHandler);
 
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000
+    });
     console.log('✅ MongoDB connected successfully');
     
-    app.listen(PORT, '0.0.0.0', () => {
+    const host = '0.0.0.0';
+    
+    app.listen(PORT, host, () => {
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+      console.log(`🚀 Server running on http://${host}:${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🏥 Health check: http://0.0.0.0:${PORT}/api/health`);
+      console.log(`🔒 Security: Rate limiting, CORS, Helmet, Sanitization enabled`);
+      console.log(`🏥 Health check: http://${host}:${PORT}/api/health`);
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     });
   } catch (err) {
