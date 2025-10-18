@@ -31,6 +31,10 @@ args = "bash -c '(cd backend && npm start) & (cd frontend && npm run web) & slee
 waitForPort = 5000
 
 [[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
@@ -41,3 +45,7 @@ externalPort = 80
 [[ports]]
 localPort = 19006
 externalPort = 3000
+
+[[ports]]
+localPort = 43489
+externalPort = 3002
