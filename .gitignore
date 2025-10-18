@@ -16,7 +16,6 @@ build/
 .turbo/
 
 # Environment files
-.env
 .env.local
 .env.production
 
