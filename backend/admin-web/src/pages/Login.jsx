@@ -16,12 +16,12 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    try {
-      await login(formData.email, formData.password);
+    const result = await login(formData.email, formData.password);
+    
+    if (result.success) {
       navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials');
-    } finally {
+    } else {
+      setError(result.error || 'Invalid credentials');
       setLoading(false);
     }
   };
