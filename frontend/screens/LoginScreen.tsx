@@ -96,7 +96,7 @@ export default function LoginScreen({ navigation }) {
               </AppText>
             </View>
 
-            <View style={{ marginBottom: tokens.spacing.lg }}>
+            <View style={{ marginBottom: tokens.spacing.lg }} pointerEvents="box-none">
               <AppInput
                 label="Email Address"
                 placeholder="Enter your email"
@@ -109,11 +109,12 @@ export default function LoginScreen({ navigation }) {
                 autoCapitalize="none"
                 autoComplete="email"
                 error={errors.email}
+                editable={!loading}
                 leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
               />
             </View>
 
-            <View style={{ marginBottom: tokens.spacing.base }}>
+            <View style={{ marginBottom: tokens.spacing.base }} pointerEvents="box-none">
               <AppInput
                 label="Password"
                 placeholder="Enter your password"
@@ -126,9 +127,10 @@ export default function LoginScreen({ navigation }) {
                 autoCapitalize="none"
                 autoComplete="password"
                 error={errors.password}
+                editable={!loading}
                 leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
                 rightIcon={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
                     <Ionicons 
                       name={showPassword ? "eye-off-outline" : "eye-outline"} 
                       size={20} 

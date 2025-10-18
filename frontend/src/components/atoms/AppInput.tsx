@@ -48,8 +48,9 @@ export const AppInput: React.FC<AppInputProps> = ({
             backgroundColor: tokens.colors.background.default,
           },
         ]}
+        pointerEvents="box-none"
       >
-        {leftIcon && <View style={{ marginRight: tokens.spacing.sm }}>{leftIcon}</View>}
+        {leftIcon && <View style={{ marginRight: tokens.spacing.sm }} pointerEvents="none">{leftIcon}</View>}
         <TextInput
           style={[
             styles.input,
@@ -61,9 +62,10 @@ export const AppInput: React.FC<AppInputProps> = ({
           placeholderTextColor={tokens.colors.text.disabled}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          pointerEvents="auto"
           {...props}
         />
-        {rightIcon && <View style={{ marginLeft: tokens.spacing.sm }}>{rightIcon}</View>}
+        {rightIcon && <View style={{ marginLeft: tokens.spacing.sm }} pointerEvents="box-none">{rightIcon}</View>}
       </View>
       {error && (
         <AppText variant="caption" style={{ marginTop: tokens.spacing.xs, color: tokens.colors.error.main }}>
