@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const verifyToken = require('../middleware/verifyToken');
-const verifyAdmin = require('../middleware/verifyAdmin');
+const isAdmin = require('../middleware/isAdmin');
 
 router.post('/webhook/monnify', paymentController.monnifyWebhook);
 
@@ -15,6 +15,6 @@ router.get('/history', paymentController.getPaymentHistory);
 router.post('/virtual-account/create', paymentController.createVirtualAccount);
 router.get('/virtual-account', paymentController.getVirtualAccount);
 
-router.get('/monnify/balance', verifyAdmin, paymentController.getMonnifyBalance);
+router.get('/monnify/balance', isAdmin, paymentController.getMonnifyBalance);
 
 module.exports = router;

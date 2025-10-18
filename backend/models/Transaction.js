@@ -14,6 +14,8 @@ const TransactionSchema = new mongoose.Schema({
   balanceAfter: Number,
   reference: { type: String, unique: true, sparse: true },
   paymentReference: String,
+  monnifyTransactionReference: String,
+  monnifyPaymentReference: String,
   paymentGateway: { type: String, enum: ['monnify', 'paystack', 'vtpass', 'manual'] },
   recipient: String,
   status: { type: String, enum: ['pending', 'completed', 'failed', 'cancelled'], default: 'pending' },

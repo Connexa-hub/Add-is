@@ -50,6 +50,10 @@ exports.initializePayment = async (req, res) => {
 
     const paymentResult = await monnifyClient.initializeTransaction(monnifyPayload);
 
+    transaction.monnifyTransactionReference = paymentResult.data.transactionReference;
+    transaction.monnifyPaymentReference = paymentResult.data.paymentReference;
+    await transaction.save();
+
     res.json({
       success: true,
       data: {
@@ -75,7 +79,11 @@ exports.verifyPayment = async (req, res) => {
     const userId = req.user.userId;
 
     const transaction = await Transaction.findOne({ 
-      $or: [{ reference }, { paymentReference: reference }],
+      $or: [
+        { reference },
+        { monnifyTransactionReference: reference },
+        { monnifyPaymentReference: reference }
+      ],
       user: userId 
     });
 
@@ -94,18 +102,30 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
-    const verificationResult = await monnifyClient.verifyTransaction(reference);
+    const monnifyRef = transaction.monnifyTransactionReference || reference;
+    const verificationResult = await monnifyClient.verifyTransaction(monnifyRef);
 
     if (verificationResult.isPaid) {
+      const paidAmount = verificationResult.amount;
+      
+      if (Math.abs(paidAmount - transaction.amount) > 0.01) {
+        console.error(`Amount mismatch: expected ${transaction.amount}, got ${paidAmount}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Payment amount mismatch'
+        });
+      }
+
       const user = await User.findById(userId);
       const balanceBefore = user.walletBalance;
-      user.walletBalance += transaction.amount;
+      user.walletBalance += paidAmount;
       await user.save();
 
       transaction.status = 'completed';
       transaction.completedAt = new Date();
       transaction.balanceBefore = balanceBefore;
       transaction.balanceAfter = user.walletBalance;
+      transaction.amount = paidAmount;
       transaction.metadata = verificationResult.data;
       await transaction.save();
 
@@ -163,6 +183,8 @@ exports.monnifyWebhook = async (req, res) => {
         $or: [
           { reference: paymentReference },
           { reference: transactionReference },
+          { monnifyTransactionReference: transactionReference },
+          { monnifyPaymentReference: paymentReference },
           { paymentReference: paymentReference }
         ]
       });
@@ -191,6 +213,16 @@ exports.monnifyWebhook = async (req, res) => {
         });
       }
 
+      if (Math.abs(amountPaid - transaction.amount) > 0.01) {
+        console.error(`Webhook amount mismatch: expected ${transaction.amount}, got ${amountPaid}`);
+        transaction.metadata = { ...eventData, amountMismatch: true };
+        await transaction.save();
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Amount mismatch logged' 
+        });
+      }
+
       const balanceBefore = user.walletBalance;
       user.walletBalance += amountPaid;
       await user.save();
@@ -199,6 +231,7 @@ exports.monnifyWebhook = async (req, res) => {
       transaction.completedAt = new Date(paidOn);
       transaction.balanceBefore = balanceBefore;
       transaction.balanceAfter = user.walletBalance;
+      transaction.amount = amountPaid;
       transaction.metadata = eventData;
       await transaction.save();
 
