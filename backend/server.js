@@ -59,7 +59,7 @@ app.use('/api/payment', paymentRoutes);
 
 // Serve admin dashboard SPA in production
 if (isProduction) {
-  app.get('*', (req, res, next) => {
+  app.get('/*', (req, res, next) => {
     if (!req.path.startsWith('/api')) {
       res.sendFile(path.join(__dirname, 'admin-web/dist/index.html'));
     } else {
