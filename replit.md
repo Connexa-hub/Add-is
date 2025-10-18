@@ -29,7 +29,16 @@ This platform enables users to:
 
 ## Recent Changes
 
-**October 18, 2025**
+**October 18, 2025 - Deployment Fixes**
+- ✅ Fixed Koyeb deployment issues (unhealthy status)
+- ✅ Added environment variable validation (validateEnv.js)
+- ✅ Improved server startup with proper error handling
+- ✅ Made admin-web build optional for backend-only deployments
+- ✅ Added PORT fallback and better MongoDB connection handling
+- ✅ Enhanced logging with clear error messages and debugging steps
+- ✅ Backend now running successfully in Replit (port 3001)
+
+**October 18, 2025 - Initial Setup**
 - ✅ Created admin web dashboard with React + Vite
 - ✅ Implemented user management (view, edit, activate/deactivate)
 - ✅ Built wallet management system (credit/debit)
