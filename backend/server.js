@@ -5,10 +5,17 @@ const cors = require('cors');
 const path = require('path');
 
 dotenv.config();
+
+const validateEnv = require('./config/validateEnv');
+validateEnv();
+
 const app = express();
 
 // Production configuration
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Port configuration with fallback
+const PORT = process.env.PORT || 3001;
 
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
@@ -68,7 +75,32 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => app.listen(process.env.PORT, '0.0.0.0', () =>
-    console.log(`Server running on http://0.0.0.0:${process.env.PORT}`)))
-  .catch(err => console.error('MongoDB error:', err));
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ MongoDB connected successfully');
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🏥 Health check: http://0.0.0.0:${PORT}/api/health`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    });
+  } catch (err) {
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ FATAL: Failed to start server');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('MongoDB Connection Error:', err.message);
+    console.error('');
+    console.error('Please check:');
+    console.error('  1. MONGO_URI is set correctly in environment variables');
+    console.error('  2. MongoDB server is accessible');
+    console.error('  3. Network connectivity to MongoDB');
+    console.error('  4. Database credentials are valid');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    process.exit(1);
+  }
+};
+
+startServer();

@@ -7,8 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "cd admin-web && npm install && npm run build",
-    "postinstall": "npm run build"
+    "build:admin": "cd admin-web && npm install && npm run build",
+    "postinstall": "if [ \"$SKIP_ADMIN_BUILD\" != \"true\" ] && [ \"$NODE_ENV\" = \"production\" ]; then npm run build:admin || echo 'Admin build skipped or failed (non-critical)'; fi"
   },
   "keywords": [],
   "author": "",
