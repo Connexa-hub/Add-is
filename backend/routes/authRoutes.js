@@ -14,6 +14,21 @@ router.get('/profile', verifyToken, async (req, res) => {
   res.json({ name: user.name, email: user.email });
 });
 
+// Get wallet balance
+router.get('/wallet', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ 
+      balance: user.walletBalance || 0,
+      virtualAccountNumber: user.virtualAccountNumber,
+      currency: '₦'
+    });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to get wallet balance' });
+  }
+});
+
 // Update profile
 router.put('/profile', verifyToken, async (req, res) => {
   const { name } = req.body;
