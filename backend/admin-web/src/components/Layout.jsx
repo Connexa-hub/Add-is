@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -13,13 +14,17 @@ import {
   LogOut,
   Menu,
   X,
+  Bell,
+  Search,
+  ChevronDown,
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -38,36 +43,72 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--gray-50)' }}>
+      {/* Sidebar */}
       <aside
         style={{
-          width: sidebarOpen ? '250px' : '0',
-          backgroundColor: 'var(--gray-800)',
-          color: 'white',
-          transition: 'width 0.3s',
+          width: sidebarOpen ? '280px' : '0',
+          backgroundColor: 'white',
+          borderRight: '1px solid var(--gray-200)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'fixed',
           height: '100vh',
           overflowY: 'auto',
           zIndex: 100,
+          boxShadow: sidebarOpen ? 'var(--shadow-lg)' : 'none',
         }}
       >
         <div style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>VTU Admin</h2>
+          {/* Logo */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: '2rem',
+            paddingBottom: '1.5rem',
+            borderBottom: '1px solid var(--gray-200)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                borderRadius: 'var(--radius-lg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '1.25rem',
+              }}>
+                V
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: 'var(--gray-900)' }}>
+                  VTU Admin
+                </h2>
+                <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Management Portal</p>
+              </div>
+            </div>
             <button
               onClick={() => setSidebarOpen(false)}
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'white',
+                color: 'var(--gray-500)',
                 cursor: 'pointer',
-                display: sidebarOpen ? 'block' : 'none',
+                padding: '0.5rem',
+                borderRadius: 'var(--radius)',
+                transition: 'all 0.2s',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--gray-100)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
             >
-              <X size={24} />
+              <X size={20} />
             </button>
           </div>
 
+          {/* Navigation */}
           <nav>
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -76,26 +117,41 @@ const Layout = ({ children }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={() => window.innerWidth < 768 && setSidebarOpen(false)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.75rem',
-                    padding: '0.75rem 1rem',
-                    marginBottom: '0.5rem',
-                    borderRadius: '0.375rem',
+                    gap: '0.875rem',
+                    padding: '0.875rem 1rem',
+                    marginBottom: '0.25rem',
+                    borderRadius: 'var(--radius)',
                     textDecoration: 'none',
-                    color: 'white',
-                    backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                    transition: 'background-color 0.2s',
+                    color: isActive ? 'var(--primary)' : 'var(--gray-700)',
+                    backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                    transition: 'all 0.2s',
+                    fontWeight: isActive ? '600' : '500',
+                    fontSize: '0.875rem',
+                    position: 'relative',
                   }}
                   onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                    if (!isActive) e.currentTarget.style.backgroundColor = 'var(--gray-50)';
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
+                  {isActive && (
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '3px',
+                      height: '60%',
+                      background: 'var(--primary)',
+                      borderRadius: '0 3px 3px 0',
+                    }} />
+                  )}
                   <Icon size={20} />
                   <span>{item.label}</span>
                 </Link>
@@ -103,35 +159,32 @@ const Layout = ({ children }) => {
             })}
           </nav>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.75rem 1rem',
-              marginTop: '2rem',
-              borderRadius: '0.375rem',
-              background: 'var(--danger)',
-              color: 'white',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100%',
-            }}
-          >
-            <LogOut size={20} />
-            <span>Logout</span>
-          </button>
+          {/* Logout Button */}
+          <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--gray-200)' }}>
+            <button
+              onClick={handleLogout}
+              className="btn btn-danger"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+              }}
+            >
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </aside>
 
+      {/* Main Content */}
       <div
         style={{
           flex: 1,
-          marginLeft: sidebarOpen ? '250px' : '0',
-          transition: 'margin-left 0.3s',
+          marginLeft: sidebarOpen ? '280px' : '0',
+          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
+        {/* Header */}
         <header
           style={{
             backgroundColor: 'white',
@@ -140,32 +193,123 @@ const Layout = ({ children }) => {
             position: 'sticky',
             top: 0,
             zIndex: 50,
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0.5rem',
-              }}
-            >
-              <Menu size={24} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="btn btn-secondary btn-sm"
+              >
+                <Menu size={20} />
+              </button>
+
+              {/* Search Bar */}
+              <div className="search-box" style={{ minWidth: '300px' }}>
+                <Search size={18} />
+                <input
+                  type="text"
+                  placeholder="Search users, transactions..."
+                  style={{ paddingLeft: '2.5rem' }}
+                />
+              </div>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>{user?.name || 'Admin'}</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>{user?.email}</p>
+              {/* Notifications */}
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: 'var(--radius)',
+                  position: 'relative',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--gray-100)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+              >
+                <Bell size={20} color="var(--gray-600)" />
+                <span style={{
+                  position: 'absolute',
+                  top: '0.25rem',
+                  right: '0.25rem',
+                  width: '8px',
+                  height: '8px',
+                  background: 'var(--danger)',
+                  borderRadius: '50%',
+                  border: '2px solid white',
+                }} />
+              </button>
+
+              {/* User Menu */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    background: 'none',
+                    border: '1px solid var(--gray-200)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '0.5rem 1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--gray-200)'}
+                >
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '0.875rem',
+                  }}>
+                    {(user?.name || 'Admin').charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--gray-900)' }}>
+                      {user?.name || 'Admin'}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                      {user?.email}
+                    </p>
+                  </div>
+                  <ChevronDown size={16} color="var(--gray-500)" />
+                </button>
               </div>
             </div>
           </div>
         </header>
 
-        <main style={{ padding: '1.5rem' }}>{children}</main>
+        {/* Page Content */}
+        <main style={{ padding: '2rem' }}>{children}</main>
       </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && window.innerWidth < 768 && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 99,
+          }}
+        />
+      )}
     </div>
   );
 };
