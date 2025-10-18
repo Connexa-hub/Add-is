@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,80 +66,81 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardView}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.container, { padding: tokens.spacing.lg }]}>
-            <View style={{ marginBottom: tokens.spacing['2xl'] }}>
-              <View style={[styles.iconContainer, { 
-                backgroundColor: tokens.colors.primary.light,
-                marginBottom: tokens.spacing.lg,
-                width: 80,
-                height: 80,
-                borderRadius: tokens.radius.lg
-              }]}>
-                <Ionicons name="wallet" size={40} color={tokens.colors.primary.main} />
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.container, { padding: tokens.spacing.lg }]}>
+              <View style={{ marginBottom: tokens.spacing['2xl'] }}>
+                <View style={[styles.iconContainer, { 
+                  backgroundColor: tokens.colors.primary.light,
+                  marginBottom: tokens.spacing.lg,
+                  width: 80,
+                  height: 80,
+                  borderRadius: tokens.radius.lg
+                }]}>
+                  <Ionicons name="wallet" size={40} color={tokens.colors.primary.main} />
+                </View>
+                
+                <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
+                  Welcome Back
+                </AppText>
+                <AppText variant="body1" color={tokens.colors.text.secondary}>
+                  Sign in to continue to your account
+                </AppText>
               </View>
-              
-              <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
-                Welcome Back
-              </AppText>
-              <AppText variant="body1" color={tokens.colors.text.secondary}>
-                Sign in to continue to your account
-              </AppText>
-            </View>
 
-            <View style={{ marginBottom: tokens.spacing.lg }} pointerEvents="box-none">
-              <AppInput
-                label="Email Address"
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  if (errors.email) setErrors({ ...errors, email: '' });
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                error={errors.email}
-                editable={!loading}
-                leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
-              />
-            </View>
+              <View style={{ marginBottom: tokens.spacing.lg }}>
+                <AppInput
+                  label="Email Address"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (errors.email) setErrors({ ...errors, email: '' });
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  error={errors.email}
+                  editable={!loading}
+                  leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
+                />
+              </View>
 
-            <View style={{ marginBottom: tokens.spacing.base }} pointerEvents="box-none">
-              <AppInput
-                label="Password"
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errors.password) setErrors({ ...errors, password: '' });
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-                error={errors.password}
-                editable={!loading}
-                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
-                rightIcon={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
-                    <Ionicons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={tokens.colors.text.secondary} 
-                    />
-                  </TouchableOpacity>
-                }
-              />
-            </View>
+              <View style={{ marginBottom: tokens.spacing.base }}>
+                <AppInput
+                  label="Password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errors.password) setErrors({ ...errors, password: '' });
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                  error={errors.password}
+                  editable={!loading}
+                  leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
+                  rightIcon={
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
+                      <Ionicons 
+                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color={tokens.colors.text.secondary} 
+                      />
+                    </TouchableOpacity>
+                  }
+                />
+              </View>
 
             <TouchableOpacity 
               onPress={() => navigation.navigate('ForgotPassword')}
@@ -169,10 +170,15 @@ export default function LoginScreen({ navigation }) {
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   keyboardView: {
     flex: 1,
     backgroundColor: '#FFFFFF',

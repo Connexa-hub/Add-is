@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
@@ -19,7 +19,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
 
   const passwordStrength = useMemo(() => {
     if (!newPassword) return { level: 0, text: '', color: tokens.colors.neutral.gray400 };
-    
+
     let strength = 0;
     if (newPassword.length >= 8) strength++;
     if (/[a-z]/.test(newPassword)) strength++;
@@ -92,180 +92,185 @@ export default function ResetPasswordScreen({ route, navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardView}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.container, { padding: tokens.spacing.lg }]}>
-            <View style={{ marginBottom: tokens.spacing.xl }}>
-              <View style={[styles.iconContainer, { 
-                backgroundColor: tokens.colors.info.light,
-                marginBottom: tokens.spacing.lg,
-                width: 80,
-                height: 80,
-                borderRadius: tokens.radius.lg
-              }]}>
-                <Ionicons name="key" size={40} color={tokens.colors.info.main} />
-              </View>
-              
-              <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
-                Reset Password
-              </AppText>
-              <AppText variant="body1" color={tokens.colors.text.secondary}>
-                Enter the verification code sent to {email} and create a new password.
-              </AppText>
-            </View>
-
-            <View style={{ marginBottom: tokens.spacing.lg }}>
-              <AppInput
-                label="Verification Code"
-                placeholder="Enter 6-digit code"
-                value={otp}
-                onChangeText={(text) => {
-                  setOtp(text.replace(/[^0-9]/g, ''));
-                  if (errors.otp) setErrors({ ...errors, otp: '' });
-                }}
-                keyboardType="number-pad"
-                maxLength={6}
-                error={errors.otp}
-                leftIcon={<Ionicons name="key-outline" size={20} color={tokens.colors.text.secondary} />}
-              />
-            </View>
-
-            <View style={{ marginBottom: tokens.spacing.sm }}>
-              <AppInput
-                label="New Password"
-                placeholder="Create a new password"
-                value={newPassword}
-                onChangeText={(text) => {
-                  setNewPassword(text);
-                  if (errors.password) setErrors({ ...errors, password: '' });
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                error={errors.password}
-                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
-                rightIcon={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={tokens.colors.text.secondary} 
-                    />
-                  </TouchableOpacity>
-                }
-              />
-            </View>
-
-            {newPassword.length > 0 && (
-              <View style={{ marginBottom: tokens.spacing.base }}>
-                <View style={styles.strengthContainer}>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    Password Strength:{' '}
-                  </AppText>
-                  <AppText variant="caption" weight="semibold" color={passwordStrength.color}>
-                    {passwordStrength.text}
-                  </AppText>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.container, { padding: tokens.spacing.lg }]}>
+              <View style={{ marginBottom: tokens.spacing.xl }}>
+                <View style={[styles.iconContainer, { 
+                  backgroundColor: tokens.colors.info.light,
+                  marginBottom: tokens.spacing.lg,
+                  width: 80,
+                  height: 80,
+                  borderRadius: tokens.radius.lg
+                }]}>
+                  <Ionicons name="key" size={40} color={tokens.colors.info.main} />
                 </View>
-                <View style={[styles.strengthBar, { backgroundColor: tokens.colors.neutral.gray200 }]}>
-                  <View 
-                    style={[
-                      styles.strengthFill,
-                      { 
-                        width: `${(passwordStrength.level / 4) * 100}%`,
-                        backgroundColor: passwordStrength.color 
-                      }
-                    ]} 
-                  />
-                </View>
-              </View>
-            )}
 
-            {newPassword.length > 0 && (
-              <View style={{ marginBottom: tokens.spacing.lg }}>
-                <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.xs }}>
-                  Password Requirements:
+                <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
+                  Reset Password
                 </AppText>
-                {passwordRequirements.map((req, index) => (
-                  <View key={index} style={styles.requirementRow}>
-                    <Ionicons 
-                      name={req.met ? "checkmark-circle" : "ellipse-outline"} 
-                      size={16} 
-                      color={req.met ? tokens.colors.success.main : tokens.colors.neutral.gray400} 
-                    />
-                    <AppText 
-                      variant="caption" 
-                      color={req.met ? tokens.colors.text.primary : tokens.colors.text.secondary}
-                      style={{ marginLeft: tokens.spacing.xs }}
-                    >
-                      {req.text}
+                <AppText variant="body1" color={tokens.colors.text.secondary}>
+                  Enter the verification code sent to {email} and create a new password.
+                </AppText>
+              </View>
+
+              <View style={{ marginBottom: tokens.spacing.lg }}>
+                <AppInput
+                  label="Verification Code"
+                  placeholder="Enter 6-digit code"
+                  value={otp}
+                  onChangeText={(text) => {
+                    setOtp(text.replace(/[^0-9]/g, ''));
+                    if (errors.otp) setErrors({ ...errors, otp: '' });
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  error={errors.otp}
+                  leftIcon={<Ionicons name="key-outline" size={20} color={tokens.colors.text.secondary} />}
+                />
+              </View>
+
+              <View style={{ marginBottom: tokens.spacing.sm }}>
+                <AppInput
+                  label="New Password"
+                  placeholder="Create a new password"
+                  value={newPassword}
+                  onChangeText={(text) => {
+                    setNewPassword(text);
+                    if (errors.password) setErrors({ ...errors, password: '' });
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  error={errors.password}
+                  leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
+                  rightIcon={
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Ionicons 
+                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color={tokens.colors.text.secondary} 
+                      />
+                    </TouchableOpacity>
+                  }
+                />
+              </View>
+
+              {newPassword.length > 0 && (
+                <View style={{ marginBottom: tokens.spacing.base }}>
+                  <View style={styles.strengthContainer}>
+                    <AppText variant="caption" color={tokens.colors.text.secondary}>
+                      Password Strength:{' '}
+                    </AppText>
+                    <AppText variant="caption" weight="semibold" color={passwordStrength.color}>
+                      {passwordStrength.text}
                     </AppText>
                   </View>
-                ))}
-              </View>
-            )}
-
-            <View style={{ marginBottom: tokens.spacing.lg }}>
-              <AppInput
-                label="Confirm Password"
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
-                }}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                error={errors.confirmPassword}
-                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
-                rightIcon={
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    <Ionicons 
-                      name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={tokens.colors.text.secondary} 
+                  <View style={[styles.strengthBar, { backgroundColor: tokens.colors.neutral.gray200 }]}>
+                    <View 
+                      style={[
+                        styles.strengthFill,
+                        { 
+                          width: `${(passwordStrength.level / 4) * 100}%`,
+                          backgroundColor: passwordStrength.color 
+                        }
+                      ]} 
                     />
-                  </TouchableOpacity>
-                }
-              />
+                  </View>
+                </View>
+              )}
+
+              {newPassword.length > 0 && (
+                <View style={{ marginBottom: tokens.spacing.lg }}>
+                  <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.xs }}>
+                    Password Requirements:
+                  </AppText>
+                  {passwordRequirements.map((req, index) => (
+                    <View key={index} style={styles.requirementRow}>
+                      <Ionicons 
+                        name={req.met ? "checkmark-circle" : "ellipse-outline"} 
+                        size={16} 
+                        color={req.met ? tokens.colors.success.main : tokens.colors.neutral.gray400} 
+                      />
+                      <AppText 
+                        variant="caption" 
+                        color={req.met ? tokens.colors.text.primary : tokens.colors.text.secondary}
+                        style={{ marginLeft: tokens.spacing.xs }}
+                      >
+                        {req.text}
+                      </AppText>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <View style={{ marginBottom: tokens.spacing.lg }}>
+                <AppInput
+                  label="Confirm Password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
+                  }}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  error={errors.confirmPassword}
+                  leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
+                  rightIcon={
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                      <Ionicons 
+                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color={tokens.colors.text.secondary} 
+                      />
+                    </TouchableOpacity>
+                  }
+                />
+              </View>
+
+              <AppButton
+                onPress={handleReset}
+                loading={loading}
+                disabled={loading}
+                fullWidth
+                size="lg"
+              >
+                Reset Password
+              </AppButton>
+
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('Login')}
+                style={[styles.backButton, { marginTop: tokens.spacing.xl }]}
+              >
+                <Ionicons name="arrow-back" size={16} color={tokens.colors.text.secondary} />
+                <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginLeft: tokens.spacing.xs }}>
+                  Back to Login
+                </AppText>
+              </TouchableOpacity>
             </View>
-
-            <AppButton
-              onPress={handleReset}
-              loading={loading}
-              disabled={loading}
-              fullWidth
-              size="lg"
-            >
-              Reset Password
-            </AppButton>
-
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('Login')}
-              style={[styles.backButton, { marginTop: tokens.spacing.xl }]}
-            >
-              <Ionicons name="arrow-back" size={16} color={tokens.colors.text.secondary} />
-              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginLeft: tokens.spacing.xs }}>
-                Back to Login
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardView: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

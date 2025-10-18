@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
@@ -25,7 +25,7 @@ export default function RegisterScreen({ navigation }) {
 
   const passwordStrength = useMemo(() => {
     if (!password) return { level: 0, text: '', color: tokens.colors.neutral.gray400 };
-    
+
     let strength = 0;
     if (password.length >= 8) strength++;
     if (/[a-z]/.test(password)) strength++;
@@ -108,182 +108,184 @@ export default function RegisterScreen({ navigation }) {
       style={styles.keyboardView}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.container, { padding: tokens.spacing.lg }]}>
-            <View style={{ marginBottom: tokens.spacing.xl }}>
-              <View style={[styles.iconContainer, { 
-                backgroundColor: tokens.colors.primary.light,
-                marginBottom: tokens.spacing.lg,
-                width: 80,
-                height: 80,
-                borderRadius: tokens.radius.lg
-              }]}>
-                <Ionicons name="person-add" size={40} color={tokens.colors.primary.main} />
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.container, { padding: tokens.spacing.lg }]}>
+              <View style={{ marginBottom: tokens.spacing.xl }}>
+                <View style={[styles.iconContainer, { 
+                  backgroundColor: tokens.colors.primary.light,
+                  marginBottom: tokens.spacing.lg,
+                  width: 80,
+                  height: 80,
+                  borderRadius: tokens.radius.lg
+                }]}>
+                  <Ionicons name="person-add" size={40} color={tokens.colors.primary.main} />
+                </View>
+
+                <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
+                  Create Account
+                </AppText>
+                <AppText variant="body1" color={tokens.colors.text.secondary}>
+                  Sign up to get started
+                </AppText>
               </View>
-              
-              <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
-                Create Account
-              </AppText>
-              <AppText variant="body1" color={tokens.colors.text.secondary}>
-                Sign up to get started
-              </AppText>
-            </View>
 
-            <View style={{ marginBottom: tokens.spacing.lg }}>
-              <AppInput
-                label="Full Name"
-                placeholder="Enter your full name"
-                value={name}
-                onChangeText={(text) => {
-                  setName(text);
-                  if (errors.name) setErrors({ ...errors, name: '' });
-                }}
-                autoCapitalize="words"
-                error={errors.name}
-                leftIcon={<Ionicons name="person-outline" size={20} color={tokens.colors.text.secondary} />}
-              />
-            </View>
-
-            <View style={{ marginBottom: tokens.spacing.lg }}>
-              <AppInput
-                label="Email Address"
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  if (errors.email) setErrors({ ...errors, email: '' });
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                error={errors.email}
-                leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
-              />
-            </View>
-
-            <View style={{ marginBottom: tokens.spacing.sm }}>
-              <AppInput
-                label="Password"
-                placeholder="Create a password"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errors.password) setErrors({ ...errors, password: '' });
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password-new"
-                error={errors.password}
-                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
-                rightIcon={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={tokens.colors.text.secondary} 
-                    />
-                  </TouchableOpacity>
-                }
-              />
-            </View>
-
-            {password.length > 0 && (
               <View style={{ marginBottom: tokens.spacing.lg }}>
-                <View style={styles.strengthContainer}>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    Password Strength:{' '}
-                  </AppText>
-                  <AppText variant="caption" weight="semibold" color={passwordStrength.color}>
-                    {passwordStrength.text}
-                  </AppText>
-                </View>
-                <View style={[styles.strengthBar, { backgroundColor: tokens.colors.neutral.gray200 }]}>
-                  <View 
-                    style={[
-                      styles.strengthFill,
-                      { 
-                        width: `${(passwordStrength.level / 4) * 100}%`,
-                        backgroundColor: passwordStrength.color 
-                      }
-                    ]} 
-                  />
-                </View>
+                <AppInput
+                  label="Full Name"
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChangeText={(text) => {
+                    setName(text);
+                    if (errors.name) setErrors({ ...errors, name: '' });
+                  }}
+                  autoCapitalize="words"
+                  error={errors.name}
+                  leftIcon={<Ionicons name="person-outline" size={20} color={tokens.colors.text.secondary} />}
+                />
               </View>
-            )}
 
-            <View style={{ marginBottom: tokens.spacing.lg }}>
-              <AppInput
-                label="Confirm Password"
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
-                }}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                error={errors.confirmPassword}
-                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
-                rightIcon={
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    <Ionicons 
-                      name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={tokens.colors.text.secondary} 
+              <View style={{ marginBottom: tokens.spacing.lg }}>
+                <AppInput
+                  label="Email Address"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (errors.email) setErrors({ ...errors, email: '' });
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  error={errors.email}
+                  leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
+                />
+              </View>
+
+              <View style={{ marginBottom: tokens.spacing.sm }}>
+                <AppInput
+                  label="Password"
+                  placeholder="Create a password"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errors.password) setErrors({ ...errors, password: '' });
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                  error={errors.password}
+                  leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
+                  rightIcon={
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Ionicons 
+                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color={tokens.colors.text.secondary} 
+                      />
+                    </TouchableOpacity>
+                  }
+                />
+              </View>
+
+              {password.length > 0 && (
+                <View style={{ marginBottom: tokens.spacing.lg }}>
+                  <View style={styles.strengthContainer}>
+                    <AppText variant="caption" color={tokens.colors.text.secondary}>
+                      Password Strength:{' '}
+                    </AppText>
+                    <AppText variant="caption" weight="semibold" color={passwordStrength.color}>
+                      {passwordStrength.text}
+                    </AppText>
+                  </View>
+                  <View style={[styles.strengthBar, { backgroundColor: tokens.colors.neutral.gray200 }]}>
+                    <View 
+                      style={[
+                        styles.strengthFill,
+                        { 
+                          width: `${(passwordStrength.level / 4) * 100}%`,
+                          backgroundColor: passwordStrength.color 
+                        }
+                      ]} 
                     />
-                  </TouchableOpacity>
-                }
-              />
-            </View>
+                  </View>
+                </View>
+              )}
 
-            <TouchableOpacity 
-              style={[styles.checkboxContainer, { marginBottom: tokens.spacing.base }]}
-              onPress={() => {
-                setAgreeToTerms(!agreeToTerms);
-                if (errors.terms) setErrors({ ...errors, terms: '' });
-              }}
-            >
-              <View style={[
-                styles.checkbox,
-                { 
-                  borderColor: errors.terms ? tokens.colors.error.main : tokens.colors.border.default,
-                  backgroundColor: agreeToTerms ? tokens.colors.primary.main : 'transparent'
-                }
-              ]}>
-                {agreeToTerms && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+              <View style={{ marginBottom: tokens.spacing.lg }}>
+                <AppInput
+                  label="Confirm Password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
+                  }}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  error={errors.confirmPassword}
+                  leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
+                  rightIcon={
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                      <Ionicons 
+                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color={tokens.colors.text.secondary} 
+                      />
+                    </TouchableOpacity>
+                  }
+                />
               </View>
-              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                I agree to the <AppText variant="body2" color={tokens.colors.primary.main}>Terms and Conditions</AppText>
-              </AppText>
-            </TouchableOpacity>
 
-            {errors.terms && (
-              <AppText variant="caption" color={tokens.colors.error.main} style={{ marginBottom: tokens.spacing.base }}>
-                {errors.terms}
-              </AppText>
-            )}
+              <TouchableOpacity 
+                style={[styles.checkboxContainer, { marginBottom: tokens.spacing.base }]}
+                onPress={() => {
+                  setAgreeToTerms(!agreeToTerms);
+                  if (errors.terms) setErrors({ ...errors, terms: '' });
+                }}
+              >
+                <View style={[
+                  styles.checkbox,
+                  { 
+                    borderColor: errors.terms ? tokens.colors.error.main : tokens.colors.border.default,
+                    backgroundColor: agreeToTerms ? tokens.colors.primary.main : 'transparent'
+                  }
+                ]}>
+                  {agreeToTerms && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                </View>
+                <AppText variant="body2" color={tokens.colors.text.secondary} style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
+                  I agree to the <AppText variant="body2" color={tokens.colors.primary.main}>Terms and Conditions</AppText>
+                </AppText>
+              </TouchableOpacity>
 
-            <AppButton
-              onPress={handleRegister}
-              loading={loading}
-              disabled={loading}
-              fullWidth
-              size="lg"
-            >
-              Create Account
-            </AppButton>
+              {errors.terms && (
+                <AppText variant="caption" color={tokens.colors.error.main} style={{ marginBottom: tokens.spacing.base }}>
+                  {errors.terms}
+                </AppText>
+              )}
 
-            <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
-              <AppText variant="body2" color={tokens.colors.text.secondary}>
-                Already have an account? <AppText variant="subtitle2" color={tokens.colors.primary.main} onPress={() => navigation.navigate('Login')}>Sign In</AppText>
-              </AppText>
+              <AppButton
+                onPress={handleRegister}
+                loading={loading}
+                disabled={loading}
+                fullWidth
+                size="lg"
+              >
+                Create Account
+              </AppButton>
+
+              <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
+                <AppText variant="body2" color={tokens.colors.text.secondary}>
+                  Already have an account? <AppText variant="subtitle2" color={tokens.colors.primary.main} onPress={() => navigation.navigate('Login')}>Sign In</AppText>
+                </AppText>
+              </View>
             </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </SafeAreaView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
@@ -291,6 +293,10 @@ export default function RegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   keyboardView: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
