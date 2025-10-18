@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
@@ -43,10 +43,9 @@ export default function ForgotPasswordScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardView}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -109,8 +108,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               </AppText>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+      </ScrollView>
     </KeyboardAvoidingView>
     </SafeAreaView>
   );
