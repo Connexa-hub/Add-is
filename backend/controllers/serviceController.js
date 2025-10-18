@@ -4,6 +4,72 @@ const User = require('../models/User');
 const { requestVTPass } = require('../utils/vtpassClient');
 const { v4: uuidv4 } = require('uuid');
 
+exports.payElectricity = async (req, res, next) => {
+  try {
+    const { meterNumber, variation_code, serviceID, amount } = req.body;
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    if (user.walletBalance < amount) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Insufficient wallet balance' 
+      });
+    }
+
+    const reference = `ELEC-${uuidv4()}`;
+
+    const result = await requestVTPass(serviceID, {
+      billersCode: meterNumber,
+      variation_code,
+      amount,
+      phone: '08011111111',
+      request_id: reference
+    });
+
+    const transaction = await Transaction.create({ 
+      userId: req.userId, 
+      type: 'Electricity', 
+      transactionType: 'debit', 
+      amount, 
+      reference,
+      recipient: meterNumber,
+      status: result.code === '000' ? 'success' : 'failed', 
+      details: result 
+    });
+
+    if (result.code === '000') {
+      user.walletBalance -= amount;
+      await user.save();
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Electricity payment successful',
+      data: {
+        transaction: {
+          id: transaction._id,
+          reference,
+          amount: transaction.amount,
+          status: transaction.status,
+          recipient: meterNumber,
+          token: result.content?.token || 'Token sent to meter',
+          details: result
+        },
+        newBalance: user.walletBalance
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.subscribeTV = async (req, res, next) => {
   try {
     const { smartcardNumber, variation_code, serviceID, amount } = req.body;
