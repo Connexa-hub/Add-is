@@ -1,3 +1,4 @@
+
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const { requestVTPass } = require('../utils/vtpassClient');
@@ -67,10 +68,6 @@ exports.subscribeTV = async (req, res, next) => {
   }
 };
 
-const vtpassClient = require('../utils/vtpassClient');
-const Transaction = require('../models/Transaction');
-const User = require('../models/User');
-
 exports.buyData = async (req, res) => {
   try {
     const { phoneNumber, plan, network, amount } = req.body;
@@ -98,8 +95,7 @@ exports.buyData = async (req, res) => {
 
     let vtpassResponse;
     try {
-      vtpassResponse = await vtpassClient.buyData({
-        serviceID: network,
+      vtpassResponse = await requestVTPass(network, {
         billersCode: phoneNumber,
         variation_code: plan,
         amount,
