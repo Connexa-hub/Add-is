@@ -14,29 +14,40 @@ This platform enables users to:
 
 ## Quick Start (Replit)
 
-### ✅ PRODUCTION READY - October 18, 2025
+### ✅ PRODUCTION READY - October 18, 2025 (Latest Update)
 
 ### Running the Application
-The project is configured and running in Replit:
+The project is fully configured and running in Replit:
 
-**Backend + Admin Dashboard (Auto-starts):**
-- **Admin Dashboard**: https://1d1c2c07-907d-4ba0-a940-68d9fe3976f6-00-1e1gme43nbewf.worf.replit.dev (port 5000)
-- **Backend API**: http://localhost:3001 (proxied through admin on port 5000)
-- **Login**: admin@example.com / Admin123!
+**Backend API Server (Auto-starts on port 3001):**
+- **Status**: ✅ Running
+- **Health Check**: http://localhost:3001/api/health
+- **Security**: Rate limiting, CORS, Helmet, JWT expiration (7 days)
+- **Email Verification**: ✅ Fully functional (Gmail SMTP configured)
 
 **Mobile App (Manual start):**
 - **Frontend**: React Native/Expo app 
 - **Start command**: `cd frontend && npx expo start`
 - **Testing**: Use Expo Go app on your phone to scan QR code
 - **Web preview**: Open http://localhost:8081 in browser
+- **API Connection**: Configured to connect to backend on port 3001
 
 ### Environment Setup
-All secrets configured in `backend/.env` (NOT committed to git):
+All secrets configured in Replit's encrypted secrets system:
 - ✅ MongoDB Atlas database connected
 - ✅ VTPass integration (sandbox mode)
 - ✅ Monnify payment gateway (sandbox mode)
-- ✅ JWT authentication enabled
-- ✅ Email service configured
+- ✅ JWT authentication with 7-day expiration
+- ✅ Email verification system (Gmail SMTP)
+- ✅ All API keys encrypted and secure
+
+### Email Verification Flow
+**NEW**: Email verification is now required for all new accounts!
+1. User registers → receives 6-digit OTP via email
+2. User verifies email → account is activated
+3. User can now log in and use the app
+
+See `SETUP_INSTRUCTIONS.md` for detailed testing instructions.
 
 ## Project Structure
 
@@ -60,29 +71,46 @@ All secrets configured in `backend/.env` (NOT committed to git):
 
 ## Recent Updates (October 18, 2025)
 
-### ✅ FINAL PRODUCTION SETUP - October 18, 2025
+### ✅ PRODUCTION-READY SECURITY OVERHAUL - October 18, 2025 (LATEST)
 
-**Complete Setup Completed:**
-1. ✅ All secrets configured in backend/.env (corrected Monnify contract ID: 8652326301)
-2. ✅ Backend API running successfully on port 3001
-3. ✅ Admin dashboard built and served on port 5000
-4. ✅ Frontend mobile app dependencies installed and tested
-5. ✅ Koyeb auto-deployment configured (.koyeb/koyeb.yaml)
-6. ✅ Express 5 compatibility fixed (wildcard route)
-7. ✅ Login form autocomplete attributes added for security
-8. ✅ .env.example template created (safe to commit)
-9. ✅ Production readiness verified by architect
+**Email Verification System:**
+1. ✅ User model updated with email verification fields
+2. ✅ /api/auth/verify-email endpoint implemented
+3. ✅ /api/auth/resend-verification endpoint implemented
+4. ✅ Registration flow sends OTP via Gmail
+5. ✅ Login blocks unverified users
+6. ✅ Frontend handles verification redirect
+7. ✅ Welcome email sent after verification
 
-**Security:**
-- Backend/.env properly excluded from git (in .gitignore)
-- All secrets managed securely
-- No credentials committed to repository
+**Comprehensive Security Hardening:**
+1. ✅ Rate limiting (10 attempts/15min on auth endpoints)
+2. ✅ CORS with strict origin checking (no substring bypass)
+3. ✅ Helmet security headers
+4. ✅ JWT expiration on ALL tokens (7 days)
+5. ✅ Input validation (express-validator)
+6. ✅ Secure error handling (no info leakage)
+7. ✅ Password hashing (bcrypt, 10 rounds)
+8. ✅ Admin route protection (verifyToken + isAdmin)
 
-**Deployment:**
-- Koyeb auto-deployment ready (see KOYEB_SETUP_INSTRUCTIONS.md)
-- Auto-deploy on push to main branch
-- Health checks configured
-- Secrets management via Koyeb platform
+**Security Audit Results:**
+- ✅ Architect-reviewed and approved
+- ✅ All critical vulnerabilities fixed
+- ✅ Production-ready security implementation
+- ✅ CORS vulnerability patched
+- ✅ No security issues found
+
+**Complete Setup:**
+1. ✅ All secrets in Replit's encrypted system
+2. ✅ Backend API running on port 3001
+3. ✅ MongoDB Atlas connected
+4. ✅ Gmail SMTP configured and tested
+5. ✅ Express 5 compatibility (removed incompatible middleware)
+6. ✅ Comprehensive documentation (SECURITY.md, SETUP_INSTRUCTIONS.md)
+
+**Documentation Created:**
+- SECURITY.md - Complete security documentation
+- SETUP_INSTRUCTIONS.md - Setup and testing guide
+- replit.md - Updated with latest changes
 
 ---
 
