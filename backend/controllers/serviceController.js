@@ -87,9 +87,9 @@ exports.buyData = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (user.balance < amount) {
+    if (user.walletBalance < amount) {
       return res.status(400).json({ 
-        message: `Insufficient balance. Required: ₦${amount}, Available: ₦${user.balance}` 
+        message: `Insufficient balance. Required: ₦${amount}, Available: ₦${user.walletBalance}` 
       });
     }
 
@@ -111,7 +111,7 @@ exports.buyData = async (req, res) => {
     const isSuccess = vtpassResponse && (vtpassResponse.code === '000' || vtpassResponse.content?.transactions?.status === 'delivered');
 
     if (isSuccess) {
-      user.balance -= amount;
+      user.walletBalance -= amount;
       await user.save();
     }
 
@@ -145,7 +145,7 @@ exports.buyData = async (req, res) => {
       success: true,
       message: 'Data purchase successful',
       transaction,
-      newBalance: user.balance,
+      newBalance: user.walletBalance,
       vtpassResponse,
     });
   } catch (error) {
