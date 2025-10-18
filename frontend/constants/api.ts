@@ -1,1 +1,1 @@
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'https://51a4f2f0-ee6b-4dec-95b9-415e888c14c0-00-61p5c2meurem.picard.replit.dev/api';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'https://1d1c2c07-907d-4ba0-a940-68d9fe3976f6-00-1e1gme43nbewf.worf.replit.dev/api';
