@@ -1,204 +1,283 @@
 
 import React, { useState, useEffect } from 'react';
-import { adminAPI } from '../services/api';
-import { 
-  Users, 
-  CreditCard, 
-  DollarSign, 
-  TrendingUp, 
-  Activity, 
-  ArrowUp, 
-  ArrowDown,
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import {
+  LayoutDashboard,
+  Users,
+  Wallet,
+  TrendingUp,
+  Activity,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
   RefreshCw,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  CreditCard,
 } from 'lucide-react';
 
-const Dashboard = () => {
+export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchDashboardData = async (isRefresh = false) => {
     try {
-      setLoading(true);
-      const [statsRes, analyticsRes] = await Promise.all([
-        adminAPI.getStats(),
-        adminAPI.getAnalytics(7),
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const [statsRes, analyticsRes, transactionsRes] = await Promise.all([
+        api.get('/admin/stats'),
+        api.get('/admin/analytics'),
+        api.get('/admin/transactions?limit=10'),
       ]);
 
-      setStats(statsRes.data.data);
-      setAnalytics(analyticsRes.data.data);
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch dashboard data');
+      setStats(statsRes.data);
+      setAnalytics(analyticsRes.data);
+      setRecentTransactions(transactionsRes.data.transactions || []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const StatCard = ({ icon: Icon, title, value, subtitle, trend, color }) => (
-    <div className="stat-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <p className="stat-label">{title}</p>
-          <h3 className="stat-value">{value}</h3>
-          {subtitle && (
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-              {subtitle}
-            </p>
-          )}
-          {trend && (
-            <div className={`stat-change ${trend > 0 ? 'positive' : 'negative'}`}>
-              {trend > 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-              <span>{Math.abs(trend)}% vs last month</span>
-            </div>
-          )}
-        </div>
-        <div
-          style={{
-            width: '60px',
-            height: '60px',
-            background: `linear-gradient(135deg, ${color}20, ${color}10)`,
-            borderRadius: 'var(--radius-lg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Icon size={28} style={{ color }} />
-        </div>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+    }).format(amount || 0);
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+      case 'success':
+        return 'text-green-600 bg-green-50';
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-50';
+      case 'failed':
+        return 'text-red-600 bg-red-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'completed':
+      case 'success':
+        return <CheckCircle size={16} />;
+      case 'pending':
+        return <Clock size={16} />;
+      case 'failed':
+        return <AlertCircle size={16} />;
+      default:
+        return null;
+    }
+  };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '4rem' }}>
-        <div className="loading-spinner" style={{ width: '3rem', height: '3rem' }}></div>
-        <p style={{ marginTop: '1rem', color: 'var(--gray-500)' }}>Loading dashboard...</p>
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <RefreshCw className="animate-spin mx-auto mb-4" size={48} />
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="alert alert-error">
-        <p style={{ marginBottom: '1rem' }}>{error}</p>
-        <button onClick={fetchData} className="btn btn-primary">
-          <RefreshCw size={18} />
-          Retry
-        </button>
-      </div>
-    );
-  }
+  const statCards = [
+    {
+      title: 'Total Revenue',
+      value: formatCurrency(stats?.totalRevenue || 0),
+      change: '+12.5%',
+      trend: 'up',
+      icon: DollarSign,
+      bgColor: 'bg-blue-500',
+    },
+    {
+      title: 'Total Users',
+      value: stats?.totalUsers || 0,
+      change: '+8.2%',
+      trend: 'up',
+      icon: Users,
+      bgColor: 'bg-purple-500',
+    },
+    {
+      title: 'Total Transactions',
+      value: stats?.totalTransactions || 0,
+      change: '+15.3%',
+      trend: 'up',
+      icon: Activity,
+      bgColor: 'bg-green-500',
+    },
+    {
+      title: 'Wallet Balance',
+      value: formatCurrency(stats?.totalWalletBalance || 0),
+      change: '+5.7%',
+      trend: 'up',
+      icon: Wallet,
+      bgColor: 'bg-orange-500',
+    },
+  ];
 
   return (
-    <div>
-      {/* Page Header */}
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--gray-900)' }}>
-            Dashboard Overview
-          </h1>
-          <p style={{ color: 'var(--gray-600)' }}>
-            Welcome back! Here's what's happening with your platform today.
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
         </div>
-        <button onClick={fetchData} className="btn btn-secondary">
-          <RefreshCw size={18} />
-          Refresh
+        <button
+          onClick={() => fetchDashboardData(true)}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+          <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
         </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        <StatCard
-          icon={Users}
-          title="Total Users"
-          value={(stats?.totalUsers || 0).toLocaleString()}
-          subtitle={`${stats?.activeUsers || 0} active this month`}
-          trend={12.5}
-          color="var(--primary)"
-        />
-        <StatCard
-          icon={CreditCard}
-          title="Total Transactions"
-          value={(stats?.totalTransactions || 0).toLocaleString()}
-          subtitle={`${stats?.todayTransactions || 0} today`}
-          trend={8.2}
-          color="var(--success)"
-        />
-        <StatCard
-          icon={DollarSign}
-          title="Total Revenue"
-          value={`₦${(stats?.totalRevenue || 0).toLocaleString()}`}
-          subtitle={`₦${(stats?.todayRevenue || 0).toLocaleString()} today`}
-          trend={15.3}
-          color="var(--warning)"
-        />
-        <StatCard
-          icon={TrendingUp}
-          title="Active Users"
-          value={(stats?.activeUsers || 0).toLocaleString()}
-          subtitle="Last 30 days"
-          trend={5.7}
-          color="var(--info)"
-        />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statCards.map((stat, index) => (
+          <div
+            key={index}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`${stat.bgColor} p-3 rounded-lg`}>
+                <stat.icon className="text-white" size={24} />
+              </div>
+              <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <ArrowUpRight size={16} />
+                <span>{stat.change}</span>
+              </div>
+            </div>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">{stat.title}</h3>
+            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Recent Activity */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">
-            <Activity size={20} />
-            Recent Activity
-          </h2>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div
+          onClick={() => navigate('/users')}
+          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <Users size={32} className="mb-4" />
+          <h3 className="text-xl font-bold mb-2">Manage Users</h3>
+          <p className="text-blue-100">View and manage all registered users</p>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          {analytics?.dailyStats && analytics.dailyStats.length > 0 ? (
-            <table className="table">
+
+        <div
+          onClick={() => navigate('/transactions')}
+          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <Activity size={32} className="mb-4" />
+          <h3 className="text-xl font-bold mb-2">Transactions</h3>
+          <p className="text-purple-100">Monitor all platform transactions</p>
+        </div>
+
+        <div
+          onClick={() => navigate('/vtpass-wallet')}
+          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <Wallet size={32} className="mb-4" />
+          <h3 className="text-xl font-bold mb-2">VTPass Wallet</h3>
+          <p className="text-green-100">Check VTPass balance & fund wallet</p>
+        </div>
+      </div>
+
+      {/* Recent Transactions */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Recent Transactions</h2>
+          <button
+            onClick={() => navigate('/transactions')}
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+          >
+            View All →
+          </button>
+        </div>
+
+        {recentTransactions.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Transactions</th>
-                  <th>Revenue</th>
-                  <th>Growth</th>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">User</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Type</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
                 </tr>
               </thead>
               <tbody>
-                {analytics.dailyStats.map((stat, index) => (
-                  <tr key={index}>
-                    <td style={{ fontWeight: '500' }}>{stat._id}</td>
-                    <td>{stat.transactions.toLocaleString()}</td>
-                    <td style={{ fontWeight: '600' }}>₦{stat.revenue.toLocaleString()}</td>
-                    <td>
-                      <span className="badge badge-success">
-                        <ArrowUp size={12} style={{ display: 'inline' }} /> 12%
+                {recentTransactions.map((transaction) => (
+                  <tr key={transaction._id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <div className="font-medium text-gray-900">
+                        {transaction.user?.name || 'Unknown User'}
+                      </div>
+                      <div className="text-sm text-gray-500">{transaction.user?.email}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="text-sm text-gray-900">{transaction.category}</div>
+                      <div className="text-xs text-gray-500">{transaction.type}</div>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-gray-900">
+                      {formatCurrency(transaction.amount)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          transaction.status
+                        )}`}
+                      >
+                        {getStatusIcon(transaction.status)}
+                        {transaction.status}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600">
+                      {formatDate(transaction.createdAt)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <div className="empty-state">
-              <Activity size={48} />
-              <p style={{ marginTop: '1rem', fontSize: '1rem', fontWeight: '500' }}>
-                No activity data available
-              </p>
-              <p style={{ fontSize: '0.875rem' }}>
-                Start by adding some users or processing transactions
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <CreditCard className="mx-auto text-gray-400 mb-4" size={48} />
+            <p className="text-gray-600 font-medium">No recent transactions</p>
+            <p className="text-gray-500 text-sm mt-1">Transactions will appear here</p>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}
