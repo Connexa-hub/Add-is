@@ -60,17 +60,18 @@ const sendTransactionReceipt = (user, transaction) => {
   return sendEmail(user.email, 'Transaction Receipt', html);
 };
 
-const sendPasswordResetEmail = (user, resetToken) => {
-  const resetUrl = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
+const sendPasswordResetEmail = (user, otp) => {
   const html = `
     <h2>Password Reset Request</h2>
     <p>Hi ${user.name},</p>
-    <p>You requested a password reset. Click the link below to reset your password:</p>
-    <p><a href="${resetUrl}">${resetUrl}</a></p>
-    <p>This link expires in 1 hour.</p>
+    <p>You requested a password reset. Use the verification code below to reset your password:</p>
+    <h1 style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+    <p>This code expires in 1 hour.</p>
     <p>If you didn't request this, please ignore this email.</p>
+    <br>
+    <p>Best regards,<br>VTU Bill Payment Team</p>
   `;
-  return sendEmail(user.email, 'Password Reset Request', html);
+  return sendEmail(user.email, 'Password Reset Code', html);
 };
 
 module.exports = {

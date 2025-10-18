@@ -26,6 +26,8 @@ const UserSchema = new mongoose.Schema({
     bankName: String,
     bankCode: String,
     createdAt: { type: Date, default: Date.now }
-  }]
+  }],
+  resetPasswordOTP: String,
+  resetPasswordExpires: Date
 }, { timestamps: true });
 module.exports = mongoose.model('User', UserSchema);

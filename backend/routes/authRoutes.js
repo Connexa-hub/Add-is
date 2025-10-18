@@ -197,4 +197,84 @@ router.post('/biometric-login', async (req, res, next) => {
   }
 });
 
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email is required' 
+      });
+    }
+    
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'No account registered with this email address' 
+      });
+    }
+    
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP with expiry (1 hour)
+    user.resetPasswordOTP = otp;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+    
+    // Send email with OTP
+    const { sendPasswordResetEmail } = require('../utils/emailService');
+    await sendPasswordResetEmail(user, otp);
+    
+    res.json({ 
+      success: true,
+      message: 'Password reset code sent to your email'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email, OTP, and new password are required' 
+      });
+    }
+    
+    const user = await User.findOne({ 
+      email,
+      resetPasswordOTP: otp,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+    
+    if (!user) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid or expired verification code' 
+      });
+    }
+    
+    // Hash new password
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+    
+    res.json({ 
+      success: true,
+      message: 'Password reset successfully. Please login with your new password.'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
