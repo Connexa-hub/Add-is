@@ -19,7 +19,7 @@ app.use(logger);
 
 // Serve admin dashboard static files in production
 if (isProduction) {
-  app.use(express.static(path.join(__dirname, '../admin-web/dist')));
+  app.use(express.static(path.join(__dirname, 'admin-web/dist')));
 }
 
 const authRoutes = require('./routes/authRoutes');
@@ -52,7 +52,7 @@ app.use('/api/admin/settings', settingsRoutes);
 if (isProduction) {
   app.get('*', (req, res, next) => {
     if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(__dirname, '../admin-web/dist/index.html'));
+      res.sendFile(path.join(__dirname, 'admin-web/dist/index.html'));
     } else {
       next();
     }
