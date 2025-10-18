@@ -3,7 +3,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from 'react-native-reanimated';
+import { PaperProvider } from 'react-native-paper';
 import AppNavigator from './src/navigation/AppNavigator';
+import { theme } from './src/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,7 +59,11 @@ export default function App() {
     );
   }
 
-  return <AppNavigator />;
+  return (
+    <PaperProvider theme={theme}>
+      <AppNavigator />
+    </PaperProvider>
+  );
 }
 
 const styles = StyleSheet.create({
