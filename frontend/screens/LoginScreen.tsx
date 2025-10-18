@@ -1,19 +1,48 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
+import { AppText, AppInput, AppButton } from '../src/components/atoms';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 
 export default function LoginScreen({ navigation }) {
+  const { tokens } = useAppTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({ email: '', password: '' });
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+    let hasErrors = false;
+    const newErrors = { email: '', password: '' };
+
+    if (!email) {
+      newErrors.email = 'Email is required';
+      hasErrors = true;
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Please enter a valid email address';
+      hasErrors = true;
     }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+      hasErrors = true;
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+      hasErrors = true;
+    }
+
+    setErrors(newErrors);
+
+    if (hasErrors) return;
 
     setLoading(true);
     try {
@@ -27,100 +56,144 @@ export default function LoginScreen({ navigation }) {
         navigation.replace('Main');
       }
     } catch (err) {
-      Alert.alert('Login Failed', err.response?.data?.message || err.message);
+      setErrors({
+        email: '',
+        password: err.response?.data?.message || 'Login failed. Please check your credentials.'
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Login to continue</Text>
-      
-      <TextInput 
-        placeholder="Email" 
-        value={email} 
-        onChangeText={setEmail} 
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      
-      <TextInput 
-        placeholder="Password" 
-        secureTextEntry 
-        value={password} 
-        onChangeText={setPassword} 
-        style={styles.input} 
-      />
-      
-      <TouchableOpacity 
-        onPress={handleLogin} 
-        style={[styles.button, loading && styles.buttonDisabled]}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Logging in...' : 'Login'}
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-        <Text style={styles.link}>Forgot Password?</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>Don't have an account? Register</Text>
-      </TouchableOpacity>
-    </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardView}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.container, { padding: tokens.spacing.lg }]}>
+            <View style={{ marginBottom: tokens.spacing['2xl'] }}>
+              <View style={[styles.iconContainer, { 
+                backgroundColor: tokens.colors.primary.light,
+                marginBottom: tokens.spacing.lg,
+                width: 80,
+                height: 80,
+                borderRadius: tokens.radius.lg
+              }]}>
+                <Ionicons name="wallet" size={40} color={tokens.colors.primary.main} />
+              </View>
+              
+              <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
+                Welcome Back
+              </AppText>
+              <AppText variant="body1" color={tokens.colors.text.secondary}>
+                Sign in to continue to your account
+              </AppText>
+            </View>
+
+            <View style={{ marginBottom: tokens.spacing.lg }}>
+              <AppInput
+                label="Email Address"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errors.email) setErrors({ ...errors, email: '' });
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                error={errors.email}
+                leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
+              />
+            </View>
+
+            <View style={{ marginBottom: tokens.spacing.base }}>
+              <AppInput
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (errors.password) setErrors({ ...errors, password: '' });
+                }}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoComplete="password"
+                error={errors.password}
+                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
+                rightIcon={
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Ionicons 
+                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                      size={20} 
+                      color={tokens.colors.text.secondary} 
+                    />
+                  </TouchableOpacity>
+                }
+              />
+            </View>
+
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={{ alignSelf: 'flex-end', marginBottom: tokens.spacing.lg }}
+            >
+              <AppText variant="subtitle2" color={tokens.colors.primary.main}>
+                Forgot Password?
+              </AppText>
+            </TouchableOpacity>
+
+            <AppButton
+              onPress={handleLogin}
+              loading={loading}
+              disabled={loading}
+              fullWidth
+              size="lg"
+            >
+              Sign In
+            </AppButton>
+
+            <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
+              <AppText variant="body2" color={tokens.colors.text.secondary}>
+                Don't have an account?{' '}
+              </AppText>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <AppText variant="subtitle2" color={tokens.colors.primary.main}>
+                  Sign Up
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    padding: 24,
-    backgroundColor: '#fff'
+  keyboardView: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  header: { 
-    fontSize: 28, 
-    marginBottom: 8, 
-    fontWeight: 'bold',
-    color: '#333'
+  scrollContent: {
+    flexGrow: 1,
   },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 32,
-    color: '#666'
+  container: {
+    flex: 1,
+    justifyContent: 'center',
   },
-  input: { 
-    borderWidth: 1, 
-    borderColor: '#ddd', 
-    marginBottom: 16, 
-    padding: 12, 
-    borderRadius: 8,
-    fontSize: 16
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  button: {
-    backgroundColor: '#0a84ff',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 8
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonDisabled: {
-    opacity: 0.6
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 16
-  },
-  link: { 
-    color: '#0a84ff', 
-    marginTop: 16, 
-    textAlign: 'center',
-    fontSize: 14
-  }
 });
