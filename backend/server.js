@@ -37,6 +37,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 const cashbackRoutes = require('./routes/cashbackRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -54,6 +55,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/support', supportRoutes);
 app.use('/api/admin/cashback', cashbackRoutes);
 app.use('/api/admin/settings', settingsRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Serve admin dashboard SPA in production
 if (isProduction) {

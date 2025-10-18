@@ -72,4 +72,10 @@ export const settingsAPI = {
   updateSystemSettings: (data) => api.put('/admin/settings', data),
 };
 
+export const paymentAPI = {
+  initializePayment: (data) => api.post('/payment/initialize', data),
+  verifyPayment: (reference) => api.get(`/payment/verify/${reference}`),
+  getPaymentHistory: (params) => api.get('/payment/history', { params }),
+};
+
 export default api;
