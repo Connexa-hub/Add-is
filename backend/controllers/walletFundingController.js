@@ -52,9 +52,19 @@ const initializeWalletFunding = async (req, res) => {
       redirectUrl: process.env.PAYMENT_REDIRECT_URL || 'https://app.example.com/payment/callback'
     });
 
-    transaction.monnifyTransactionReference = monnifyResponse.data.transactionReference;
-    transaction.monnifyPaymentReference = monnifyResponse.data.paymentReference;
+    if (!monnifyResponse.success || !monnifyResponse.data) {
+      throw new Error('Failed to initialize payment with Monnify');
+    }
+
+    const monnifyData = monnifyResponse.data;
+    transaction.monnifyTransactionReference = monnifyData.transactionReference || monnifyData.paymentReference;
+    transaction.monnifyPaymentReference = monnifyData.paymentReference;
     await transaction.save();
+
+    console.log('Monnify initialized:', {
+      transactionRef: transaction.monnifyTransactionReference,
+      paymentRef: transaction.monnifyPaymentReference
+    });
 
     res.status(201).json({
       success: true,
@@ -62,8 +72,8 @@ const initializeWalletFunding = async (req, res) => {
       data: {
         transactionId: transaction._id,
         paymentReference,
-        monnifyReference: monnifyResponse.data.transactionReference,
-        checkoutUrl: monnifyResponse.data.checkoutUrl,
+        monnifyReference: transaction.monnifyTransactionReference,
+        checkoutUrl: monnifyData.checkoutUrl,
         amount: parseFloat(amount)
       }
     });
@@ -113,7 +123,18 @@ const verifyWalletFunding = async (req, res) => {
       });
     }
 
-    const verification = await monnifyClient.verifyTransaction(transaction.monnifyTransactionReference || paymentReference);
+    const referenceToVerify = transaction.monnifyTransactionReference || transaction.monnifyPaymentReference;
+    
+    if (!referenceToVerify) {
+      console.error('No Monnify reference found for transaction:', transaction._id);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid transaction - no Monnify reference found'
+      });
+    }
+
+    console.log('Verifying Monnify transaction with reference:', referenceToVerify);
+    const verification = await monnifyClient.verifyTransaction(referenceToVerify);
 
     if (verification.isPaid) {
       const user = await User.findById(userId);

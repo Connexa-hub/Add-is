@@ -1,16 +1,67 @@
-# VTU Bill Payment Platform - Connexa
+# VTU Bill Payment Platform - Connexa (Opay-Style Features)
 
-A comprehensive Virtual Top-Up (VTU) bill payment platform with mobile app and admin dashboard for managing electricity, data, TV subscriptions, and wallet services.
+A comprehensive Virtual Top-Up (VTU) bill payment platform with mobile app and admin dashboard for managing electricity, data, TV subscriptions, and wallet services with Opay-style KYC, banners, and payment features.
 
 ## Project Overview
 
 This platform enables users to:
-- Pay electricity bills
-- Purchase mobile data
-- Subscribe to TV services (DSTV, GOTV, etc.)
-- Manage wallet balance with Monnify integration
-- Receive cashback rewards
-- Get notifications and promotions
+- **KYC Verification**: Complete identity verification with document upload and selfie
+- **VTU Services**: Airtime, data, electricity, cable TV purchases
+- **Smart Home Screen**: Promotional banners, auto-network detection
+- **Wallet Management**: Monnify-integrated card payments and wallet funding
+- **Transaction PIN**: Secure transactions with PIN and biometric authentication
+- **Saved Cards**: Tokenized card storage with PCI compliance
+- **Cashback Rewards**: Automatic rewards on transactions
+- **Real-time Notifications**: Push notifications for all activities
+
+## Latest Update - Opay-Style Features Implementation (October 19, 2025)
+
+### ✅ COMPLETE OPAY-STYLE FEATURE SET IMPLEMENTED
+
+**New Features Added:**
+
+1. **KYC System**
+   - Personal information collection (name, DOB, ID number, address)
+   - Document upload (ID front, ID back, selfie)
+   - Multi-step verification flow with progress tracking
+   - Admin review panel with approve/reject functionality
+   - Status tracking (not_submitted, pending, approved, rejected)
+
+2. **Banner Management**
+   - Dynamic promotional banners with scheduling
+   - Target specific sections (home, airtime, data, electricity, wallet)
+   - Support for images, videos, and GIFs
+   - Weight-based randomization
+   - Click and impression tracking
+
+3. **VTU Product Catalog**
+   - Comprehensive product management (airtime, data, electricity, cable)
+   - Network auto-detection from phone numbers (MTN, GLO, AIRTEL, 9MOBILE)
+   - Category grouping and filtering
+   - Popular products highlighting
+   - Commission tracking
+
+4. **Transaction PIN & Biometric**
+   - 4-6 digit PIN setup with bcrypt hashing
+   - Failed attempt tracking (3 attempts = 15-min lockout)
+   - PIN verification middleware for sensitive operations
+   - Biometric authentication toggle
+   - PIN change functionality
+
+5. **Card Vault & Payment**
+   - Monnify payment gateway integration
+   - Card tokenization (PCI compliant - no PAN/CVV storage)
+   - Saved cards management
+   - Default card selection
+   - Card reveal protected by transaction PIN
+   - Wallet funding with card payment
+
+6. **Security Enhancements**
+   - Rate limiting on KYC and PIN endpoints (10 requests/15 min)
+   - Webhook signature verification for Monnify
+   - PIN lockout mechanism
+   - JWT authentication on all new endpoints
+   - Admin-only routes protection
 
 ## Quick Start (Replit)
 
@@ -244,6 +295,50 @@ Required secrets (set in Replit Secrets):
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
 - `GET /api/auth/profile` - Get user profile
+
+### KYC (NEW)
+- `POST /api/kyc/submit` - Submit KYC verification
+- `GET /api/kyc/status` - Get KYC status
+- `GET /api/kyc/admin/list` - List pending KYC (Admin)
+- `POST /api/kyc/admin/:userId/approve` - Approve KYC (Admin)
+- `POST /api/kyc/admin/:userId/reject` - Reject KYC (Admin)
+
+### Banners (NEW)
+- `GET /api/banners?section=home` - Get active banners
+- `POST /api/banners/admin` - Create banner (Admin)
+- `PUT /api/banners/admin/:bannerId` - Update banner (Admin)
+- `DELETE /api/banners/admin/:bannerId` - Delete banner (Admin)
+- `GET /api/banners/admin/list` - List all banners (Admin)
+
+### VTU Products (NEW)
+- `GET /api/vtu/products?type=airtime&network=MTN` - Get products
+- `POST /api/vtu/phone/detect` - Detect network from phone number
+- `POST /api/vtu/admin/products` - Create product (Admin)
+- `PUT /api/vtu/admin/products/:productId` - Update product (Admin)
+- `DELETE /api/vtu/admin/products/:productId` - Delete product (Admin)
+
+### Transaction PIN (NEW)
+- `POST /api/pin/setup` - Setup transaction PIN
+- `POST /api/pin/verify` - Verify PIN
+- `POST /api/pin/change` - Change PIN
+- `GET /api/pin/status` - Get PIN status
+- `POST /api/pin/biometric/toggle` - Toggle biometric auth
+
+### Cards (NEW)
+- `GET /api/cards` - Get user's saved cards
+- `POST /api/cards` - Save new card
+- `DELETE /api/cards/:cardId` - Delete card (requires PIN)
+- `PUT /api/cards/:cardId/default` - Set default card
+- `GET /api/cards/:cardId/token` - Get card token for charging (requires PIN)
+
+### Wallet Funding (NEW)
+- `POST /api/wallet/funding/initialize` - Initialize wallet funding
+- `POST /api/wallet/funding/verify` - Verify payment
+- `POST /api/wallet/funding/webhook` - Monnify webhook
+- `POST /api/wallet/funding/save-card` - Save card after payment
+
+### File Upload (NEW)
+- `POST /api/uploads` - Upload files (KYC documents, etc.)
 
 ### Services
 - `POST /api/services/electricity` - Pay electricity bill
