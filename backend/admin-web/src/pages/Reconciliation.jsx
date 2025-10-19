@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, AlertTriangle, RefreshCw, Download, CheckCircle, XCircle } from 'lucide-react';
 import { adminAPI } from '../services/api';
@@ -164,7 +163,7 @@ const Reconciliation = () => {
           <div>
             <p style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Net Profit Margin</p>
             <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-              {reconciliationData.totalFundedAmount > 0 
+              {reconciliationData.totalFundedAmount > 0
                 ? ((reconciliationData.platformProfit / reconciliationData.totalFundedAmount) * 100).toFixed(2)
                 : 0}%
             </p>
@@ -176,7 +175,7 @@ const Reconciliation = () => {
       {reconciliationData.failedTransactions?.length > 0 && (
         <div className="card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid var(--danger)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <AlertTriangle color="var(--danger)" size={20} />
+            <AlertTriangle style={{ color: 'var(--danger)' }} size={20} />
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
               Failed Transactions ({reconciliationData.failedTransactions.length})
             </h2>
