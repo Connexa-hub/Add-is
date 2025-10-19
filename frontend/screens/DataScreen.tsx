@@ -14,6 +14,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
+import { PaymentPreviewSheet } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -34,6 +35,8 @@ export default function DataScreen() {
   const [loading, setLoading] = useState(false);
   const [dataPlans, setDataPlans] = useState<DataPlan[]>([]);
   const [errors, setErrors] = useState({ phoneNumber: '' });
+  const [showPaymentPreview, setShowPaymentPreview] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const networks = [
     { id: 'mtn', name: 'MTN', color: '#FFCC00', icon: 'phone-portrait' },
@@ -43,8 +46,27 @@ export default function DataScreen() {
   ];
 
   useEffect(() => {
+    fetchWalletBalance();
+  }, []);
+
+  useEffect(() => {
     fetchDataPlans();
   }, [selectedNetwork]);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(
+        `${API_BASE_URL}/api/wallet/balance`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setWalletBalance(response.data.data.balance);
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  };
 
   const fetchDataPlans = async () => {
     setLoading(true);
@@ -81,7 +103,7 @@ export default function DataScreen() {
     return phoneRegex.test(phone);
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = () => {
     if (!validatePhoneNumber(phoneNumber)) {
       setErrors({ phoneNumber: 'Please enter a valid 11-digit phone number' });
       return;
@@ -92,6 +114,10 @@ export default function DataScreen() {
       return;
     }
 
+    setShowPaymentPreview(true);
+  };
+
+  const confirmPurchase = async (usedCashback: number) => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
@@ -99,19 +125,22 @@ export default function DataScreen() {
         `${API_BASE_URL}/services/buy-data`,
         {
           phoneNumber,
-          plan: selectedPlan.id,
+          plan: selectedPlan!.id,
           network: selectedNetwork,
-          amount: selectedPlan.price
+          amount: selectedPlan!.price,
+          usedCashback
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      setShowPaymentPreview(false);
       Alert.alert(
         'Success',
-        `Data purchase successful! ${selectedPlan.name} has been sent to ${phoneNumber}`,
+        `Data purchase successful! ${selectedPlan!.name} has been sent to ${phoneNumber}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error: any) {
+      setShowPaymentPreview(false);
       Alert.alert(
         'Error',
         error.response?.data?.message || 'Failed to purchase data. Please try again.'
@@ -119,6 +148,11 @@ export default function DataScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddFunds = () => {
+    setShowPaymentPreview(false);
+    navigation.navigate('WalletFunding' as never);
   };
 
   return (
@@ -256,9 +290,21 @@ export default function DataScreen() {
           fullWidth
           size="lg"
         >
-          {loading ? 'Processing...' : 'Purchase Data'}
+          Purchase Data
         </AppButton>
       </ScrollView>
+
+      <PaymentPreviewSheet
+        visible={showPaymentPreview}
+        onClose={() => setShowPaymentPreview(false)}
+        onConfirm={confirmPurchase}
+        amount={selectedPlan?.price || 0}
+        serviceType="data"
+        serviceName={`${networks.find(n => n.id === selectedNetwork)?.name || ''} - ${selectedPlan?.name || ''}`}
+        recipient={phoneNumber}
+        balance={walletBalance}
+        onAddFunds={handleAddFunds}
+      />
     </View>
   );
 }

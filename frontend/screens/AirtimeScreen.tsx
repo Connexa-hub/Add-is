@@ -13,6 +13,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
+import { PaymentPreviewSheet } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -31,6 +32,8 @@ export default function AirtimeScreen() {
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ phoneNumber: '', amount: '' });
+  const [showPaymentPreview, setShowPaymentPreview] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const networks = [
     { id: 'mtn', name: 'MTN', color: '#FFCC00', textColor: '#000000', icon: 'phone-portrait' },
@@ -49,12 +52,31 @@ export default function AirtimeScreen() {
   ];
 
   useEffect(() => {
+    fetchWalletBalance();
+  }, []);
+
+  useEffect(() => {
     if (phoneNumber.length >= 4) {
       detectNetwork(phoneNumber);
     } else {
       setSelectedNetwork('');
     }
   }, [phoneNumber]);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(
+        `${API_BASE_URL}/api/wallet/balance`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setWalletBalance(response.data.data.balance);
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  };
 
   const detectNetwork = (phone) => {
     const prefix = phone.substring(0, 4);
@@ -77,7 +99,7 @@ export default function AirtimeScreen() {
     return numAmount >= 50 && numAmount <= 50000;
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = () => {
     let hasError = false;
     const newErrors = { phoneNumber: '', amount: '' };
 
@@ -99,6 +121,10 @@ export default function AirtimeScreen() {
     setErrors(newErrors);
     if (hasError) return;
 
+    setShowPaymentPreview(true);
+  };
+
+  const confirmPurchase = async (usedCashback: number) => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
@@ -109,17 +135,20 @@ export default function AirtimeScreen() {
         {
           phoneNumber,
           network: serviceID,
-          amount: parseFloat(amount)
+          amount: parseFloat(amount),
+          usedCashback
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      setShowPaymentPreview(false);
       Alert.alert(
         'Success',
         `Airtime purchase successful! ₦${amount} has been sent to ${phoneNumber}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
+      setShowPaymentPreview(false);
       Alert.alert(
         'Error',
         error.response?.data?.message || 'Failed to purchase airtime. Please try again.'
@@ -127,6 +156,11 @@ export default function AirtimeScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddFunds = () => {
+    setShowPaymentPreview(false);
+    navigation.navigate('WalletFunding' as never);
   };
 
   return (
@@ -287,9 +321,21 @@ export default function AirtimeScreen() {
           fullWidth
           size="lg"
         >
-          {loading ? 'Processing...' : 'Purchase Airtime'}
+          Purchase Airtime
         </AppButton>
       </ScrollView>
+
+      <PaymentPreviewSheet
+        visible={showPaymentPreview}
+        onClose={() => setShowPaymentPreview(false)}
+        onConfirm={confirmPurchase}
+        amount={parseFloat(amount || '0')}
+        serviceType="airtime"
+        serviceName={`${networks.find(n => n.id === selectedNetwork)?.name || ''} Airtime`}
+        recipient={phoneNumber}
+        balance={walletBalance}
+        onAddFunds={handleAddFunds}
+      />
     </View>
   );
 }
