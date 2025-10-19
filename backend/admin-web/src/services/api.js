@@ -55,10 +55,10 @@ export const serviceAPI = {
 };
 
 export const supportAPI = {
-  getTickets: (params) => api.get('/admin/support/tickets', { params }),
-  getTicketDetails: (ticketId) => api.get(`/admin/support/tickets/${ticketId}`),
-  updateTicketStatus: (ticketId, status) => api.put(`/admin/support/tickets/${ticketId}/status`, { status }),
-  replyToTicket: (ticketId, message) => api.post(`/admin/support/tickets/${ticketId}/reply`, { message }),
+  getTickets: (params) => api.get('/admin/support', { params }),
+  getTicketDetails: (ticketId) => api.get(`/admin/support/${ticketId}`),
+  updateTicketStatus: (ticketId, status) => api.put(`/admin/support/${ticketId}/status`, { status }),
+  replyToTicket: (ticketId, response) => api.post(`/admin/support/${ticketId}/response`, { response }),
 };
 
 export const cashbackAPI = {

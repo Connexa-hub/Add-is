@@ -136,14 +136,28 @@ export default function Layout({ children }) {
                   type="text"
                   placeholder="Search users, transactions..."
                   className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white transition-all"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const searchTerm = e.currentTarget.value;
+                      if (searchTerm.includes('@')) {
+                        navigate(`/users?search=${searchTerm}`);
+                      } else {
+                        navigate(`/transactions?search=${searchTerm}`);
+                      }
+                    }
+                  }}
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="relative p-2 hover:bg-gray-100 rounded-lg">
+              <button 
+                className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => navigate('/messages')}
+                title="Notifications"
+              >
                 <Bell size={24} className="text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               </button>
 
               <div className="relative">

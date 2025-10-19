@@ -11,6 +11,9 @@ const Support = () => {
     pending: 0,
     resolvedToday: 0
   });
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -23,12 +26,36 @@ const Support = () => {
       const response = await supportAPI.getTickets();
       if (response.data.success) {
         const ticketData = response.data.data || [];
-        setTickets(ticketData.tickets || []);
-        setStats(ticketData.stats || stats);
+        
+        // Transform tickets to match UI format
+        const formattedTickets = ticketData.map(ticket => ({
+          id: ticket._id,
+          user: ticket.userId?.name || 'Unknown User',
+          email: ticket.userId?.email || 'N/A',
+          subject: ticket.subject,
+          message: ticket.message,
+          priority: ticket.priority || 'medium',
+          status: ticket.status,
+          createdAt: new Date(ticket.createdAt)
+        }));
+        
+        setTickets(formattedTickets);
+        
+        // Calculate stats
+        const newStats = {
+          open: formattedTickets.filter(t => t.status === 'open').length,
+          pending: formattedTickets.filter(t => t.status === 'pending').length,
+          resolvedToday: formattedTickets.filter(t => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return t.status === 'resolved' && new Date(t.createdAt) >= today;
+          }).length
+        };
+        setStats(newStats);
       }
     } catch (error) {
       console.error('Error fetching support tickets:', error);
-      setError('Failed to load support tickets. Please try again later.');
+      setError(error.response?.data?.message || 'Failed to load support tickets. Please try again later.');
       setTickets([]);
     } finally {
       setLoading(false);
@@ -51,6 +78,33 @@ const Support = () => {
       low: 'badge-info',
     };
     return priorityMap[priority] || 'badge-info';
+  };
+
+  const handleReply = async (ticketId) => {
+    if (!replyText.trim()) return;
+    
+    try {
+      setReplyLoading(true);
+      await supportAPI.replyToTicket(ticketId, replyText);
+      setReplyText('');
+      setSelectedTicket(null);
+      fetchTickets();
+    } catch (error) {
+      console.error('Reply error:', error);
+      setError('Failed to send reply');
+    } finally {
+      setReplyLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (ticketId, newStatus) => {
+    try {
+      await supportAPI.updateTicketStatus(ticketId, newStatus);
+      fetchTickets();
+    } catch (error) {
+      console.error('Status update error:', error);
+      setError('Failed to update status');
+    }
   };
 
   return (
@@ -173,9 +227,24 @@ const Support = () => {
                     </td>
                     <td>{ticket.createdAt.toLocaleDateString()}</td>
                     <td>
-                      <button className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}>
-                        Reply
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {ticket.status === 'open' && (
+                          <button 
+                            className="btn btn-warning" 
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                            onClick={() => handleStatusUpdate(ticket.id, 'pending')}
+                          >
+                            Mark Pending
+                          </button>
+                        )}
+                        <button 
+                          className="btn btn-primary" 
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          onClick={() => setSelectedTicket(ticket)}
+                        >
+                          Reply
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -184,9 +253,60 @@ const Support = () => {
           </table>
         </div>
 
-        <div className="alert alert-info" style={{ marginTop: '1.5rem' }}>
-          <strong>Note:</strong> Support ticket system backend integration is ready. Create support ticket routes in backend to activate this feature.
-        </div>
+        {selectedTicket && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div className="card" style={{ maxWidth: '600px', width: '90%', padding: '2rem' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Reply to: {selectedTicket.subject}</h3>
+              <p style={{ marginBottom: '1rem', color: 'var(--gray-600)' }}>
+                From: {selectedTicket.user} ({selectedTicket.email})
+              </p>
+              <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--gray-50)', borderRadius: '8px' }}>
+                <strong>Original Message:</strong>
+                <p style={{ marginTop: '0.5rem' }}>{selectedTicket.message}</p>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Your Response</label>
+                <textarea
+                  className="input-field"
+                  rows={4}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Type your response here..."
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleReply(selectedTicket.id)}
+                  disabled={replyLoading || !replyText.trim()}
+                >
+                  {replyLoading ? 'Sending...' : 'Send Reply & Resolve'}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setSelectedTicket(null);
+                    setReplyText('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
