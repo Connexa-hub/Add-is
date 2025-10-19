@@ -6,7 +6,7 @@ const crypto = require('crypto');
 exports.initializePayment = async (req, res) => {
   try {
     const { amount } = req.body;
-    const userId = req.user.userId;
+    const userId = req.userId;
 
     if (!amount || amount < 100) {
       return res.status(400).json({
@@ -76,7 +76,7 @@ exports.initializePayment = async (req, res) => {
 exports.verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
-    const userId = req.user.userId;
+    const userId = req.userId;
 
     const transaction = await Transaction.findOne({ 
       $or: [
