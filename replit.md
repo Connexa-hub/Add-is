@@ -65,16 +65,24 @@ This platform enables users to:
 
 ## Quick Start (Replit)
 
-### ✅ PRODUCTION READY - October 18, 2025 (Latest Update)
+### ✅ REPLIT SETUP COMPLETE - October 19, 2025 (Latest Update)
 
-### Running the Application
-The project is fully configured and running in Replit:
+The project has been successfully configured and is running in the Replit environment:
 
 **Backend API Server (Auto-starts on port 3001):**
 - **Status**: ✅ Running
+- **Host**: localhost:3001 (internal)
 - **Health Check**: http://localhost:3001/api/health
+- **Database**: ✅ MongoDB Atlas connected
 - **Security**: Rate limiting, CORS, Helmet, JWT expiration (7 days)
 - **Email Verification**: ✅ Fully functional (Gmail SMTP configured)
+
+**Admin Dashboard (Auto-starts on port 5000):**
+- **Status**: ✅ Running
+- **Host**: 0.0.0.0:5000 (webview - user-facing)
+- **Access**: Click the webview button to access the admin panel
+- **Proxy**: API requests proxied to backend on localhost:3001
+- **Login**: Use admin credentials to access dashboard
 
 **Mobile App (Manual start):**
 - **Frontend**: React Native/Expo app 
@@ -82,6 +90,11 @@ The project is fully configured and running in Replit:
 - **Testing**: Use Expo Go app on your phone to scan QR code
 - **Web preview**: Open http://localhost:8081 in browser
 - **API Connection**: Configured to connect to backend on port 3001
+
+**Deployment Configuration:**
+- **Type**: VM (stateful, always-on)
+- **Status**: ✅ Configured
+- **Services**: Backend API + Admin Dashboard run together
 
 ### Environment Setup
 All secrets configured in Replit's encrypted secrets system:
