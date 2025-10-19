@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator, Alert, Clipboard } from 'react-native';
-import { Appbar, TextInput, Button, Portal, Modal, Text, Card, Divider, IconButton } from 'react-native-paper';
+import { Appbar, TextInput, Button, Portal, Modal, Text, Card, Divider, IconButton, Checkbox } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WebView } from 'react-native-webview';
 import { API_BASE_URL } from '../constants/api';
 
 export default function WalletFundingScreen({ navigation }) {
@@ -12,9 +13,17 @@ export default function WalletFundingScreen({ navigation }) {
   const [virtualAccount, setVirtualAccount] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [user, setUser] = useState(null);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [saveCard, setSaveCard] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [savedCards, setSavedCards] = useState([]);
+  const [loadingCards, setLoadingCards] = useState(false);
 
   useEffect(() => {
     loadUserData();
+    loadSavedCards();
   }, []);
 
   const loadUserData = async () => {
@@ -126,30 +135,135 @@ export default function WalletFundingScreen({ navigation }) {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
       
-      const response = await fetch(`${API_BASE_URL}/payment/initialize`, {
+      const response = await fetch(`${API_BASE_URL}/api/wallet/funding/initialize`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ amount: num }),
+        body: JSON.stringify({ amount: num, saveCard }),
       });
 
       const data = await response.json();
       
-      if (data.success && data.paymentUrl) {
-        // In a real implementation, open payment URL in WebView
-        Alert.alert(
-          'Payment Initiated',
-          'In production, this would open the payment page. For now, use the virtual account to fund your wallet.',
-          [{ text: 'OK' }]
-        );
+      if (data.success && data.data.checkoutUrl) {
+        setCheckoutUrl(data.data.checkoutUrl);
+        setPaymentReference(data.data.paymentReference);
+        setPaymentModalVisible(true);
+      } else {
+        Alert.alert('Error', data.message || 'Failed to initialize payment');
       }
     } catch (error) {
       console.error('Error initiating payment:', error);
       Alert.alert('Error', 'Failed to initiate payment');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleWebViewNavigationStateChange = async (navState) => {
+    const { url } = navState;
+    console.log('WebView navigation:', url);
+
+    if (url.includes('payment/callback') || url.includes('status=success') || url.includes('status=completed')) {
+      if (!processingPayment) {
+        setProcessingPayment(true);
+        await verifyPayment();
+      }
+    } else if (url.includes('status=failed') || url.includes('status=cancelled')) {
+      setPaymentModalVisible(false);
+      setProcessingPayment(false);
+      Alert.alert('Payment Failed', 'Your payment was not completed. Please try again.');
+    }
+  };
+
+  const verifyPayment = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      
+      const response = await fetch(`${API_BASE_URL}/api/wallet/funding/verify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentReference }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.data.status === 'completed') {
+        setWalletBalance(data.data.newBalance);
+
+        if (saveCard && data.data.cardData) {
+          await saveCardAfterPayment(data.data.cardData);
+        }
+
+        setPaymentModalVisible(false);
+        setProcessingPayment(false);
+        setAmount('');
+        setSaveCard(false);
+        Alert.alert('Success', `Your wallet has been funded with ₦${data.data.amount.toLocaleString()}`);
+      } else {
+        setTimeout(async () => {
+          await verifyPayment();
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      setPaymentModalVisible(false);
+      setProcessingPayment(false);
+      Alert.alert('Error', 'Failed to verify payment. Please check your wallet balance.');
+    }
+  };
+
+  const saveCardAfterPayment = async (cardData) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      
+      const response = await fetch(`${API_BASE_URL}/api/wallet/funding/save-card`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentReference,
+          cardDetails: cardData
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('Card saved successfully');
+        loadSavedCards();
+      }
+    } catch (error) {
+      console.error('Error saving card:', error);
+    }
+  };
+
+  const loadSavedCards = async () => {
+    try {
+      setLoadingCards(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      const response = await fetch(`${API_BASE_URL}/api/cards`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setSavedCards(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading saved cards:', error);
+    } finally {
+      setLoadingCards(false);
     }
   };
 
@@ -257,6 +371,16 @@ export default function WalletFundingScreen({ navigation }) {
               left={<TextInput.Affix text="₦" />}
             />
             
+            <View style={styles.checkboxRow}>
+              <Checkbox
+                status={saveCard ? 'checked' : 'unchecked'}
+                onPress={() => setSaveCard(!saveCard)}
+              />
+              <Text style={styles.checkboxLabel} onPress={() => setSaveCard(!saveCard)}>
+                Save this card for future payments
+              </Text>
+            </View>
+            
             <Button 
               mode="contained" 
               onPress={initiateCardPayment} 
@@ -286,6 +410,48 @@ export default function WalletFundingScreen({ navigation }) {
           </Card.Content>
         </Card>
       </ScrollView>
+
+      <Portal>
+        <Modal
+          visible={paymentModalVisible}
+          onDismiss={() => {
+            if (!processingPayment) {
+              setPaymentModalVisible(false);
+            }
+          }}
+          contentContainerStyle={styles.paymentModal}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Complete Payment</Text>
+            {!processingPayment && (
+              <IconButton
+                icon="close"
+                size={24}
+                onPress={() => setPaymentModalVisible(false)}
+              />
+            )}
+          </View>
+          
+          {processingPayment ? (
+            <View style={styles.processingContainer}>
+              <ActivityIndicator size="large" color="#6200ee" />
+              <Text style={styles.processingText}>Verifying payment...</Text>
+            </View>
+          ) : (
+            <WebView
+              source={{ uri: checkoutUrl }}
+              style={styles.webview}
+              onNavigationStateChange={handleWebViewNavigationStateChange}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <View style={styles.webviewLoading}>
+                  <ActivityIndicator size="large" color="#6200ee" />
+                </View>
+              )}
+            />
+          )}
+        </Modal>
+      </Portal>
     </View>
   );
 }
@@ -391,5 +557,61 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 24,
     marginTop: 8,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 8,
+    flex: 1,
+  },
+  paymentModal: {
+    backgroundColor: 'white',
+    height: '80%',
+    marginTop: 'auto',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  webview: {
+    flex: 1,
+  },
+  webviewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  processingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  processingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
   },
 });

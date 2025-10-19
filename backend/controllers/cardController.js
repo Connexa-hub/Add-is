@@ -201,10 +201,53 @@ const getCardToken = async (req, res) => {
   }
 };
 
+const revealCard = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { cardId } = req.params;
+
+    const card = await Card.findOne({ _id: cardId, userId, isActive: true });
+
+    if (!card) {
+      return res.status(404).json({
+        success: false,
+        message: 'Card not found'
+      });
+    }
+
+    const maskedPAN = `**** **** **** ${card.last4}`;
+
+    res.json({
+      success: true,
+      message: 'Card details retrieved successfully',
+      data: {
+        cardId: card._id,
+        maskedPAN,
+        last4: card.last4,
+        brand: card.brand,
+        expiryMonth: card.expiryMonth,
+        expiryYear: card.expiryYear,
+        cardholderName: card.cardholderName,
+        bin: card.bin,
+        isDefault: card.isDefault,
+        createdAt: card.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Reveal card error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reveal card details',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   saveCard,
   getUserCards,
   deleteCard,
   setDefaultCard,
-  getCardToken
+  getCardToken,
+  revealCard
 };

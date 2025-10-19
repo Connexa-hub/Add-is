@@ -21,6 +21,7 @@ import ElectricityScreen from '../../screens/ElectricityScreen';
 import AirtimeScreen from '../../screens/AirtimeScreen';
 import AdminDashboardScreen from '../../screens/AdminDashboardScreen';
 import AdminUsersScreen from '../../screens/AdminUsersScreen';
+import CardManagementScreen from '../../screens/CardManagementScreen';
 
 import KYCPersonalInfoScreen from '../../screens/KYCPersonalInfoScreen';
 import KYCDocumentsScreen from '../../screens/KYCDocumentsScreen';
@@ -84,6 +85,7 @@ export default function AppNavigator() {
         <Stack.Screen name="TV" component={TVScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Electricity" component={ElectricityScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="CardManagement" component={CardManagementScreen} options={{ headerShown: false }} />
 
         {/* KYC Screens */}
         <Stack.Screen name="KYCPersonalInfo" component={KYCPersonalInfoScreen} options={{ headerShown: false }} />

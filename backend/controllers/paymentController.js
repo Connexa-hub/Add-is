@@ -129,12 +129,23 @@ exports.verifyPayment = async (req, res) => {
       transaction.metadata = verificationResult.data;
       await transaction.save();
 
+      const cardData = verificationResult.data.paymentMethod === 'CARD' ? {
+        cardToken: verificationResult.data.cardToken,
+        last4: verificationResult.data.cardNumber?.slice(-4),
+        brand: verificationResult.data.cardType?.toLowerCase(),
+        expiryMonth: verificationResult.data.expiryMonth,
+        expiryYear: verificationResult.data.expiryYear,
+        authorizationCode: verificationResult.data.authorizationCode,
+        bin: verificationResult.data.cardNumber?.slice(0, 6)
+      } : null;
+
       res.json({
         success: true,
         message: 'Payment verified successfully',
         data: {
           transaction,
-          newBalance: user.walletBalance
+          newBalance: user.walletBalance,
+          cardData
         }
       });
     } else {

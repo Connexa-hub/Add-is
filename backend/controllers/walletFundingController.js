@@ -143,6 +143,7 @@ const verifyWalletFunding = async (req, res) => {
       transaction.balanceAfter = user.walletBalance;
       transaction.status = 'completed';
       transaction.completedAt = new Date();
+      transaction.metadata = verification.data;
 
       await Promise.all([user.save(), transaction.save()]);
 
@@ -155,6 +156,16 @@ const verifyWalletFunding = async (req, res) => {
         actionData: { transactionId: transaction._id }
       });
 
+      const cardData = verification.data.paymentMethod === 'CARD' ? {
+        cardToken: verification.data.cardToken,
+        last4: verification.data.cardNumber?.slice(-4),
+        brand: verification.data.cardType?.toLowerCase(),
+        expiryMonth: verification.data.expiryMonth,
+        expiryYear: verification.data.expiryYear,
+        authorizationCode: verification.data.authorizationCode,
+        bin: verification.data.cardNumber?.slice(0, 6)
+      } : null;
+
       return res.json({
         success: true,
         message: 'Payment verified successfully',
@@ -162,7 +173,8 @@ const verifyWalletFunding = async (req, res) => {
           status: 'completed',
           amount: transaction.amount,
           newBalance: user.walletBalance,
-          transactionId: transaction._id
+          transactionId: transaction._id,
+          cardData
         }
       });
     } else {
