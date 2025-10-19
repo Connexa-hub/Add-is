@@ -14,6 +14,7 @@ import Settings from './pages/Settings';
 import KYCManagement from './pages/KYC';
 import BannerManagement from './pages/BannerManagement';
 import VTUProductManagement from './pages/VTUProductManagement';
+import Reconciliation from './pages/Reconciliation';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -124,6 +125,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <VTUProductManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reconciliation"
+            element={
+              <ProtectedRoute>
+                <Reconciliation />
               </ProtectedRoute>
             }
           />

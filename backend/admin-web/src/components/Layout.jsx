@@ -21,6 +21,7 @@ import {
   Shield,
   Image,
   ShoppingBag,
+  TrendingUp,
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -38,6 +39,7 @@ export default function Layout({ children }) {
     { icon: ShoppingBag, label: 'VTU Products', path: '/vtu-products' },
     { icon: Activity, label: 'Transactions', path: '/transactions' },
     { icon: Wallet, label: 'Payment Integration', path: '/vtpass-wallet' },
+    { icon: TrendingUp, label: 'Reconciliation', path: '/reconciliation' },
     { icon: Gift, label: 'Cashback', path: '/cashback' },
     { icon: MessageSquare, label: 'Messages', path: '/messages' },
     { icon: Headphones, label: 'Support', path: '/support' },
@@ -151,7 +153,7 @@ export default function Layout({ children }) {
             </div>
 
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 onClick={() => navigate('/messages')}
                 title="Notifications"

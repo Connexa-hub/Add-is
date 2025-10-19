@@ -610,6 +610,145 @@ router.get('/payment-gateway/balances', verifyToken, isAdmin, async (req, res, n
   }
 });
 
+// Get reconciliation data
+router.get('/reconciliation', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const dateFilter = {};
+    
+    if (startDate) dateFilter.$gte = new Date(startDate);
+    if (endDate) dateFilter.$lte = new Date(endDate);
+    
+    const totalUserWalletBalance = await User.aggregate([
+      { $group: { _id: null, total: { $sum: '$walletBalance' } } }
+    ]);
+    
+    const fundingStats = await Transaction.aggregate([
+      { 
+        $match: { 
+          category: 'wallet_funding',
+          status: 'completed',
+          ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {})
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    const spendingStats = await Transaction.aggregate([
+      { 
+        $match: { 
+          type: 'debit',
+          status: 'completed',
+          category: { $in: ['electricity', 'data', 'tv', 'airtime'] },
+          ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {})
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    const failedTransactions = await Transaction.find({
+      status: 'failed',
+      createdAt: dateFilter
+    })
+      .populate('userId', 'name email')
+      .limit(50)
+      .sort({ createdAt: -1 });
+    
+    const monnifyClient = require('../utils/monnifyClient');
+    const vtpassClient = require('../utils/vtpassClient');
+    
+    let monnifyBalance = 0;
+    let vtpassBalance = 0;
+    
+    try {
+      const monnifyData = await monnifyClient.getAccountBalance();
+      monnifyBalance = monnifyData.availableBalance || 0;
+    } catch (error) {
+      console.error('Monnify balance error:', error);
+    }
+    
+    try {
+      const vtpassData = await vtpassClient.getBalance();
+      vtpassBalance = vtpassData.balance || 0;
+    } catch (error) {
+      console.error('VTPass balance error:', error);
+    }
+    
+    const totalFunded = fundingStats[0]?.total || 0;
+    const totalSpent = spendingStats[0]?.total || 0;
+    const platformProfit = totalFunded - totalSpent;
+    
+    res.json({
+      success: true,
+      data: {
+        totalUserWalletBalance: totalUserWalletBalance[0]?.total || 0,
+        totalFundedAmount: totalFunded,
+        totalSpentAmount: totalSpent,
+        platformProfit,
+        monnifyBalance,
+        vtpassBalance,
+        failedTransactions
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Process refund
+router.post('/transactions/:transactionId/refund', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { transactionId } = req.params;
+    const { reason } = req.body;
+    
+    const transaction = await Transaction.findById(transactionId);
+    
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+    
+    if (transaction.status !== 'failed') {
+      return res.status(400).json({ success: false, message: 'Only failed transactions can be refunded' });
+    }
+    
+    const user = await User.findById(transaction.userId);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    user.walletBalance += transaction.amount;
+    await user.save();
+    
+    await Transaction.create({
+      userId: user._id,
+      type: 'credit',
+      category: 'reversal',
+      amount: transaction.amount,
+      reference: `REFUND-${transaction.reference}`,
+      status: 'completed',
+      description: `Refund for failed transaction: ${reason}`,
+      metadata: {
+        originalTransactionId: transaction._id,
+        reason
+      }
+    });
+    
+    transaction.status = 'cancelled';
+    await transaction.save();
+    
+    res.json({
+      success: true,
+      message: 'Refund processed successfully',
+      data: {
+        newBalance: user.walletBalance
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Helper function to calculate risk score
 function calculateRiskScore(user, transactions) {
   let score = 50;
