@@ -135,6 +135,12 @@ const verifyWalletFunding = async (req, res) => {
 
     console.log('Verifying Monnify transaction with reference:', referenceToVerify);
     const verification = await monnifyClient.verifyTransaction(referenceToVerify);
+    
+    console.log('Monnify verification response:', {
+      isPaid: verification.isPaid,
+      status: verification.status,
+      amount: verification.amount
+    });
 
     if (verification.isPaid) {
       const user = await User.findById(userId);
@@ -178,15 +184,21 @@ const verifyWalletFunding = async (req, res) => {
         }
       });
     } else {
-      transaction.status = 'failed';
-      await transaction.save();
+      // Don't mark as failed immediately - payment might still be processing
+      const isPending = ['PENDING', 'INITIATED'].includes(verification.status);
+      
+      if (!isPending && verification.status === 'FAILED') {
+        transaction.status = 'failed';
+        await transaction.save();
+      }
 
-      return res.status(400).json({
+      return res.json({
         success: false,
-        message: 'Payment not confirmed',
+        message: isPending ? 'Payment is being processed' : 'Payment not confirmed',
         data: {
-          status: verification.status,
-          transactionId: transaction._id
+          status: isPending ? 'pending' : verification.status,
+          transactionId: transaction._id,
+          isPending
         }
       });
     }

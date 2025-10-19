@@ -50,47 +50,52 @@ export default function WalletFundingScreen({ navigation }) {
         setUser(data.user);
         setWalletBalance(data.user.walletBalance || 0);
         
-        // Check if user has virtual account
-        if (data.user.virtualAccountNumber) {
-          setVirtualAccount({
-            accountNumber: data.user.virtualAccountNumber,
-            accountName: data.user.virtualAccountName,
-            bankName: data.user.virtualBankName,
-          });
-        } else {
-          // Create virtual account
-          await createVirtualAccount(token);
-        }
+        // Load Monnify virtual account
+        await loadMonnifyAccount(token);
+      } else {
+        throw new Error(data.message || 'Failed to load profile');
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      Alert.alert('Error', 'Failed to load user data');
+      Alert.alert('Error', error.message || 'Failed to load user data');
     } finally {
       setLoading(false);
     }
   };
 
-  const createVirtualAccount = async (token) => {
+  const loadMonnifyAccount = async (token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/payment/create-virtual-account`, {
-        method: 'POST',
+      // First try to get existing account
+      let response = await fetch(`${API_BASE_URL}/api/payment/virtual-account`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
       });
 
-      const data = await response.json();
+      let data = await response.json();
       
-      if (data.success) {
+      // If no account exists, create one
+      if (data.success && !data.data) {
+        response = await fetch(`${API_BASE_URL}/api/payment/virtual-account/create`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        data = await response.json();
+      }
+      
+      if (data.success && data.data && data.data.length > 0) {
+        const account = data.data[0]; // Use first account
         setVirtualAccount({
-          accountNumber: data.accountNumber,
-          accountName: data.accountName,
-          bankName: data.bankName,
+          accountNumber: account.accountNumber,
+          accountName: account.accountName,
+          bankName: account.bankName,
         });
       }
     } catch (error) {
-      console.error('Error creating virtual account:', error);
+      console.error('Error loading Monnify account:', error);
     }
   };
 
@@ -165,6 +170,13 @@ export default function WalletFundingScreen({ navigation }) {
     const { url } = navState;
     console.log('WebView navigation:', url);
 
+    // Check if user closed the payment page
+    if (url.includes('checkout') && url.includes('close=true')) {
+      setPaymentModalVisible(false);
+      setProcessingPayment(false);
+      return;
+    }
+
     if (url.includes('payment/callback') || url.includes('status=success') || url.includes('status=completed')) {
       if (!processingPayment) {
         setProcessingPayment(true);
@@ -177,7 +189,9 @@ export default function WalletFundingScreen({ navigation }) {
     }
   };
 
-  const verifyPayment = async () => {
+  const verifyPayment = async (retryCount = 0) => {
+    const maxRetries = 20; // Max 1 minute of retries (20 * 3 seconds)
+    
     try {
       const token = await AsyncStorage.getItem('token');
       
@@ -204,10 +218,22 @@ export default function WalletFundingScreen({ navigation }) {
         setAmount('');
         setSaveCard(false);
         Alert.alert('Success', `Your wallet has been funded with ₦${data.data.amount.toLocaleString()}`);
-      } else {
+      } else if (retryCount < maxRetries) {
+        // Retry after 3 seconds
         setTimeout(async () => {
-          await verifyPayment();
+          await verifyPayment(retryCount + 1);
         }, 3000);
+      } else {
+        // Max retries reached
+        setPaymentModalVisible(false);
+        setProcessingPayment(false);
+        Alert.alert(
+          'Verification Timeout',
+          'Payment verification is taking longer than expected. Please check your wallet balance or contact support.',
+          [
+            { text: 'OK', onPress: () => loadUserData() }
+          ]
+        );
       }
     } catch (error) {
       console.error('Error verifying payment:', error);
@@ -301,57 +327,6 @@ export default function WalletFundingScreen({ navigation }) {
           </Card.Content>
         </Card>
 
-        {/* Virtual Account Details */}
-        {virtualAccount && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text style={styles.cardTitle}>Bank Transfer (Recommended)</Text>
-              <Text style={styles.cardSubtitle}>
-                Transfer to your dedicated account number below
-              </Text>
-              <Divider style={styles.divider} />
-              
-              <View style={styles.accountRow}>
-                <View style={styles.accountInfo}>
-                  <Text style={styles.accountLabel}>Bank Name</Text>
-                  <Text style={styles.accountValue}>{virtualAccount.bankName}</Text>
-                </View>
-              </View>
-
-              <View style={styles.accountRow}>
-                <View style={styles.accountInfo}>
-                  <Text style={styles.accountLabel}>Account Number</Text>
-                  <Text style={styles.accountValue}>{virtualAccount.accountNumber}</Text>
-                </View>
-                <IconButton
-                  icon="content-copy"
-                  size={20}
-                  onPress={() => copyToClipboard(virtualAccount.accountNumber, 'Account Number')}
-                />
-              </View>
-
-              <View style={styles.accountRow}>
-                <View style={styles.accountInfo}>
-                  <Text style={styles.accountLabel}>Account Name</Text>
-                  <Text style={styles.accountValue}>{virtualAccount.accountName}</Text>
-                </View>
-              </View>
-
-              <View style={styles.infoBox}>
-                <Text style={styles.infoText}>
-                  ✅ Instant credit (within 2 minutes)
-                </Text>
-                <Text style={styles.infoText}>
-                  ✅ Transfer from any bank app
-                </Text>
-                <Text style={styles.infoText}>
-                  ✅ No transaction fees
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
-
         {/* Card Payment Option */}
         <Card style={styles.card}>
           <Card.Content>
@@ -436,6 +411,29 @@ export default function WalletFundingScreen({ navigation }) {
             <View style={styles.processingContainer}>
               <ActivityIndicator size="large" color="#6200ee" />
               <Text style={styles.processingText}>Verifying payment...</Text>
+              <Text style={styles.processingSubtext}>This may take a few moments</Text>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  Alert.alert(
+                    'Cancel Verification?',
+                    'Your payment may still be processing. You can check your wallet balance later.',
+                    [
+                      { text: 'Continue Waiting', style: 'cancel' },
+                      {
+                        text: 'Close',
+                        onPress: () => {
+                          setPaymentModalVisible(false);
+                          setProcessingPayment(false);
+                        }
+                      }
+                    ]
+                  );
+                }}
+                style={{ marginTop: 20 }}
+              >
+                Cancel Verification
+              </Button>
             </View>
           ) : (
             <WebView
@@ -613,5 +611,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
+  },
+  processingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#999',
   },
 });
