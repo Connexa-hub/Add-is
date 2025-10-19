@@ -46,6 +46,5 @@ const CardSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 CardSchema.index({ userId: 1, isActive: 1 });
-CardSchema.index({ cardToken: 1 });
 
 module.exports = mongoose.model('Card', CardSchema);
