@@ -19,12 +19,26 @@ async function createAdmin() {
     if (existingAdmin) {
       console.log('Admin user already exists with email:', email);
       
-      // Update to admin role if not already
+      // Update to admin role and verify email if not already
+      let updated = false;
       if (existingAdmin.role !== 'admin') {
         existingAdmin.role = 'admin';
-        await existingAdmin.save();
+        updated = true;
         console.log('Updated existing user to admin role');
       }
+      if (!existingAdmin.emailVerified) {
+        existingAdmin.emailVerified = true;
+        existingAdmin.verificationOTP = undefined;
+        existingAdmin.verificationExpires = undefined;
+        updated = true;
+        console.log('Verified admin email');
+      }
+      if (updated) {
+        await existingAdmin.save();
+      }
+      console.log('✅ Admin account is ready');
+      console.log('Email:', email);
+      console.log('Password: Admin123! (default)');
       
       mongoose.connection.close();
       return;
@@ -37,7 +51,8 @@ async function createAdmin() {
       email,
       password: hashedPassword,
       role: 'admin',
-      isActive: true
+      isActive: true,
+      emailVerified: true
     });
 
     console.log('✅ Admin user created successfully!');

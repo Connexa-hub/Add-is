@@ -1,29 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Headphones, MessageCircle, AlertCircle } from 'lucide-react';
+import { supportAPI } from '../services/api';
 
 const Support = () => {
-  const [tickets] = useState([
-    {
-      id: '1',
-      user: 'John Doe',
-      email: 'john@example.com',
-      subject: 'Transaction Failed',
-      message: 'My electricity payment failed but money was deducted',
-      status: 'open',
-      priority: 'high',
-      createdAt: new Date(),
-    },
-    {
-      id: '2',
-      user: 'Jane Smith',
-      email: 'jane@example.com',
-      subject: 'Wallet Not Credited',
-      message: 'I funded my wallet but balance not updated',
-      status: 'pending',
-      priority: 'medium',
-      createdAt: new Date(Date.now() - 86400000),
-    },
-  ]);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [stats, setStats] = useState({
+    open: 0,
+    pending: 0,
+    resolvedToday: 0
+  });
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await supportAPI.getTickets();
+      if (response.data.success) {
+        const ticketData = response.data.data || [];
+        setTickets(ticketData.tickets || []);
+        setStats(ticketData.stats || stats);
+      }
+    } catch (error) {
+      console.error('Error fetching support tickets:', error);
+      setError('Failed to load support tickets. Please try again later.');
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -66,7 +76,7 @@ const Support = () => {
               <p style={{ color: 'var(--gray-600)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                 Open Tickets
               </p>
-              <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>1</h3>
+              <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>{stats.open}</h3>
             </div>
             <AlertCircle size={24} color="var(--danger)" />
           </div>
@@ -78,7 +88,7 @@ const Support = () => {
               <p style={{ color: 'var(--gray-600)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                 Pending
               </p>
-              <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>1</h3>
+              <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>{stats.pending}</h3>
             </div>
             <MessageCircle size={24} color="var(--warning)" />
           </div>
@@ -90,7 +100,7 @@ const Support = () => {
               <p style={{ color: 'var(--gray-600)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                 Resolved Today
               </p>
-              <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>0</h3>
+              <h3 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>{stats.resolvedToday}</h3>
             </div>
             <Headphones size={24} color="var(--success)" />
           </div>
@@ -101,6 +111,12 @@ const Support = () => {
         <div style={{ marginBottom: '1rem' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Support Tickets</h2>
         </div>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
 
         <div style={{ overflowX: 'auto' }}>
           <table className="table">
@@ -116,7 +132,13 @@ const Support = () => {
               </tr>
             </thead>
             <tbody>
-              {tickets.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
+                    Loading support tickets...
+                  </td>
+                </tr>
+              ) : tickets.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
                     No support tickets

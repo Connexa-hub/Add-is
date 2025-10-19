@@ -1,0 +1,66 @@
+name: Deploy to Koyeb
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy backend to Koyeb
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+          
+      - name: Build admin dashboard
+        run: |
+          cd backend/admin-web
+          npm ci
+          npm run build
+          
+      - name: Deploy to Koyeb
+        uses: koyeb-community/deploy-to-koyeb@v3
+        with:
+          api_token: ${{ secrets.KOYEB_API_TOKEN }}
+          service_name: connexa-backend
+          service_type: web
+          git_branch: main
+          git_builder: buildpack
+          instance_type: nano
+          regions: was
+          ports: "8000:http"
+          routes: "/;8000"
+          env: |
+            NODE_ENV=production
+            PORT=8000
+          secrets: |
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            VTPASS_API_KEY=${{ secrets.VTPASS_API_KEY }}
+            VTPASS_PUBLIC_KEY=${{ secrets.VTPASS_PUBLIC_KEY }}
+            VTPASS_BASE_URL=${{ secrets.VTPASS_BASE_URL }}
+            VTPASS_USERNAME=${{ secrets.VTPASS_USERNAME }}
+            VTPASS_SECRET_KEY=${{ secrets.VTPASS_SECRET_KEY }}
+            MONNIFY_API_KEY=${{ secrets.MONNIFY_API_KEY }}
+            MONNIFY_SECRET_KEY=${{ secrets.MONNIFY_SECRET_KEY }}
+            MONNIFY_BASE_URL=${{ secrets.MONNIFY_BASE_URL }}
+            MONNIFY_CONTRACT_CODE=${{ secrets.MONNIFY_CONTRACT_CODE }}
+            EMAIL_USER=${{ secrets.EMAIL_USER }}
+            EMAIL_PASS=${{ secrets.EMAIL_PASS }}
+          health_check_path: /api/health
+          health_check_port: 8000

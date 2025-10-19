@@ -16,6 +16,10 @@ const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 3001;
 
+if (!isProduction) {
+  app.set('trust proxy', 1);
+}
+
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 

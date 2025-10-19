@@ -6,7 +6,7 @@ import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 
-export default function ResetPasswordScreen({ route, navigation }) {
+export default function ResetPasswordScreen({ route, navigation }: any) {
   const { tokens } = useAppTheme();
   const { email } = route.params;
   const [otp, setOtp] = useState('');
@@ -81,7 +81,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
         newPassword
       });
       navigation.navigate('Login');
-    } catch (err) {
+    } catch (err: any) {
       setErrors({
         ...errors,
         otp: err.response?.data?.message || 'Reset failed. Please check your code and try again.'
@@ -128,7 +128,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
                   label="Verification Code"
                   placeholder="Enter 6-digit code"
                   value={otp}
-                  onChangeText={(text) => {
+                  onChangeText={(text: string) => {
                     setOtp(text.replace(/[^0-9]/g, ''));
                     if (errors.otp) setErrors({ ...errors, otp: '' });
                   }}
@@ -144,7 +144,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
                   label="New Password"
                   placeholder="Create a new password"
                   value={newPassword}
-                  onChangeText={(text) => {
+                  onChangeText={(text: string) => {
                     setNewPassword(text);
                     if (errors.password) setErrors({ ...errors, password: '' });
                   }}
@@ -217,7 +217,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
                   label="Confirm Password"
                   placeholder="Re-enter your password"
                   value={confirmPassword}
-                  onChangeText={(text) => {
+                  onChangeText={(text: string) => {
                     setConfirmPassword(text);
                     if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
                   }}

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 
-export default function EmailVerificationScreen({ route, navigation }) {
+export default function EmailVerificationScreen({ route, navigation }: any) {
   const { tokens } = useAppTheme();
   const { email } = route.params;
   const [otp, setOtp] = useState('');
@@ -40,8 +41,25 @@ export default function EmailVerificationScreen({ route, navigation }) {
     setError('');
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/verify-email`, { email, otp });
-      navigation.navigate('Login');
-    } catch (err) {
+      
+      if (res.data.success && res.data.data.token) {
+        await AsyncStorage.multiSet([
+          ['token', res.data.data.token],
+          ['userId', res.data.data.user?.id || ''],
+          ['userEmail', res.data.data.user?.email || ''],
+          ['userName', res.data.data.user?.name || '']
+        ]);
+        
+        const savedToken = await AsyncStorage.getItem('token');
+        if (savedToken) {
+          navigation.replace('Main');
+        } else {
+          setError('Failed to save session. Please try again.');
+        }
+      } else {
+        navigation.navigate('Login');
+      }
+    } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid or expired verification code');
     } finally {
       setLoading(false);
@@ -102,7 +120,7 @@ export default function EmailVerificationScreen({ route, navigation }) {
                 label="Verification Code"
                 placeholder="Enter 6-digit code"
                 value={otp}
-                onChangeText={(text) => {
+                onChangeText={(text: string) => {
                   setOtp(text.replace(/[^0-9]/g, ''));
                   if (error) setError('');
                 }}

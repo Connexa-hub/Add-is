@@ -52,8 +52,22 @@ export default function LoginScreen({ navigation }) {
       });
 
       if (res.data.success && res.data.data.token) {
-        await AsyncStorage.setItem('token', res.data.data.token);
-        navigation.replace('Main');
+        await AsyncStorage.multiSet([
+          ['token', res.data.data.token],
+          ['userId', res.data.data.user?.id || ''],
+          ['userEmail', res.data.data.user?.email || ''],
+          ['userName', res.data.data.user?.name || '']
+        ]);
+        
+        const savedToken = await AsyncStorage.getItem('token');
+        if (savedToken) {
+          navigation.replace('Main');
+        } else {
+          setErrors({
+            email: '',
+            password: 'Failed to save session. Please try again.'
+          });
+        }
       }
     } catch (err) {
       const errorData = err.response?.data;
