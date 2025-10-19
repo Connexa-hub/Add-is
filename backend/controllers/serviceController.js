@@ -203,6 +203,89 @@ exports.getDataPlans = async (req, res) => {
   }
 };
 
+exports.buyAirtime = async (req, res) => {
+  try {
+    const { phoneNumber, network, amount } = req.body;
+    const userId = req.userId;
+
+    if (!phoneNumber || !network || !amount) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const phoneRegex = /^0[0-9]{10}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.walletBalance < amount) {
+      return res.status(400).json({ 
+        message: `Insufficient balance. Required: ₦${amount}, Available: ₦${user.walletBalance}` 
+      });
+    }
+
+    let vtpassResponse;
+    try {
+      vtpassResponse = await requestVTPass(network, {
+        phone: phoneNumber,
+        amount,
+      });
+    } catch (vtpassError) {
+      console.error('VTPass API error:', vtpassError);
+      return res.status(500).json({ 
+        message: 'Failed to process purchase with service provider. Please try again.' 
+      });
+    }
+
+    const isSuccess = vtpassResponse && (vtpassResponse.code === '000' || vtpassResponse.content?.transactions?.status === 'delivered');
+
+    if (isSuccess) {
+      user.walletBalance -= amount;
+      await user.save();
+    }
+
+    const transaction = new Transaction({
+      userId,
+      type: 'airtime',
+      transactionType: `${network.toUpperCase()} Airtime Purchase`,
+      amount,
+      recipient: phoneNumber,
+      status: isSuccess ? 'success' : 'failed',
+      reference: vtpassResponse?.requestId || `REF${Date.now()}`,
+      metadata: {
+        network,
+        phoneNumber,
+        vtpassResponse,
+      }
+    });
+
+    await transaction.save();
+
+    if (!isSuccess) {
+      return res.status(400).json({
+        success: false,
+        message: vtpassResponse?.response_description || 'Transaction failed',
+        transaction,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Airtime purchase successful',
+      transaction,
+      newBalance: user.walletBalance,
+      vtpassResponse,
+    });
+  } catch (error) {
+    console.error('Buy airtime error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+
 exports.buyData = async (req, res) => {
   try {
     const { phoneNumber, plan, network, amount } = req.body;

@@ -18,6 +18,7 @@ import SettingsScreen from '../../screens/SettingsScreen';
 import DataScreen from '../../screens/DataScreen';
 import TVScreen from '../../screens/TVScreen';
 import ElectricityScreen from '../../screens/ElectricityScreen';
+import AirtimeScreen from '../../screens/AirtimeScreen'; // Assuming AirtimeScreen is in '../../screens/AirtimeScreen'
 import AdminDashboardScreen from '../../screens/AdminDashboardScreen';
 import AdminUsersScreen from '../../screens/AdminUsersScreen';
 
@@ -26,7 +27,7 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   return (
-    <Tab.Navigator 
+    <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
@@ -67,13 +68,14 @@ export default function AppNavigator() {
 
         {/* Main App */}
         <Stack.Screen name="Main" component={MainTabs} />
-        
+
         {/* Service Screens */}
-        <Stack.Screen name="Data" component={DataScreen} />
-        <Stack.Screen name="TV" component={TVScreen} />
-        <Stack.Screen name="Electricity" component={ElectricityScreen} />
+        <Stack.Screen name="Airtime" component={AirtimeScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Data" component={DataScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="TV" component={TVScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Electricity" component={ElectricityScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
-        
+
         {/* Admin Screens */}
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />

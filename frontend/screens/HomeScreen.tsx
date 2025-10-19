@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, Pressable } from 'react-native';
 import { Appbar, Card, Text, Avatar, Button, ActivityIndicator } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/api';
 
@@ -77,6 +79,73 @@ export default function HomeScreen({ navigation }) {
     navigation.replace('Login');
   };
 
+  const services = [
+    { 
+      id: 'airtime', 
+      name: 'Airtime', 
+      icon: 'phone-portrait', 
+      color: '#FF6B35',
+      gradient: ['#FF6B35', '#FF8C42'],
+      screen: 'Airtime'
+    },
+    { 
+      id: 'data', 
+      name: 'Data', 
+      icon: 'wifi', 
+      color: '#4ECDC4',
+      gradient: ['#4ECDC4', '#44A08D'],
+      screen: 'Data'
+    },
+    { 
+      id: 'electricity', 
+      name: 'Electricity', 
+      icon: 'flash', 
+      color: '#FFD93D',
+      gradient: ['#FFD93D', '#F4A261'],
+      screen: 'Electricity'
+    },
+    { 
+      id: 'tv', 
+      name: 'TV & Cable', 
+      icon: 'tv', 
+      color: '#6C5CE7',
+      gradient: ['#6C5CE7', '#A29BFE'],
+      screen: 'TV'
+    },
+    { 
+      id: 'internet', 
+      name: 'Internet', 
+      icon: 'globe', 
+      color: '#00B894',
+      gradient: ['#00B894', '#55EFC4'],
+      screen: 'Internet'
+    },
+    { 
+      id: 'education', 
+      name: 'Education', 
+      icon: 'school', 
+      color: '#E17055',
+      gradient: ['#E17055', '#FDCB6E'],
+      screen: 'Education'
+    },
+    { 
+      id: 'betting', 
+      name: 'Betting', 
+      icon: 'trophy', 
+      color: '#0984E3',
+      gradient: ['#0984E3', '#74B9FF'],
+      screen: 'Betting'
+    },
+    { 
+      id: 'insurance', 
+      name: 'Insurance', 
+      icon: 'shield-checkmark', 
+      color: '#FD79A8',
+      gradient: ['#FD79A8', '#FDCB6E'],
+      screen: 'Insurance'
+    },
+  ];
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -87,10 +156,13 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Appbar.Header>
-        <Appbar.Content title="Home" />
-        <Appbar.Action icon="cog" onPress={() => navigation.navigate('Settings')} />
-        <Appbar.Action icon="logout" onPress={handleLogout} />
+      <Appbar.Header style={styles.header}>
+        <Appbar.Content 
+          title={`Hello, ${user?.name?.split(' ')[0] || 'User'}`}
+          titleStyle={styles.headerTitle}
+        />
+        <Appbar.Action icon="bell-outline" onPress={() => navigation.navigate('Notifications')} />
+        <Appbar.Action icon="account-circle" onPress={() => navigation.navigate('Profile')} />
       </Appbar.Header>
 
       <ScrollView
@@ -99,86 +171,75 @@ export default function HomeScreen({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* User Welcome Card */}
-        <Card style={styles.welcomeCard}>
-          <Card.Content>
-            <View style={styles.welcomeContent}>
-              <Avatar.Text
-                size={50}
-                label={user?.name?.substring(0, 2).toUpperCase() || 'U'}
-                style={styles.avatar}
-              />
-              <View style={styles.welcomeText}>
-                <Text style={styles.greeting}>Welcome back,</Text>
-                <Text style={styles.userName}>{user?.name || 'User'}</Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-
         {/* Wallet Balance Card */}
         <Card style={styles.balanceCard}>
           <Card.Content>
             <Text style={styles.balanceLabel}>Wallet Balance</Text>
-            <Text style={styles.balanceAmount}>
-              ₦{walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-            </Text>
-            <Button
-              mode="contained"
-              onPress={() => navigation.navigate('Wallet')}
-              style={styles.fundButton}
-              labelStyle={styles.fundButtonLabel}
-            >
-              + Add Funds
-            </Button>
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceAmount}>
+                ₦{walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+              </Text>
+              <Button
+                mode="contained"
+                onPress={() => navigation.navigate('Wallet')}
+                style={styles.addFundsBtn}
+                labelStyle={styles.addFundsLabel}
+                compact
+              >
+                + Add Funds
+              </Button>
+            </View>
           </Card.Content>
         </Card>
 
-        {/* Quick Services */}
-        <Text style={styles.sectionTitle}>Quick Services</Text>
-        <View style={styles.servicesGrid}>
-          <Card style={styles.serviceCard} onPress={() => navigation.navigate('Data')}>
-            <Card.Content style={styles.serviceContent}>
-              <Avatar.Icon size={48} icon="wifi" style={styles.serviceIcon} />
-              <Text style={styles.serviceTitle}>Buy Data</Text>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.serviceCard} onPress={() => navigation.navigate('TV')}>
-            <Card.Content style={styles.serviceContent}>
-              <Avatar.Icon size={48} icon="television" style={styles.serviceIcon} />
-              <Text style={styles.serviceTitle}>TV Subscription</Text>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.serviceCard} onPress={() => navigation.navigate('Electricity')}>
-            <Card.Content style={styles.serviceContent}>
-              <Avatar.Icon size={48} icon="lightbulb" style={styles.serviceIcon} />
-              <Text style={styles.serviceTitle}>Electricity</Text>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.serviceCard} onPress={() => navigation.navigate('History')}>
-            <Card.Content style={styles.serviceContent}>
-              <Avatar.Icon size={48} icon="history" style={styles.serviceIcon} />
-              <Text style={styles.serviceTitle}>History</Text>
-            </Card.Content>
-          </Card>
+        {/* Services Grid */}
+        <View style={styles.servicesSection}>
+          <Text style={styles.sectionTitle}>Services</Text>
+          <View style={styles.servicesGrid}>
+            {services.map((service) => (
+              <Pressable
+                key={service.id}
+                style={styles.serviceCard}
+                onPress={() => navigation.navigate(service.screen)}
+              >
+                <View style={[styles.serviceIconContainer, { backgroundColor: service.color }]}>
+                  <Ionicons name={service.icon} size={28} color="#FFFFFF" />
+                </View>
+                <Text style={styles.serviceName}>{service.name}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         {/* Recent Transactions */}
         {recentTransactions.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          <View style={styles.transactionsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+              <Button onPress={() => navigation.navigate('History')} compact>
+                See All
+              </Button>
+            </View>
             {recentTransactions.map((transaction, index) => (
               <Card key={index} style={styles.transactionCard}>
                 <Card.Content>
                   <View style={styles.transactionRow}>
-                    <View>
-                      <Text style={styles.transactionType}>{transaction.type}</Text>
-                      <Text style={styles.transactionDate}>
-                        {new Date(transaction.createdAt).toLocaleDateString()}
-                      </Text>
+                    <View style={styles.transactionLeft}>
+                      <View style={[styles.transactionIcon, { 
+                        backgroundColor: transaction.transactionType === 'credit' ? '#E8F5E9' : '#FFEBEE' 
+                      }]}>
+                        <Ionicons 
+                          name={transaction.transactionType === 'credit' ? 'arrow-down' : 'arrow-up'} 
+                          size={20} 
+                          color={transaction.transactionType === 'credit' ? '#2e7d32' : '#d32f2f'} 
+                        />
+                      </View>
+                      <View>
+                        <Text style={styles.transactionType}>{transaction.type}</Text>
+                        <Text style={styles.transactionDate}>
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
                     </View>
                     <Text style={[
                       styles.transactionAmount,
@@ -190,7 +251,7 @@ export default function HomeScreen({ navigation }) {
                 </Card.Content>
               </Card>
             ))}
-          </>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -200,118 +261,137 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: '#F5F7FA'
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  header: {
+    backgroundColor: '#6200ee',
+    elevation: 0,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
   scrollView: {
     flex: 1,
   },
-  welcomeCard: {
-    margin: 16,
-    backgroundColor: '#fff',
-    elevation: 2,
-  },
-  welcomeContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    backgroundColor: '#6200ee',
-  },
-  welcomeText: {
-    marginLeft: 16,
-  },
-  greeting: {
-    fontSize: 14,
-    color: '#666',
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
   balanceCard: {
     margin: 16,
-    marginTop: 0,
     backgroundColor: '#6200ee',
     elevation: 4,
+    borderRadius: 16,
   },
   balanceLabel: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
     opacity: 0.9,
   },
-  balanceAmount: {
-    color: '#fff',
-    fontSize: 36,
-    fontWeight: 'bold',
-    marginVertical: 8,
-  },
-  fundButton: {
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 8,
-    backgroundColor: '#fff',
   },
-  fundButtonLabel: {
+  balanceAmount: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  addFundsBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+  },
+  addFundsLabel: {
     color: '#6200ee',
     fontWeight: 'bold',
+  },
+  servicesSection: {
+    paddingHorizontal: 16,
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginHorizontal: 16,
-    marginTop: 16,
     marginBottom: 12,
-    color: '#333',
+    color: '#1A1A1A',
   },
   servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 8,
+    justifyContent: 'space-between',
   },
   serviceCard: {
-    width: '47%',
-    margin: 8,
-    backgroundColor: '#fff',
-    elevation: 2,
-  },
-  serviceContent: {
+    width: '23%',
     alignItems: 'center',
-    paddingVertical: 16,
+    marginBottom: 20,
   },
-  serviceIcon: {
-    backgroundColor: '#e8eaf6',
+  serviceIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  serviceTitle: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+  serviceName: {
+    fontSize: 12,
     textAlign: 'center',
+    color: '#333',
+    fontWeight: '500',
+  },
+  transactionsSection: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   transactionCard: {
-    marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     elevation: 1,
+    borderRadius: 12,
   },
   transactionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  transactionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  transactionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   transactionType: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: '#1A1A1A',
   },
   transactionDate: {
     fontSize: 12,
     color: '#666',
-    marginTop: 4,
+    marginTop: 2,
   },
   transactionAmount: {
     fontSize: 16,

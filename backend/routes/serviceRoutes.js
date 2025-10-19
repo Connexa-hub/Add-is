@@ -7,6 +7,7 @@ const { tvSubscriptionValidation, dataPurchaseValidation } = require('../middlew
 router.get('/data-plans/:serviceID', verifyToken, require('../controllers/serviceController').getDataPlans);
 router.post('/subscribe-tv', verifyToken, tvSubscriptionValidation, subscribeTV);
 router.post('/buy-data', verifyToken, dataPurchaseValidation, buyData);
+router.post('/buy-airtime', verifyToken, require('../controllers/serviceController').buyAirtime);
 router.post('/pay-electricity', verifyToken, payElectricity);
 
 module.exports = router;
