@@ -327,12 +327,68 @@ export default function WalletFundingScreen({ navigation }) {
           </Card.Content>
         </Card>
 
+        {/* Virtual Account Details */}
+        {virtualAccount && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text style={styles.cardTitle}>Your Personal Account Number</Text>
+              <Text style={styles.cardSubtitle}>
+                Transfer to this account from any bank app
+              </Text>
+              <Divider style={styles.divider} />
+
+              <View style={styles.accountRow}>
+                <View style={styles.accountInfo}>
+                  <Text style={styles.accountLabel}>Bank Name</Text>
+                  <Text style={styles.accountValue}>{virtualAccount.bankName}</Text>
+                </View>
+                <IconButton
+                  icon="content-copy"
+                  size={20}
+                  onPress={() => copyToClipboard(virtualAccount.bankName, 'Bank Name')}
+                />
+              </View>
+
+              <View style={styles.accountRow}>
+                <View style={styles.accountInfo}>
+                  <Text style={styles.accountLabel}>Account Number</Text>
+                  <Text style={styles.accountValue}>{virtualAccount.accountNumber}</Text>
+                </View>
+                <IconButton
+                  icon="content-copy"
+                  size={20}
+                  onPress={() => copyToClipboard(virtualAccount.accountNumber, 'Account Number')}
+                />
+              </View>
+
+              <View style={styles.accountRow}>
+                <View style={styles.accountInfo}>
+                  <Text style={styles.accountLabel}>Account Name</Text>
+                  <Text style={styles.accountValue}>{virtualAccount.accountName}</Text>
+                </View>
+                <IconButton
+                  icon="content-copy"
+                  size={20}
+                  onPress={() => copyToClipboard(virtualAccount.accountName, 'Account Name')}
+                />
+              </View>
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>✓ Transfer any amount 24/7</Text>
+                <Text style={styles.infoText}>✓ Instant wallet credit</Text>
+                <Text style={styles.infoText}>✓ Free transfers (No charges)</Text>
+                <Text style={styles.infoText}>✓ Works with all Nigerian banks</Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Card Payment Option */}
         <Card style={styles.card}>
           <Card.Content>
             <Text style={styles.cardTitle}>Pay with Card</Text>
             <Text style={styles.cardSubtitle}>
-              Quick payment using debit/credit card
+              Alternative: Quick payment using debit/credit card
             </Text>
             <Divider style={styles.divider} />
 
