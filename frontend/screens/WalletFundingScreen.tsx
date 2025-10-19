@@ -30,7 +30,7 @@ export default function WalletFundingScreen({ navigation }) {
       }
 
       // Fetch user profile
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

@@ -25,7 +25,7 @@ export default function HomeScreen({ navigation }) {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -33,9 +33,9 @@ export default function HomeScreen({ navigation }) {
 
       const data = await response.json();
 
-      if (data.success) {
-        setUser(data.user);
-        setWalletBalance(data.user.walletBalance || 0);
+      if (data.success && data.data) {
+        setUser(data.data);
+        setWalletBalance(data.data.walletBalance || 0);
         await loadRecentTransactions(token);
       } else {
         navigation.replace('Login');
