@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert, Pressable } from 'react-native';
 import { Appbar, Card, Text, Avatar, Button, ActivityIndicator } from 'react-native-paper';
@@ -149,7 +148,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6200ee" />
+        <ActivityIndicator size="large" color="#5c27d9" />
       </View>
     );
   }
@@ -342,7 +341,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: '#6200ee',
+    backgroundColor: '#5c27d9',
     elevation: 0,
   },
   headerTitle: {
@@ -355,7 +354,7 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     margin: 16,
-    backgroundColor: '#6200ee',
+    backgroundColor: '#5c27d9',
     elevation: 4,
     borderRadius: 16,
   },
@@ -380,7 +379,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   addFundsLabel: {
-    color: '#6200ee',
+    color: '#5c27d9',
     fontWeight: 'bold',
   },
   servicesSection: {

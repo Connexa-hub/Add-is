@@ -45,11 +45,11 @@ export default function WalletFundingScreen({ navigation }) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setUser(data.user);
         setWalletBalance(data.user.walletBalance || 0);
-        
+
         // Load Monnify virtual account
         await loadMonnifyAccount(token);
       } else {
@@ -73,7 +73,7 @@ export default function WalletFundingScreen({ navigation }) {
       });
 
       let data = await response.json();
-      
+
       // If no account exists, create one
       if (data.success && !data.data) {
         response = await fetch(`${API_BASE_URL}/api/payment/virtual-account/create`, {
@@ -85,7 +85,7 @@ export default function WalletFundingScreen({ navigation }) {
         });
         data = await response.json();
       }
-      
+
       if (data.success && data.data && data.data.length > 0) {
         const account = data.data[0]; // Use first account
         setVirtualAccount({
@@ -108,7 +108,7 @@ export default function WalletFundingScreen({ navigation }) {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
-      
+
       const response = await fetch(`${API_BASE_URL}/payment/verify-payment`, {
         method: 'GET',
         headers: {
@@ -117,7 +117,7 @@ export default function WalletFundingScreen({ navigation }) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setWalletBalance(data.walletBalance);
         Alert.alert('Success', 'Wallet balance updated!');
@@ -139,7 +139,7 @@ export default function WalletFundingScreen({ navigation }) {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
-      
+
       const response = await fetch(`${API_BASE_URL}/api/wallet/funding/initialize`, {
         method: 'POST',
         headers: {
@@ -150,7 +150,7 @@ export default function WalletFundingScreen({ navigation }) {
       });
 
       const data = await response.json();
-      
+
       if (data.success && data.data.checkoutUrl) {
         setCheckoutUrl(data.data.checkoutUrl);
         setPaymentReference(data.data.paymentReference);
@@ -191,10 +191,10 @@ export default function WalletFundingScreen({ navigation }) {
 
   const verifyPayment = async (retryCount = 0) => {
     const maxRetries = 20; // Max 1 minute of retries (20 * 3 seconds)
-    
+
     try {
       const token = await AsyncStorage.getItem('token');
-      
+
       const response = await fetch(`${API_BASE_URL}/api/wallet/funding/verify`, {
         method: 'POST',
         headers: {
@@ -205,7 +205,7 @@ export default function WalletFundingScreen({ navigation }) {
       });
 
       const data = await response.json();
-      
+
       if (data.success && data.data.status === 'completed') {
         setWalletBalance(data.data.newBalance);
 
@@ -246,7 +246,7 @@ export default function WalletFundingScreen({ navigation }) {
   const saveCardAfterPayment = async (cardData) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      
+
       const response = await fetch(`${API_BASE_URL}/api/wallet/funding/save-card`, {
         method: 'POST',
         headers: {
@@ -260,7 +260,7 @@ export default function WalletFundingScreen({ navigation }) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         console.log('Card saved successfully');
         loadSavedCards();
@@ -274,7 +274,7 @@ export default function WalletFundingScreen({ navigation }) {
     try {
       setLoadingCards(true);
       const token = await AsyncStorage.getItem('token');
-      
+
       const response = await fetch(`${API_BASE_URL}/api/cards`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -282,7 +282,7 @@ export default function WalletFundingScreen({ navigation }) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setSavedCards(data.data || []);
       }
@@ -301,7 +301,7 @@ export default function WalletFundingScreen({ navigation }) {
           <Appbar.Content title="Fund Wallet" />
         </Appbar.Header>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6200ee" />
+          <ActivityIndicator size="large" color="#5c27d9" />
           <Text style={styles.loadingText}>Loading payment details...</Text>
         </View>
       </View>
@@ -335,7 +335,7 @@ export default function WalletFundingScreen({ navigation }) {
               Quick payment using debit/credit card
             </Text>
             <Divider style={styles.divider} />
-            
+
             <TextInput
               label="Amount (₦)"
               keyboardType="numeric"
@@ -345,7 +345,7 @@ export default function WalletFundingScreen({ navigation }) {
               mode="outlined"
               left={<TextInput.Affix text="₦" />}
             />
-            
+
             <View style={styles.checkboxRow}>
               <Checkbox
                 status={saveCard ? 'checked' : 'unchecked'}
@@ -355,7 +355,7 @@ export default function WalletFundingScreen({ navigation }) {
                 Save this card for future payments
               </Text>
             </View>
-            
+
             <Button 
               mode="contained" 
               onPress={initiateCardPayment} 
@@ -365,7 +365,7 @@ export default function WalletFundingScreen({ navigation }) {
             >
               Pay with Card
             </Button>
-            
+
             <Text style={styles.feeText}>
               Transaction fee: 1.5% + ₦100
             </Text>
@@ -406,10 +406,10 @@ export default function WalletFundingScreen({ navigation }) {
               />
             )}
           </View>
-          
+
           {processingPayment ? (
             <View style={styles.processingContainer}>
-              <ActivityIndicator size="large" color="#6200ee" />
+              <ActivityIndicator size="large" color="#5c27d9" />
               <Text style={styles.processingText}>Verifying payment...</Text>
               <Text style={styles.processingSubtext}>This may take a few moments</Text>
               <Button
@@ -443,7 +443,7 @@ export default function WalletFundingScreen({ navigation }) {
               startInLoadingState={true}
               renderLoading={() => (
                 <View style={styles.webviewLoading}>
-                  <ActivityIndicator size="large" color="#6200ee" />
+                  <ActivityIndicator size="large" color="#5c27d9" />
                 </View>
               )}
             />
