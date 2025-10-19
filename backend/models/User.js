@@ -34,6 +34,61 @@ const UserSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
   }],
   resetPasswordOTP: String,
-  resetPasswordExpires: Date
+  resetPasswordExpires: Date,
+  
+  kyc: {
+    status: {
+      type: String,
+      enum: ['not_submitted', 'pending', 'approved', 'rejected'],
+      default: 'not_submitted'
+    },
+    submittedAt: Date,
+    reviewedAt: Date,
+    reviewerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    rejectionReason: String,
+    personal: {
+      fullName: String,
+      dateOfBirth: Date,
+      address: String,
+      idNumber: String,
+      nationality: { type: String, default: 'Nigeria' },
+      phoneNumber: String,
+      state: String,
+      city: String
+    },
+    documents: [{
+      type: {
+        type: String,
+        enum: ['id_front', 'id_back', 'selfie'],
+        required: true
+      },
+      url: { type: String, required: true },
+      filename: String,
+      uploadedAt: { type: Date, default: Date.now }
+    }],
+    notes: String
+  },
+  
+  transactionPin: {
+    hash: String,
+    failedAttempts: { type: Number, default: 0 },
+    lockedUntil: Date,
+    lastChanged: Date,
+    isSet: { type: Boolean, default: false }
+  },
+  
+  biometricEnabled: {
+    type: Boolean,
+    default: false
+  },
+  
+  savedCards: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Card'
+  }]
 }, { timestamps: true });
+
+UserSchema.index({ email: 1 });
+UserSchema.index({ 'kyc.status': 1 });
+
 module.exports = mongoose.model('User', UserSchema);
