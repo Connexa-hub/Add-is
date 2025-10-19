@@ -177,10 +177,18 @@ export default function ProfileScreen({ navigation }) {
             
             <List.Item
               title="Verify Account (KYC)"
-              description={user?.isVerified ? 'Verified ✓' : 'Not verified - Tap to verify'}
+              description={user?.kyc?.status === 'approved' ? 'Verified ✓' : user?.kyc?.status === 'pending' ? 'Under review' : 'Not verified - Tap to verify'}
               left={props => <List.Icon {...props} icon="shield-check" />}
               right={props => <List.Icon {...props} icon="chevron-right" />}
-              onPress={() => Alert.alert('Coming Soon', 'KYC verification will be available soon')}
+              onPress={() => {
+                if (user?.kyc?.status === 'approved') {
+                  Alert.alert('Account Verified', 'Your account is already verified.');
+                } else if (user?.kyc?.status === 'pending') {
+                  Alert.alert('KYC Under Review', 'Your verification is currently being reviewed. You will be notified once complete.');
+                } else {
+                  navigation.navigate('KYCPersonalInfo');
+                }
+              }}
             />
             
             <List.Item

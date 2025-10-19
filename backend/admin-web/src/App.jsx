@@ -11,6 +11,9 @@ import Support from './pages/Support';
 import Cashback from './pages/Cashback';
 import VTPassWallet from './pages/VTPassWallet';
 import Settings from './pages/Settings';
+import KYCManagement from './pages/KYCManagement';
+import BannerManagement from './pages/BannerManagement';
+import VTUProductManagement from './pages/VTUProductManagement';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -97,6 +100,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc"
+            element={
+              <ProtectedRoute>
+                <KYCManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/banners"
+            element={
+              <ProtectedRoute>
+                <BannerManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vtu-products"
+            element={
+              <ProtectedRoute>
+                <VTUProductManagement />
               </ProtectedRoute>
             }
           />

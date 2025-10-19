@@ -18,9 +18,18 @@ import SettingsScreen from '../../screens/SettingsScreen';
 import DataScreen from '../../screens/DataScreen';
 import TVScreen from '../../screens/TVScreen';
 import ElectricityScreen from '../../screens/ElectricityScreen';
-import AirtimeScreen from '../../screens/AirtimeScreen'; // Assuming AirtimeScreen is in '../../screens/AirtimeScreen'
+import AirtimeScreen from '../../screens/AirtimeScreen';
 import AdminDashboardScreen from '../../screens/AdminDashboardScreen';
 import AdminUsersScreen from '../../screens/AdminUsersScreen';
+
+import KYCPersonalInfoScreen from '../../screens/KYCPersonalInfoScreen';
+import KYCDocumentsScreen from '../../screens/KYCDocumentsScreen';
+import KYCSelfieScreen from '../../screens/KYCSelfieScreen';
+import KYCReviewScreen from '../../screens/KYCReviewScreen';
+
+import PINSetupScreen from '../../screens/PINSetupScreen';
+import PINVerifyScreen from '../../screens/PINVerifyScreen';
+import PINChangeScreen from '../../screens/PINChangeScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -75,6 +84,17 @@ export default function AppNavigator() {
         <Stack.Screen name="TV" component={TVScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Electricity" component={ElectricityScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+
+        {/* KYC Screens */}
+        <Stack.Screen name="KYCPersonalInfo" component={KYCPersonalInfoScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="KYCDocuments" component={KYCDocumentsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="KYCSelfie" component={KYCSelfieScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="KYCReview" component={KYCReviewScreen} options={{ headerShown: false }} />
+
+        {/* PIN Screens */}
+        <Stack.Screen name="PINSetup" component={PINSetupScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="PINVerify" component={PINVerifyScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="PINChange" component={PINChangeScreen} options={{ headerShown: false }} />
 
         {/* Admin Screens */}
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />

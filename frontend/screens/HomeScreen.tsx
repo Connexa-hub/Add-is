@@ -165,6 +165,79 @@ export default function HomeScreen({ navigation }) {
         <Appbar.Action icon="account-circle" onPress={() => navigation.navigate('Profile')} />
       </Appbar.Header>
 
+      {/* KYC Status Banner */}
+      {user?.kyc?.status !== 'approved' && (
+        <Pressable
+          style={[
+            styles.kycBanner,
+            {
+              backgroundColor:
+                user?.kyc?.status === 'rejected'
+                  ? '#FFEBEE'
+                  : user?.kyc?.status === 'pending'
+                  ? '#FFF3E0'
+                  : '#E3F2FD',
+            },
+          ]}
+          onPress={() => {
+            if (user?.kyc?.status === 'pending') {
+              Alert.alert(
+                'KYC Under Review',
+                'Your verification is being reviewed. You will be notified once complete.'
+              );
+            } else if (user?.kyc?.status === 'rejected') {
+              Alert.alert(
+                'KYC Rejected',
+                user?.kyc?.rejectionReason || 'Please resubmit your verification documents.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Resubmit', onPress: () => navigation.navigate('KYCPersonalInfo') },
+                ]
+              );
+            } else {
+              navigation.navigate('KYCPersonalInfo');
+            }
+          }}
+        >
+          <View style={styles.kycBannerContent}>
+            <Ionicons
+              name={
+                user?.kyc?.status === 'rejected'
+                  ? 'close-circle'
+                  : user?.kyc?.status === 'pending'
+                  ? 'time'
+                  : 'shield-checkmark-outline'
+              }
+              size={24}
+              color={
+                user?.kyc?.status === 'rejected'
+                  ? '#D32F2F'
+                  : user?.kyc?.status === 'pending'
+                  ? '#F57C00'
+                  : '#1976D2'
+              }
+            />
+            <View style={styles.kycBannerTextContainer}>
+              <Text style={styles.kycBannerTitle}>
+                {user?.kyc?.status === 'rejected'
+                  ? 'KYC Rejected'
+                  : user?.kyc?.status === 'pending'
+                  ? 'KYC Under Review'
+                  : 'Account Not Verified'}
+              </Text>
+              <Text style={styles.kycBannerMessage}>
+                {user?.kyc?.status === 'rejected'
+                  ? 'Tap to resubmit verification'
+                  : user?.kyc?.status === 'pending'
+                  ? 'Review in progress - Please wait'
+                  : 'Complete KYC to unlock all features'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </View>
+        </Pressable>
+      )}
+
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -396,5 +469,30 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  kycBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    elevation: 2,
+  },
+  kycBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  kycBannerTextContainer: {
+    flex: 1,
+  },
+  kycBannerTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  kycBannerMessage: {
+    fontSize: 13,
+    color: '#666',
   },
 });

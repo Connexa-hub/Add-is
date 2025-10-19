@@ -18,6 +18,9 @@ import {
   ChevronDown,
   Building2,
   Activity,
+  Shield,
+  Image,
+  ShoppingBag,
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -30,6 +33,9 @@ export default function Layout({ children }) {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Users, label: 'Users', path: '/users' },
+    { icon: Shield, label: 'KYC Management', path: '/kyc' },
+    { icon: Image, label: 'Banners', path: '/banners' },
+    { icon: ShoppingBag, label: 'VTU Products', path: '/vtu-products' },
     { icon: Activity, label: 'Transactions', path: '/transactions' },
     { icon: Wallet, label: 'Payment Integration', path: '/vtpass-wallet' },
     { icon: Gift, label: 'Cashback', path: '/cashback' },

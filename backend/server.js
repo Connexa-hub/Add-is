@@ -80,6 +80,10 @@ app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 app.use('/api/auth/verify-email', authLimiter);
 app.use('/api/auth/resend-verification', authLimiter);
+app.use('/api/kyc/submit', authLimiter);
+app.use('/api/pin/setup', authLimiter);
+app.use('/api/pin/verify', authLimiter);
+app.use('/api/pin/change', authLimiter);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -108,6 +112,7 @@ const bannerRoutes = require('./routes/bannerRoutes');
 const vtuRoutes = require('./routes/vtuRoutes');
 const pinRoutes = require('./routes/pinRoutes');
 const cardRoutes = require('./routes/cardRoutes');
+const walletFundingRoutes = require('./routes/walletFundingRoutes');
 
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -132,6 +137,7 @@ app.use('/api/banners', bannerRoutes);
 app.use('/api/vtu', vtuRoutes);
 app.use('/api/pin', pinRoutes);
 app.use('/api/cards', cardRoutes);
+app.use('/api/wallet/funding', walletFundingRoutes);
 
 // Serve admin dashboard SPA in production
 if (isProduction) {
