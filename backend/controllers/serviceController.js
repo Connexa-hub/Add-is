@@ -165,6 +165,44 @@ exports.subscribeTV = async (req, res, next) => {
   }
 };
 
+exports.getDataPlans = async (req, res) => {
+  try {
+    const { serviceID } = req.params;
+    
+    const axios = require('axios');
+    const getAuthHeaders = () => {
+      const token = Buffer.from(`${process.env.VTPASS_USERNAME}:${process.env.VTPASS_API_KEY}`).toString('base64');
+      return {
+        Authorization: `Basic ${token}`,
+        'Content-Type': 'application/json'
+      };
+    };
+
+    const response = await axios.get(
+      `${process.env.VTPASS_BASE_URL}/service-variations?serviceID=${serviceID}`,
+      { headers: getAuthHeaders() }
+    );
+
+    if (response.data && response.data.content && response.data.content.varations) {
+      res.json({
+        success: true,
+        data: response.data.content.varations
+      });
+    } else {
+      res.json({
+        success: false,
+        message: 'No plans available'
+      });
+    }
+  } catch (error) {
+    console.error('Get data plans error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch data plans'
+    });
+  }
+};
+
 exports.buyData = async (req, res) => {
   try {
     const { phoneNumber, plan, network, amount } = req.body;

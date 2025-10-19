@@ -20,14 +20,41 @@ const {
 router.get('/profile', verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ 
         success: false,
         message: 'User not found' 
       });
     }
-    
+
+    // Auto-create virtual account if not exists
+    if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
+      try {
+        const monnifyClient = require('../utils/monnifyClient');
+        const accountReference = `USER_${user._id}_${Date.now()}`;
+        const result = await monnifyClient.createReservedAccount({
+          accountReference,
+          accountName: user.name,
+          customerEmail: user.email,
+          customerName: user.name
+        });
+
+        if (result.success) {
+          user.monnifyAccountReference = accountReference;
+          user.monnifyAccounts = result.data.accounts.map(acc => ({
+            accountNumber: acc.accountNumber,
+            accountName: acc.accountName,
+            bankName: acc.bankName,
+            bankCode: acc.bankCode
+          }));
+          await user.save();
+        }
+      } catch (error) {
+        console.error('Auto virtual account creation failed:', error);
+      }
+    }
+
     res.json({ 
       success: true,
       data: {
@@ -37,7 +64,9 @@ router.get('/profile', verifyToken, async (req, res, next) => {
         role: user.role,
         walletBalance: user.walletBalance,
         virtualAccountNumber: user.virtualAccountNumber,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        monnifyAccounts: user.monnifyAccounts,
+        monnifyAccountReference: user.monnifyAccountReference
       }
     });
   } catch (error) {
@@ -51,8 +80,8 @@ router.get('/wallet/transactions', verifyToken, transactionQueryValidation, getW
 
 router.put('/profile', verifyToken, profileUpdateValidation, async (req, res, next) => {
   try {
-    const { name } = req.body;
-    
+    const { name, phoneNumber, profilePicture } = req.body; // Added phoneNumber and profilePicture
+
     const user = await User.findById(req.userId);
     if (!user) {
       return res.status(404).json({ 
@@ -60,17 +89,22 @@ router.put('/profile', verifyToken, profileUpdateValidation, async (req, res, ne
         message: 'User not found' 
       });
     }
-    
+
     if (name) user.name = name;
+    if (phoneNumber) user.phoneNumber = phoneNumber; // Update phone number
+    if (profilePicture) user.profilePicture = profilePicture; // Update profile picture
+
     await user.save();
-    
+
     res.json({ 
       success: true,
       message: 'Profile updated successfully',
       data: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        phoneNumber: user.phoneNumber, // Include phone number
+        profilePicture: user.profilePicture // Include profile picture
       }
     });
   } catch (error) {
@@ -81,7 +115,7 @@ router.put('/profile', verifyToken, profileUpdateValidation, async (req, res, ne
 router.post('/register', registerValidation, async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-    
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ 
@@ -89,11 +123,11 @@ router.post('/register', registerValidation, async (req, res, next) => {
         message: 'User with this email already exists' 
       });
     }
-    
+
     const hashed = await bcrypt.hash(password, 10);
-    
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     const user = await User.create({ 
       name, 
       email, 
@@ -102,10 +136,10 @@ router.post('/register', registerValidation, async (req, res, next) => {
       verificationExpires: Date.now() + 3600000,
       emailVerified: false
     });
-    
+
     const { sendVerificationEmail } = require('../utils/emailService');
     await sendVerificationEmail(user, otp);
-    
+
     res.status(201).json({ 
       success: true,
       message: 'Registration successful. Please check your email for verification code.',
@@ -122,7 +156,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
 router.post('/login', loginValidation, async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ 
@@ -130,7 +164,7 @@ router.post('/login', loginValidation, async (req, res, next) => {
         message: 'Invalid email or password' 
       });
     }
-    
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(401).json({ 
@@ -138,7 +172,7 @@ router.post('/login', loginValidation, async (req, res, next) => {
         message: 'Invalid email or password' 
       });
     }
-    
+
     if (!user.emailVerified) {
       return res.status(403).json({ 
         success: false,
@@ -147,12 +181,12 @@ router.post('/login', loginValidation, async (req, res, next) => {
         email: user.email
       });
     }
-    
+
     user.lastLogin = new Date();
     await user.save();
-    
+
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    
+
     res.json({ 
       success: true,
       message: 'Login successful',
@@ -165,7 +199,11 @@ router.post('/login', loginValidation, async (req, res, next) => {
           role: user.role,
           walletBalance: user.walletBalance,
           virtualAccountNumber: user.virtualAccountNumber,
-          emailVerified: user.emailVerified
+          emailVerified: user.emailVerified,
+          phoneNumber: user.phoneNumber,
+          profilePicture: user.profilePicture,
+          monnifyAccounts: user.monnifyAccounts,
+          monnifyAccountReference: user.monnifyAccountReference
         }
       }
     });
@@ -177,14 +215,14 @@ router.post('/login', loginValidation, async (req, res, next) => {
 router.post('/biometric-login', async (req, res, next) => {
   try {
     const { biometricToken } = req.body;
-    
+
     if (!biometricToken) {
       return res.status(400).json({ 
         success: false,
         message: 'Biometric token is required' 
       });
     }
-    
+
     const user = await User.findOne({ biometricToken });
     if (!user) {
       return res.status(401).json({ 
@@ -192,7 +230,7 @@ router.post('/biometric-login', async (req, res, next) => {
         message: 'Biometric authentication failed' 
       });
     }
-    
+
     if (!user.emailVerified) {
       return res.status(403).json({ 
         success: false,
@@ -201,12 +239,12 @@ router.post('/biometric-login', async (req, res, next) => {
         email: user.email
       });
     }
-    
+
     user.lastLogin = new Date();
     await user.save();
-    
+
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    
+
     res.json({ 
       success: true,
       message: 'Biometric login successful',
@@ -230,14 +268,14 @@ router.post('/biometric-login', async (req, res, next) => {
 router.post('/forgot-password', async (req, res, next) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({ 
         success: false,
         message: 'Email is required' 
       });
     }
-    
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ 
@@ -245,19 +283,19 @@ router.post('/forgot-password', async (req, res, next) => {
         message: 'No account registered with this email address' 
       });
     }
-    
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP with expiry (1 hour)
     user.resetPasswordOTP = otp;
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
-    
+
     // Send email with OTP
     const { sendPasswordResetEmail } = require('../utils/emailService');
     await sendPasswordResetEmail(user, otp);
-    
+
     res.json({ 
       success: true,
       message: 'Password reset code sent to your email'
@@ -270,33 +308,33 @@ router.post('/forgot-password', async (req, res, next) => {
 router.post('/reset-password', async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
-    
+
     if (!email || !otp || !newPassword) {
       return res.status(400).json({ 
         success: false,
         message: 'Email, OTP, and new password are required' 
       });
     }
-    
+
     const user = await User.findOne({ 
       email,
       resetPasswordOTP: otp,
       resetPasswordExpires: { $gt: Date.now() }
     });
-    
+
     if (!user) {
       return res.status(400).json({ 
         success: false,
         message: 'Invalid or expired verification code' 
       });
     }
-    
+
     const hashed = await bcrypt.hash(newPassword, 10);
     user.password = hashed;
     user.resetPasswordOTP = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
-    
+
     res.json({ 
       success: true,
       message: 'Password reset successfully. Please login with your new password.'
@@ -309,37 +347,37 @@ router.post('/reset-password', async (req, res, next) => {
 router.post('/verify-email', async (req, res, next) => {
   try {
     const { email, otp } = req.body;
-    
+
     if (!email || !otp) {
       return res.status(400).json({ 
         success: false,
         message: 'Email and verification code are required' 
       });
     }
-    
+
     const user = await User.findOne({ 
       email,
       verificationOTP: otp,
       verificationExpires: { $gt: Date.now() }
     });
-    
+
     if (!user) {
       return res.status(400).json({ 
         success: false,
         message: 'Invalid or expired verification code' 
       });
     }
-    
+
     user.emailVerified = true;
     user.verificationOTP = undefined;
     user.verificationExpires = undefined;
     await user.save();
-    
+
     const { sendWelcomeEmail } = require('../utils/emailService');
     await sendWelcomeEmail(user);
-    
+
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    
+
     res.json({ 
       success: true,
       message: 'Email verified successfully! Welcome aboard!',
@@ -352,7 +390,11 @@ router.post('/verify-email', async (req, res, next) => {
           role: user.role,
           walletBalance: user.walletBalance,
           virtualAccountNumber: user.virtualAccountNumber,
-          emailVerified: user.emailVerified
+          emailVerified: user.emailVerified,
+          phoneNumber: user.phoneNumber,
+          profilePicture: user.profilePicture,
+          monnifyAccounts: user.monnifyAccounts,
+          monnifyAccountReference: user.monnifyAccountReference
         }
       }
     });
@@ -364,39 +406,39 @@ router.post('/verify-email', async (req, res, next) => {
 router.post('/resend-verification', async (req, res, next) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({ 
         success: false,
         message: 'Email is required' 
       });
     }
-    
+
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       return res.status(404).json({ 
         success: false,
         message: 'No account found with this email address' 
       });
     }
-    
+
     if (user.emailVerified) {
       return res.status(400).json({ 
         success: false,
         message: 'Email is already verified' 
       });
     }
-    
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     user.verificationOTP = otp;
     user.verificationExpires = Date.now() + 3600000;
     await user.save();
-    
+
     const { sendVerificationEmail } = require('../utils/emailService');
     await sendVerificationEmail(user, otp);
-    
+
     res.json({ 
       success: true,
       message: 'Verification code resent to your email'

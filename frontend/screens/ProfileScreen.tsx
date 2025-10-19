@@ -22,7 +22,7 @@ export default function ProfileScreen({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('token');
       
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -31,7 +31,7 @@ export default function ProfileScreen({ navigation }) {
       const data = await response.json();
       
       if (data.success) {
-        setUser(data.user);
+        setUser(data.data);
         loadUserStats(token);
       }
     } catch (error) {
@@ -165,6 +165,22 @@ export default function ProfileScreen({ navigation }) {
               left={props => <List.Icon {...props} icon="cash-plus" />}
               right={props => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => navigation.navigate('Wallet')}
+            />
+            
+            <List.Item
+              title="Edit Profile"
+              description="Update your information"
+              left={props => <List.Icon {...props} icon="account-edit" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => Alert.alert('Coming Soon', 'Profile editing will be available soon')}
+            />
+            
+            <List.Item
+              title="Verify Account (KYC)"
+              description={user?.isVerified ? 'Verified ✓' : 'Not verified - Tap to verify'}
+              left={props => <List.Icon {...props} icon="shield-check" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => Alert.alert('Coming Soon', 'KYC verification will be available soon')}
             />
             
             <List.Item

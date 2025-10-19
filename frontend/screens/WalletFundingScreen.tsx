@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator, Alert, Clipboard } from 'react-native';
 import { Appbar, TextInput, Button, Portal, Modal, Text, Card, Divider, IconButton } from 'react-native-paper';

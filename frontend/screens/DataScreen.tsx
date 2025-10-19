@@ -42,18 +42,39 @@ export default function DataScreen() {
     { id: '9mobile', name: '9mobile', color: '#006F3F', icon: 'phone-portrait' },
   ];
 
-  const samplePlans: DataPlan[] = [
-    { id: 'mtn-500mb', name: '500MB', price: 150, validity: '30 days', network: 'mtn' },
-    { id: 'mtn-1gb', name: '1GB', price: 300, validity: '30 days', network: 'mtn' },
-    { id: 'mtn-2gb', name: '2GB', price: 600, validity: '30 days', network: 'mtn' },
-    { id: 'mtn-5gb', name: '5GB', price: 1500, validity: '30 days', network: 'mtn' },
-    { id: 'mtn-10gb', name: '10GB', price: 3000, validity: '30 days', network: 'mtn' },
-  ];
-
   useEffect(() => {
-    setDataPlans(samplePlans.filter(plan => plan.network === selectedNetwork));
-    setSelectedPlan(null);
+    fetchDataPlans();
   }, [selectedNetwork]);
+
+  const fetchDataPlans = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
+      
+      const response = await axios.get(
+        `${API_BASE_URL}/api/services/data-plans/${serviceID}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        const plans = response.data.data.map((plan: any) => ({
+          id: plan.variation_code,
+          name: plan.name,
+          price: plan.variation_amount,
+          validity: plan.validity || '30 days',
+          network: selectedNetwork,
+        }));
+        setDataPlans(plans);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data plans:', error);
+      Alert.alert('Error', 'Failed to load data plans');
+    } finally {
+      setLoading(false);
+    }
+    setSelectedPlan(null);
+  };
 
   const validatePhoneNumber = (phone: string) => {
     const phoneRegex = /^[0-9]{11}$/;
