@@ -3612,6 +3612,18 @@ expo-haptics@~15.0.7:
   resolved "https://registry.npmjs.org/expo-haptics/-/expo-haptics-15.0.7.tgz"
   integrity sha512-7flWsYPrwjJxZ8x82RiJtzsnk1Xp9ahnbd9PhCy3NnsemyMApoWIEUr4waPqFr80DtiLZfhD9VMLL1CKa8AImQ==
 
+expo-image-loader@~6.0.0:
+  version "6.0.0"
+  resolved "https://registry.npmjs.org/expo-image-loader/-/expo-image-loader-6.0.0.tgz#15230442cbb90e101c080a4c81e37d974e43e072"
+  integrity sha512-nKs/xnOGw6ACb4g26xceBD57FKLFkSwEUTDXEDF3Gtcu3MqF3ZIYd3YM+sSb1/z9AKV1dYT7rMSGVNgsveXLIQ==
+
+expo-image-picker@~17.0.8:
+  version "17.0.8"
+  resolved "https://registry.npmjs.org/expo-image-picker/-/expo-image-picker-17.0.8.tgz#c4430994de81f3e9995c9ce77cb76403213b17d7"
+  integrity sha512-489ByhVs2XPoAu9zodivAKLv7hG4S/FOe8hO/C2U6jVxmRjpAKakKNjMml0IwWjf1+c/RYBqm1XxKaZ+vq/fDQ==
+  dependencies:
+    expo-image-loader "~6.0.0"
+
 expo-keep-awake@~15.0.7:
   version "15.0.7"
   resolved "https://registry.npmjs.org/expo-keep-awake/-/expo-keep-awake-15.0.7.tgz"
@@ -3623,6 +3635,13 @@ expo-linking@~8.0.8:
   integrity sha512-MyeMcbFDKhXh4sDD1EHwd0uxFQNAc6VCrwBkNvvvufUsTYFq3glTA9Y8a+x78CPpjNqwNAamu74yIaIz7IEJyg==
   dependencies:
     expo-constants "~18.0.8"
+    invariant "^2.2.4"
+
+expo-local-authentication@~17.0.7:
+  version "17.0.7"
+  resolved "https://registry.npmjs.org/expo-local-authentication/-/expo-local-authentication-17.0.7.tgz#799239fc817cf8a16ea047c96425ff05ed1e502a"
+  integrity sha512-yRWcgYn/OIwxEDEk7cM7tRjQSHaTp5hpKwzq+g9NmSMJ1etzUzt0yGzkDiOjObj3YqFo0ucyDJ8WfanLhZDtMw==
+  dependencies:
     invariant "^2.2.4"
 
 expo-modules-autolinking@3.0.15:
@@ -3643,6 +3662,11 @@ expo-modules-core@3.0.21:
   integrity sha512-KJRzm0FEt/lfPNG+C6UUq+ta9PO10QPwY1HGCNkzPiRCIMJmQP4xRYK4Z7AxiYEYsPqr5OdjRW55kGZ4c5pzgA==
   dependencies:
     invariant "^2.2.4"
+
+expo-secure-store@~15.0.7:
+  version "15.0.7"
+  resolved "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-15.0.7.tgz#f74f928029889b8a32c0eafc2a214abee1e8b71e"
+  integrity sha512-9q7+G1Zxr5P6J5NRIlm86KulvmYwc6UnQlYPjQLDu1drDnerz6AT6l884dPu29HgtDTn4rR0heYeeGFhMKM7/Q==
 
 expo-server@^1.0.1:
   version "1.0.1"
