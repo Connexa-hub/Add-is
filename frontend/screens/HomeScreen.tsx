@@ -78,72 +78,89 @@ export default function HomeScreen({ navigation }) {
     navigation.replace('Login');
   };
 
-  const services = [
+  // VTU Services organized by VTPass categories
+  const vtuServices = [
     { 
       id: 'airtime', 
       name: 'Airtime', 
-      icon: 'phone-portrait', 
-      color: '#FF6B35',
-      gradient: ['#FF6B35', '#FF8C42'],
-      screen: 'Airtime'
+      icon: 'call', 
+      color: '#10b981',
+      gradient: ['#10b981', '#34d399'],
+      screen: 'Airtime',
+      category: 'airtime'
     },
     { 
       id: 'data', 
-      name: 'Data', 
+      name: 'Data Bundle', 
       icon: 'wifi', 
-      color: '#4ECDC4',
-      gradient: ['#4ECDC4', '#44A08D'],
-      screen: 'Data'
+      color: '#3b82f6',
+      gradient: ['#3b82f6', '#60a5fa'],
+      screen: 'Data',
+      category: 'data'
     },
     { 
       id: 'electricity', 
       name: 'Electricity', 
       icon: 'flash', 
-      color: '#FFD93D',
-      gradient: ['#FFD93D', '#F4A261'],
-      screen: 'Electricity'
+      color: '#f59e0b',
+      gradient: ['#f59e0b', '#fbbf24'],
+      screen: 'Electricity',
+      category: 'electricity-bill'
     },
     { 
       id: 'tv', 
-      name: 'TV & Cable', 
+      name: 'Cable TV', 
       icon: 'tv', 
-      color: '#6C5CE7',
-      gradient: ['#6C5CE7', '#A29BFE'],
-      screen: 'TV'
+      color: '#8b5cf6',
+      gradient: ['#8b5cf6', '#a78bfa'],
+      screen: 'TV',
+      category: 'tv-subscription'
     },
+  ];
+
+  const billsServices = [
     { 
       id: 'internet', 
       name: 'Internet', 
-      icon: 'globe', 
-      color: '#00B894',
-      gradient: ['#00B894', '#55EFC4'],
-      screen: 'Internet'
-    },
-    { 
-      id: 'education', 
-      name: 'Education', 
-      icon: 'school', 
-      color: '#E17055',
-      gradient: ['#E17055', '#FDCB6E'],
-      screen: 'Education'
+      icon: 'globe-outline', 
+      color: '#14b8a6',
+      gradient: ['#14b8a6', '#2dd4bf'],
+      screen: 'Internet',
+      category: 'other-services'
     },
     { 
       id: 'betting', 
       name: 'Betting', 
-      icon: 'trophy', 
-      color: '#0984E3',
-      gradient: ['#0984E3', '#74B9FF'],
-      screen: 'Betting'
+      icon: 'football', 
+      color: '#06b6d4',
+      gradient: ['#06b6d4', '#22d3ee'],
+      screen: 'Betting',
+      category: 'other-services'
+    },
+  ];
+
+  const educationServices = [
+    { 
+      id: 'education', 
+      name: 'Education', 
+      icon: 'school', 
+      color: '#ef4444',
+      gradient: ['#ef4444', '#f87171'],
+      screen: 'Education',
+      category: 'education'
     },
     { 
       id: 'insurance', 
       name: 'Insurance', 
       icon: 'shield-checkmark', 
-      color: '#FD79A8',
-      gradient: ['#FD79A8', '#FDCB6E'],
-      screen: 'Insurance'
+      color: '#ec4899',
+      gradient: ['#ec4899', '#f472b6'],
+      screen: 'Insurance',
+      category: 'insurance'
     },
   ];
+
+  const allServices = [...vtuServices, ...billsServices, ...educationServices];
 
   if (loading) {
     return (
@@ -264,11 +281,49 @@ export default function HomeScreen({ navigation }) {
           </Card.Content>
         </Card>
 
-        {/* Services Grid */}
+        {/* VTU Services Section */}
         <View style={styles.servicesSection}>
-          <Text style={styles.sectionTitle}>Services</Text>
+          <Text style={styles.sectionTitle}>VTU Services</Text>
           <View style={styles.servicesGrid}>
-            {services.map((service) => (
+            {vtuServices.map((service) => (
+              <Pressable
+                key={service.id}
+                style={styles.serviceCard}
+                onPress={() => navigation.navigate(service.screen)}
+              >
+                <View style={[styles.serviceIconContainer, { backgroundColor: service.color }]}>
+                  <Ionicons name={service.icon} size={28} color="#FFFFFF" />
+                </View>
+                <Text style={styles.serviceName}>{service.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Bills & Services Section */}
+        <View style={styles.servicesSection}>
+          <Text style={styles.sectionTitle}>Bills & Services</Text>
+          <View style={styles.servicesGrid}>
+            {billsServices.map((service) => (
+              <Pressable
+                key={service.id}
+                style={styles.serviceCard}
+                onPress={() => navigation.navigate(service.screen)}
+              >
+                <View style={[styles.serviceIconContainer, { backgroundColor: service.color }]}>
+                  <Ionicons name={service.icon} size={28} color="#FFFFFF" />
+                </View>
+                <Text style={styles.serviceName}>{service.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Education & Insurance Section */}
+        <View style={styles.servicesSection}>
+          <Text style={styles.sectionTitle}>Education & Insurance</Text>
+          <View style={styles.servicesGrid}>
+            {educationServices.map((service) => (
               <Pressable
                 key={service.id}
                 style={styles.serviceCard}
