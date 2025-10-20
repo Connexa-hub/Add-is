@@ -32,6 +32,11 @@ import PINSetupScreen from '../../screens/PINSetupScreen';
 import PINVerifyScreen from '../../screens/PINVerifyScreen';
 import PINChangeScreen from '../../screens/PINChangeScreen';
 
+import InternetScreen from '../../screens/InternetScreen';
+import EducationScreen from '../../screens/EducationScreen';
+import BettingScreen from '../../screens/BettingScreen';
+import InsuranceScreen from '../../screens/InsuranceScreen';
+
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -84,6 +89,10 @@ export default function AppNavigator() {
         <Stack.Screen name="Data" component={DataScreen} options={{ headerShown: false }} />
         <Stack.Screen name="TV" component={TVScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Electricity" component={ElectricityScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Internet" component={InternetScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Education" component={EducationScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Betting" component={BettingScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Insurance" component={InsuranceScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="CardManagement" component={CardManagementScreen} options={{ headerShown: false }} />
 

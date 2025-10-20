@@ -1,17 +1,17 @@
 export const colors = {
-  // Primary Colors - Updated for better contrast
+  // Primary Colors - Modern gradient blue-purple
   primary: {
-    main: '#5c27d9',
-    light: '#8854e0',
-    dark: '#3d1a8f',
+    main: '#6366f1',
+    light: '#a5b4fc',
+    dark: '#4f46e5',
     contrast: '#ffffff',
   },
 
-  // Secondary Colors
+  // Secondary Colors - Vibrant teal
   secondary: {
-    main: '#00bfa5',
-    light: '#5df2d6',
-    dark: '#008e76',
+    main: '#14b8a6',
+    light: '#5eead4',
+    dark: '#0f766e',
     contrast: '#ffffff',
   },
 

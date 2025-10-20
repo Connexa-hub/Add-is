@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
+import { BiometricModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 
@@ -16,7 +17,7 @@ export default function LoginScreen({ navigation }) {
     authenticateForLogin,
     enableBiometric,
     isBiometricEnabled,
-    promptEnableBiometric,
+    saveCredentials,
   } = useBiometric();
 
   const [email, setEmail] = useState('');
@@ -27,6 +28,8 @@ export default function LoginScreen({ navigation }) {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricConfigured, setBiometricConfigured] = useState(false);
   const [savedEmail, setSavedEmail] = useState<string | null>(null);
+  const [showBiometricModal, setShowBiometricModal] = useState(false);
+  const [pendingBiometricData, setPendingBiometricData] = useState<{ userId: string; userEmail: string } | null>(null);
 
   useEffect(() => {
     checkBiometricStatus();
@@ -105,15 +108,24 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const handleEnableBiometric = async (userId: string, userEmail: string) => {
-    const success = await enableBiometric(userId);
+  const handleEnableBiometric = async () => {
+    if (!pendingBiometricData) return;
+    
+    const success = await enableBiometric(pendingBiometricData.userId);
     if (success) {
-      await saveCredentials(userId, userEmail);
+      await saveCredentials(pendingBiometricData.userId, pendingBiometricData.userEmail);
       Alert.alert(
         'Success',
         `${capabilities.biometricType || 'Biometric'} login enabled! You can now login quickly using your ${capabilities.biometricType?.toLowerCase() || 'biometric'}.`
       );
     }
+    setShowBiometricModal(false);
+    navigation.replace('Main');
+  };
+
+  const handleSkipBiometric = () => {
+    setShowBiometricModal(false);
+    navigation.replace('Main');
   };
 
   const handleLogin = async () => {
@@ -165,10 +177,8 @@ export default function LoginScreen({ navigation }) {
           const biometricEnabled = await isBiometricEnabled();
 
           if (!biometricEnabled && capabilities.isAvailable) {
-            promptEnableBiometric(
-              () => handleEnableBiometric(userId, userEmail),
-              () => navigation.replace('Main')
-            );
+            setPendingBiometricData({ userId, userEmail });
+            setShowBiometricModal(true);
           } else {
             navigation.replace('Main');
           }
@@ -315,6 +325,14 @@ export default function LoginScreen({ navigation }) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+
+    {/* Biometric Modal */}
+    <BiometricModal
+      visible={showBiometricModal}
+      onEnable={handleEnableBiometric}
+      onSkip={handleSkipBiometric}
+      biometricType={capabilities.biometricType || 'Biometric'}
+    />
     </SafeAreaView>
   );
 }

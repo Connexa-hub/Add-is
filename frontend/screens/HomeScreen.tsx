@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: '#5c27d9',
+    backgroundColor: '#6366f1',
     elevation: 0,
   },
   headerTitle: {
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     margin: 16,
-    backgroundColor: '#5c27d9',
+    backgroundColor: '#6366f1',
     elevation: 4,
     borderRadius: 16,
   },
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   addFundsLabel: {
-    color: '#5c27d9',
+    color: '#6366f1',
     fontWeight: 'bold',
   },
   servicesSection: {

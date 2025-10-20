@@ -53,7 +53,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
       
       // Get available cashback balance
       const cashbackResponse = await axios.get(
-        `${API_BASE_URL}/api/cashback/user/history`,
+        `${API_BASE_URL}/api/admin/cashback/user/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       

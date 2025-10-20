@@ -67,11 +67,11 @@ export default function AirtimeScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await axios.get(
-        `${API_BASE_URL}/api/wallet/balance`,
+        `${API_BASE_URL}/api/auth/profile`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (response.data.success) {
-        setWalletBalance(response.data.data.balance);
+      if (response.data.success && response.data.data) {
+        setWalletBalance(response.data.data.walletBalance || 0);
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
