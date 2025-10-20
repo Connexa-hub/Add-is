@@ -234,7 +234,7 @@ export default function LoginScreen({ navigation }) {
               height: 100,
               borderRadius: 50,
               ...tokens.shadows.md
-            }]}>
+            }]} accessibilityLabel="User avatar">
               <Ionicons name="person" size={50} color={tokens.colors.text.secondary} />
             </View>
 
@@ -257,7 +257,7 @@ export default function LoginScreen({ navigation }) {
                   alignItems: 'center',
                   marginBottom: tokens.spacing.base,
                   ...tokens.shadows.md
-                }]}>
+                }]} accessibilityLabel="Biometric login icon">
                   <Ionicons name="finger-print" size={50} color={tokens.colors.primary.main} />
                 </View>
                 <AppText variant="body1" color={tokens.colors.primary.main} style={{ marginBottom: tokens.spacing.md }}>
@@ -279,13 +279,13 @@ export default function LoginScreen({ navigation }) {
 
             {/* Alternative login options */}
             <View style={{ flexDirection: 'row', gap: tokens.spacing.lg, marginBottom: tokens.spacing['2xl'] }}>
-              <TouchableOpacity onPress={() => {}}>
+              <TouchableOpacity onPress={() => {}} accessibilityLabel="Switch Account">
                 <AppText variant="body2" color={tokens.colors.primary.main}>
                   Switch Account
                 </AppText>
               </TouchableOpacity>
               <AppText variant="body2" color={tokens.colors.text.secondary}>|</AppText>
-              <TouchableOpacity>
+              <TouchableOpacity accessibilityLabel="Login with Password">
                 <AppText variant="body2" color={tokens.colors.primary.main}>
                   Login with Password
                 </AppText>
