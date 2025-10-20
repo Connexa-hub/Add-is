@@ -39,12 +39,41 @@ const Modal = ({
     <div className="modal-overlay" onClick={onClose}>
       <div 
         className="modal-container" 
-        style={sizeClasses[size]}
+        style={{
+          ...sizeClasses[size],
+          backgroundColor: 'white',
+          borderRadius: 'var(--modal-radius)',
+          boxShadow: 'var(--modal-shadow)',
+          maxHeight: '90vh',
+          overflow: 'auto'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header">
+        <div className="modal-header" style={{
+          position: 'sticky',
+          top: 0,
+          backgroundColor: 'white',
+          zIndex: 10,
+          borderBottom: '1px solid var(--gray-200)'
+        }}>
           <h2 className="modal-title">{title}</h2>
-          <button className="modal-close" onClick={onClose}>
+          <button 
+            className="modal-close" 
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '0.375rem',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--gray-100)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
             <X size={20} />
           </button>
         </div>
@@ -59,7 +88,13 @@ const Modal = ({
         </div>
 
         {showFooter && (
-          <div className="modal-footer">
+          <div className="modal-footer" style={{
+            position: 'sticky',
+            bottom: 0,
+            backgroundColor: 'white',
+            zIndex: 10,
+            borderTop: '1px solid var(--gray-200)'
+          }}>
             {secondaryAction && (
               <button 
                 className="btn btn-secondary" 

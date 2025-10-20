@@ -208,7 +208,7 @@ const Transactions = () => {
         }}
       >
         {selectedTransaction && (
-          <div style={{ fontSize: '0.95rem' }}>
+          <div style={{ fontSize: '0.95rem', color: 'var(--gray-900)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
               <div>
                 <p style={{ fontWeight: '600', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>Reference</p>
