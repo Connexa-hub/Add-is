@@ -35,7 +35,7 @@ const UserSchema = new mongoose.Schema({
   }],
   resetPasswordOTP: String,
   resetPasswordExpires: Date,
-  
+
   kyc: {
     status: {
       type: String,
@@ -70,7 +70,7 @@ const UserSchema = new mongoose.Schema({
     }],
     notes: String
   },
-  
+
   transactionPin: {
     hash: String,
     failedAttempts: { type: Number, default: 0 },
@@ -78,12 +78,12 @@ const UserSchema = new mongoose.Schema({
     lastChanged: Date,
     isSet: { type: Boolean, default: false }
   },
-  
+
   biometricEnabled: {
     type: Boolean,
     default: false
   },
-  
+
   savedCards: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Card'

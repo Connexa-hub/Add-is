@@ -15,7 +15,6 @@ export default function LoginScreen({ navigation }) {
     isLoading: isBiometricLoading,
     authenticateForLogin,
     enableBiometric,
-    saveCredentials,
     isBiometricEnabled,
     promptEnableBiometric,
   } = useBiometric();
@@ -27,10 +26,12 @@ export default function LoginScreen({ navigation }) {
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricConfigured, setBiometricConfigured] = useState(false);
+  const [savedEmail, setSavedEmail] = useState<string | null>(null);
 
   useEffect(() => {
     checkBiometricStatus();
-  }, [capabilities]);
+    checkSavedCredentials();
+  }, [capabilities, isBiometricLoading]);
 
   const checkBiometricStatus = async () => {
     if (!isBiometricLoading) {
@@ -40,17 +41,34 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const checkSavedCredentials = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('savedEmail');
+      if (saved) {
+        setSavedEmail(saved);
+        setEmail(saved);
+      }
+    } catch (error) {
+      console.error('Error checking saved credentials:', error);
+    }
+  };
+
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const handleBiometricLogin = async () => {
+    if (!savedEmail) {
+      Alert.alert('Error', 'No saved credentials found');
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       const result = await authenticateForLogin();
-      
+
       if (!result.success) {
         Alert.alert(
           'Authentication Failed',
@@ -71,6 +89,9 @@ export default function LoginScreen({ navigation }) {
               text: 'OK',
               onPress: async () => {
                 await AsyncStorage.removeItem('biometricEnabled');
+                await AsyncStorage.removeItem('savedEmail');
+                setEmail('');
+                setSavedEmail(null);
               },
             },
           ]
@@ -135,13 +156,14 @@ export default function LoginScreen({ navigation }) {
           ['token', res.data.data.token],
           ['userId', userId],
           ['userEmail', userEmail],
-          ['userName', userName]
+          ['userName', userName],
+          ['savedEmail', email] // Save the email for biometric login
         ]);
-        
+
         const savedToken = await AsyncStorage.getItem('token');
         if (savedToken) {
           const biometricEnabled = await isBiometricEnabled();
-          
+
           if (!biometricEnabled && capabilities.isAvailable) {
             promptEnableBiometric(
               () => handleEnableBiometric(userId, userEmail),
@@ -159,12 +181,12 @@ export default function LoginScreen({ navigation }) {
       }
     } catch (err) {
       const errorData = err.response?.data;
-      
+
       if (errorData?.requiresVerification && errorData?.email) {
         navigation.navigate('EmailVerification', { email: errorData.email });
         return;
       }
-      
+
       setErrors({
         email: '',
         password: errorData?.message || 'Login failed. Please check your credentials.'
@@ -212,6 +234,7 @@ export default function LoginScreen({ navigation }) {
                 value={email}
                 onChangeText={(text) => {
                   setEmail(text);
+                  setSavedEmail(text); // Update savedEmail when email changes
                   if (errors.email) setErrors({ ...errors, email: '' });
                 }}
                 keyboardType="email-address"
@@ -269,28 +292,19 @@ export default function LoginScreen({ navigation }) {
             Sign In
           </AppButton>
 
-          {biometricConfigured && biometricAvailable && (
-            <View style={{ alignItems: 'center', marginTop: tokens.spacing.lg }}>
-              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.sm }}>
-                or
-              </AppText>
-              <TouchableOpacity
-                onPress={handleBiometricLogin}
-                disabled={loading}
-                style={[
-                  styles.biometricButton,
-                  {
-                    backgroundColor: tokens.colors.primary.light,
-                    borderRadius: tokens.radius.full,
-                  },
-                ]}
-              >
-                <Ionicons name="finger-print" size={32} color={tokens.colors.primary.main} />
-              </TouchableOpacity>
-              <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.sm }}>
-                Login with {capabilities.biometricType || 'Biometric'}
-              </AppText>
-            </View>
+          {biometricConfigured && biometricAvailable && savedEmail && (
+            <AppButton
+              variant="outline"
+              onPress={handleBiometricLogin}
+              loading={loading}
+              disabled={loading}
+              fullWidth
+              size="lg"
+              style={{ marginTop: tokens.spacing.md }}
+              icon={<Ionicons name="finger-print" size={20} color={tokens.colors.primary.main} />}
+            >
+              Login with {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
+            </AppButton>
           )}
 
           <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>

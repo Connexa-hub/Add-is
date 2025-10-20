@@ -37,7 +37,7 @@ export default function SettingsScreen({ navigation }: any) {
         AsyncStorage.getItem('userId'),
         AsyncStorage.getItem('userEmail'),
       ]);
-      
+
       setBiometricEnabled(bio);
       setDarkMode(dark === 'true');
       setUserId(id || '');
@@ -157,29 +157,31 @@ export default function SettingsScreen({ navigation }: any) {
               Security
             </AppText>
 
-            <View style={styles.settingRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View style={[styles.iconWrapper, { backgroundColor: tokens.colors.primary.light }]}>
-                  <Ionicons name="finger-print" size={20} color={tokens.colors.primary.main} />
+            {capabilities.isAvailable && (
+              <View style={styles.settingRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <View style={[styles.iconWrapper, { backgroundColor: tokens.colors.primary.light }]}>
+                    <Ionicons name="finger-print" size={20} color={tokens.colors.primary.main} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
+                    <AppText variant="body1" weight="semibold">
+                      {capabilities.biometricType || 'Biometric'} Login
+                    </AppText>
+                    <AppText variant="caption" color={tokens.colors.text.secondary}>
+                      {capabilities.isAvailable
+                        ? `Use ${capabilities.biometricType?.toLowerCase() || 'biometric'} for quick login`
+                        : 'Not available on this device'}
+                    </AppText>
+                  </View>
                 </View>
-                <View style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                  <AppText variant="body1" weight="semibold">
-                    {capabilities.biometricType || 'Biometric'} Login
-                  </AppText>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    {capabilities.isAvailable
-                      ? `Use ${capabilities.biometricType?.toLowerCase() || 'biometric'} for quick login`
-                      : 'Not available on this device'}
-                  </AppText>
-                </View>
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={toggleBiometric}
+                  disabled={!capabilities.isAvailable || loading}
+                  color={tokens.colors.primary.main}
+                />
               </View>
-              <Switch
-                value={biometricEnabled}
-                onValueChange={toggleBiometric}
-                disabled={!capabilities.isAvailable || loading}
-                color={tokens.colors.primary.main}
-              />
-            </View>
+            )}
 
             <AppDivider style={{ marginVertical: tokens.spacing.sm }} />
 

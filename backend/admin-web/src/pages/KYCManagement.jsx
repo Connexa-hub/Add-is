@@ -32,7 +32,7 @@ const KYCManagement = () => {
 
   const approveKYC = async (userId) => {
     if (!confirm('Are you sure you want to approve this KYC submission?')) return;
-    
+
     try {
       const notes = prompt('Add approval notes (optional):');
       await api.post(`/api/kyc/admin/${userId}/approve`, { notes });
@@ -47,7 +47,7 @@ const KYCManagement = () => {
   const rejectKYC = async (userId) => {
     const reason = prompt('Enter rejection reason (required):');
     if (!reason) return;
-    
+
     try {
       const notes = prompt('Add additional notes (optional):');
       await api.post(`/api/kyc/admin/${userId}/reject`, { reason, notes });
