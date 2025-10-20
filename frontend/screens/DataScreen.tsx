@@ -164,8 +164,37 @@ export default function DataScreen() {
         </AppText>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: tokens.spacing.lg }}>
-        <View style={{ marginBottom: tokens.spacing.xl }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: tokens.spacing.lg }} showsVerticalScrollIndicator={false}>
+        {/* Promotional Banner Carousel */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled
+          style={{ marginBottom: tokens.spacing.lg }}
+        >
+          <View style={[styles.promoBanner, { backgroundColor: '#00B894', marginRight: 12 }]}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="h3" weight="bold" color="#FFFFFF" style={{ marginBottom: 4 }}>
+                OUT OF AIRTIME?
+              </AppText>
+              <AppText variant="caption" color="#FFFFFF">
+                Top up anytime, anywhere and enjoy up to 6% cashback
+              </AppText>
+            </View>
+          </View>
+          <View style={[styles.promoBanner, { backgroundColor: '#2196F3' }]}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="h3" weight="bold" color="#FFFFFF" style={{ marginBottom: 4 }}>
+                Simply Dial
+              </AppText>
+              <AppText variant="caption" color="#FFFFFF">
+                *955*4* mobile no#
+              </AppText>
+            </View>
+          </View>
+        </ScrollView>
+
+        <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.xl }}>
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Select Network
           </AppText>
@@ -214,41 +243,87 @@ export default function DataScreen() {
           />
         </View>
 
-        <View style={{ marginBottom: tokens.spacing.lg }}>
+        {/* Promo Info Banner */}
+        <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.md }}>
+          <View style={[styles.infoCard, { backgroundColor: '#00B894', borderRadius: tokens.radius.lg, padding: tokens.spacing.md }]}>
+            <AppText variant="body2" weight="semibold" color="#FFFFFF">
+              Top-up your Data anytime, anywhere
+            </AppText>
+            <AppText variant="h3" weight="bold" color="#FFFFFF">
+              Simply Dial *955*4* mobile no#
+            </AppText>
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.lg }}>
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
-            Select Data Plan
+            Data Plans
           </AppText>
+          
+          {/* Tabs for plan categories */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: tokens.spacing.md }}>
+            <View style={{ flexDirection: 'row', gap: tokens.spacing.sm }}>
+              <Pressable style={[styles.tabBtn, { backgroundColor: tokens.colors.primary.main, borderBottomWidth: 3, borderBottomColor: tokens.colors.primary.main }]}>
+                <AppText variant="body2" weight="bold" color="#FFFFFF">HOT</AppText>
+              </Pressable>
+              <Pressable style={styles.tabBtn}>
+                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Daily</AppText>
+              </Pressable>
+              <Pressable style={styles.tabBtn}>
+                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Weekly</AppText>
+              </Pressable>
+              <Pressable style={styles.tabBtn}>
+                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Monthly</AppText>
+              </Pressable>
+              <Pressable style={styles.tabBtn}>
+                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Always-On</AppText>
+              </Pressable>
+            </View>
+          </ScrollView>
+
           {dataPlans.map((plan) => (
             <Pressable
               key={plan.id}
               style={[
                 styles.planCard,
                 {
-                  backgroundColor: tokens.colors.background.paper,
-                  borderWidth: 2,
+                  backgroundColor: selectedPlan?.id === plan.id ? '#E8F5E9' : tokens.colors.background.paper,
+                  borderWidth: 1,
                   borderColor: selectedPlan?.id === plan.id
-                    ? tokens.colors.primary.main
+                    ? tokens.colors.success.main
                     : tokens.colors.border.default,
                   borderRadius: tokens.radius.lg,
                   padding: tokens.spacing.md,
                   marginBottom: tokens.spacing.sm,
-                  ...tokens.shadows.sm,
                 }
               ]}
               onPress={() => setSelectedPlan(plan)}
             >
-              <View style={styles.planContent}>
-                <View style={{ flex: 1 }}>
-                  <AppText variant="h3" weight="bold">
-                    {plan.name}
-                  </AppText>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    Valid for {plan.validity}
+              {/* Cashback badge */}
+              {plan.price > 1000 && (
+                <View style={{ position: 'absolute', top: -8, left: 12, backgroundColor: '#00B894', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                  <AppText variant="caption" weight="bold" color="#FFFFFF">
+                    ₦{(plan.price * 0.02).toFixed(0)} Cashback
                   </AppText>
                 </View>
-                <AppText variant="h3" weight="bold" color={tokens.colors.primary.main}>
-                  ₦{plan.price}
+              )}
+              <View style={{ marginBottom: tokens.spacing.xs }}>
+                <AppText variant="h3" weight="bold">
+                  {plan.name}
                 </AppText>
+                <AppText variant="caption" color={tokens.colors.text.secondary}>
+                  {plan.name}, valid for {plan.validity}
+                </AppText>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: tokens.spacing.xs }}>
+                <View>
+                  <AppText variant="caption" color={tokens.colors.text.secondary}>Price</AppText>
+                  <AppText variant="h3" weight="bold">₦{plan.price.toLocaleString()}</AppText>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <AppText variant="caption" color={tokens.colors.text.secondary}>Validity</AppText>
+                  <AppText variant="body2" weight="semibold">{plan.validity}</AppText>
+                </View>
               </View>
             </Pressable>
           ))}
@@ -320,6 +395,22 @@ const styles = StyleSheet.create({
   backButton: {
     marginRight: 16,
   },
+  promoBanner: {
+    width: 320,
+    height: 140,
+    borderRadius: 12,
+    padding: 16,
+    marginLeft: 16,
+    justifyContent: 'center',
+  },
+  infoCard: {
+    padding: 12,
+  },
+  tabBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
   networkGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -340,22 +431,11 @@ const styles = StyleSheet.create({
   },
   planCard: {
     marginBottom: 8,
+    position: 'relative',
   },
   planContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  selectedPlanCard: {
-    borderColor: '#007AFF',
-    borderWidth: 2,
-    backgroundColor: '#E3F2FD',
-  },
-  pressedPlanCard: {
-    opacity: 0.7,
-    transform: [{ scale: 0.98 }],
-  },
-  pressedButton: {
-    opacity: 0.8,
   },
 });

@@ -259,31 +259,64 @@ export default function HomeScreen({ navigation }) {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        showsVerticalScrollIndicator={false}
       >
-        {/* Wallet Balance Card */}
+        {/* Wallet Balance Card - OPay Style */}
         <Card style={styles.balanceCard}>
           <Card.Content>
-            <Text style={styles.balanceLabel}>Wallet Balance</Text>
-            <View style={styles.balanceRow}>
-              <Text style={styles.balanceAmount}>
-                ₦{walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-              </Text>
-              <Button
-                mode="contained"
-                onPress={() => navigation.navigate('Wallet')}
-                style={styles.addFundsBtn}
-                labelStyle={styles.addFundsLabel}
-                compact
-              >
-                + Add Funds
-              </Button>
+            <View style={styles.balanceHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
+                <Text style={styles.balanceLabel}>  Available Balance</Text>
+                <Ionicons name="eye-off" size={16} color="#FFFFFF" style={{ marginLeft: 8 }} />
+              </View>
+              <Pressable onPress={() => navigation.navigate('History')}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.historyText}>Transaction History</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+                </View>
+              </Pressable>
             </View>
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceAmount}>****</Text>
+              <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+            </View>
+            <Button
+              mode="contained"
+              onPress={() => navigation.navigate('Wallet')}
+              style={styles.addFundsBtn}
+              labelStyle={styles.addFundsLabel}
+              icon={() => <Ionicons name="add" size={16} color="#00B894" />}
+            >
+              Add Money
+            </Button>
           </Card.Content>
         </Card>
 
-        {/* VTU Services Section */}
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <Pressable style={styles.quickActionBtn} onPress={() => navigation.navigate('Wallet')}>
+            <View style={[styles.quickActionIcon, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="person-outline" size={24} color="#00B894" />
+            </View>
+            <Text style={styles.quickActionText}>To OPay</Text>
+          </Pressable>
+          <Pressable style={styles.quickActionBtn}>
+            <View style={[styles.quickActionIcon, { backgroundColor: '#E3F2FD' }]}>
+              <Ionicons name="business-outline" size={24} color="#2196F3" />
+            </View>
+            <Text style={styles.quickActionText}>To Bank</Text>
+          </Pressable>
+          <Pressable style={styles.quickActionBtn}>
+            <View style={[styles.quickActionIcon, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="cash-outline" size={24} color="#FF9800" />
+            </View>
+            <Text style={styles.quickActionText}>Withdraw</Text>
+          </Pressable>
+        </View>
+
+        {/* VTU Services Section with Badge */}
         <View style={styles.servicesSection}>
-          <Text style={styles.sectionTitle}>VTU Services</Text>
           <View style={styles.servicesGrid}>
             {vtuServices.map((service) => (
               <Pressable
@@ -291,13 +324,38 @@ export default function HomeScreen({ navigation }) {
                 style={styles.serviceCard}
                 onPress={() => navigation.navigate(service.screen)}
               >
-                <View style={[styles.serviceIconContainer, { backgroundColor: service.color }]}>
-                  <Ionicons name={service.icon} size={28} color="#FFFFFF" />
+                <View style={[styles.serviceIconContainer, { backgroundColor: service.color + '20' }]}>
+                  <Ionicons name={service.icon} size={28} color={service.color} />
+                  {service.id === 'airtime' && (
+                    <View style={styles.badgeContainer}>
+                      <Text style={styles.badgeText}>Up to 6%</Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.serviceName}>{service.name}</Text>
               </Pressable>
             ))}
           </View>
+        </View>
+
+        {/* Promotional Banner - Will be fetched from backend */}
+        <View style={styles.bannerSection}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+            style={styles.bannerScroll}
+          >
+            <Pressable style={styles.bannerCard}>
+              <View style={styles.bannerContent}>
+                <Ionicons name="trophy" size={40} color="#FFFFFF" />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.bannerTitle}>Be the Next big winner now!</Text>
+                  <Text style={styles.bannerSubtitle}>Big wins are happening daily on iLOTBet. Play now and find out!</Text>
+                </View>
+              </View>
+            </Pressable>
+          </ScrollView>
         </View>
 
         {/* Bills & Services Section */}
@@ -409,33 +467,112 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     margin: 16,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#00B894',
     elevation: 4,
     borderRadius: 16,
   },
+  balanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   balanceLabel: {
     color: '#FFFFFF',
-    fontSize: 14,
-    opacity: 0.9,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  historyText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    marginRight: 4,
   },
   balanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginVertical: 8,
   },
   balanceAmount: {
     color: '#FFFFFF',
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
+    letterSpacing: 2,
   },
   addFundsBtn: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
+    marginTop: 12,
   },
   addFundsLabel: {
-    color: '#6366f1',
+    color: '#00B894',
     fontWeight: 'bold',
+    fontSize: 13,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  quickActionBtn: {
+    alignItems: 'center',
+  },
+  quickActionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  bannerSection: {
+    marginVertical: 16,
+    paddingLeft: 16,
+  },
+  bannerScroll: {
+    marginBottom: 8,
+  },
+  bannerCard: {
+    width: 340,
+    height: 120,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    marginRight: 12,
+    padding: 16,
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    color: '#CCCCCC',
+    fontSize: 12,
   },
   servicesSection: {
     paddingHorizontal: 16,
@@ -460,15 +597,11 @@ const styles = StyleSheet.create({
   serviceIconContainer: {
     width: 60,
     height: 60,
-    borderRadius: 16,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    position: 'relative',
   },
   serviceName: {
     fontSize: 12,

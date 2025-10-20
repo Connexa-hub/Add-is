@@ -216,24 +216,88 @@ export default function LoginScreen({ navigation }) {
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={{ padding: tokens.spacing.lg }}>
-            <View style={{ marginBottom: tokens.spacing['2xl'], marginTop: tokens.spacing['2xl'] }}>
-              <View style={[styles.iconContainer, { 
-                backgroundColor: tokens.colors.primary.light,
-                marginBottom: tokens.spacing.lg,
-                width: 80,
-                height: 80,
-                borderRadius: tokens.radius.lg
-              }]}>
-                <Ionicons name="wallet" size={40} color={tokens.colors.primary.main} />
-              </View>
+          <View style={{ padding: tokens.spacing.lg, alignItems: 'center' }}>
+            {/* Logo centered at top */}
+            <View style={{ marginTop: tokens.spacing['2xl'], marginBottom: tokens.spacing['2xl'], alignItems: 'center' }}>
+              <AppText variant="h1" weight="bold" style={{ fontSize: 32, color: tokens.colors.primary.main }}>
+                Connexa
+              </AppText>
+            </View>
 
-              <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
+            {/* User Avatar */}
+            <View style={[styles.avatarContainer, { 
+              backgroundColor: tokens.colors.background.paper,
+              marginBottom: tokens.spacing.lg,
+              width: 100,
+              height: 100,
+              borderRadius: 50,
+              ...tokens.shadows.md
+            }]}>
+              <Ionicons name="person" size={50} color={tokens.colors.text.secondary} />
+            </View>
+
+            {/* Masked Email/Phone */}
+            {savedEmail && (
+              <AppText variant="h3" weight="semibold" style={{ marginBottom: tokens.spacing['2xl'] }}>
+                {savedEmail.substring(0, 3)}****{savedEmail.substring(savedEmail.indexOf('@'))}
+              </AppText>
+            )}
+
+            {/* Biometric Login Option (prominent) */}
+            {biometricConfigured && biometricAvailable && savedEmail && (
+              <View style={{ alignItems: 'center', marginBottom: tokens.spacing['2xl'], width: '100%' }}>
+                <View style={[styles.biometricIcon, { 
+                  backgroundColor: tokens.colors.background.paper,
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: tokens.spacing.base,
+                  ...tokens.shadows.md
+                }]}>
+                  <Ionicons name="finger-print" size={50} color={tokens.colors.primary.main} />
+                </View>
+                <AppText variant="body1" color={tokens.colors.primary.main} style={{ marginBottom: tokens.spacing.md }}>
+                  Click to log in with {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
+                </AppText>
+                <AppButton
+                  variant="primary"
+                  onPress={handleBiometricLogin}
+                  loading={loading}
+                  disabled={loading}
+                  fullWidth
+                  size="lg"
+                  style={{ marginBottom: tokens.spacing.xl, maxWidth: 300 }}
+                >
+                  Verify {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
+                </AppButton>
+              </View>
+            )}
+
+            {/* Alternative login options */}
+            <View style={{ flexDirection: 'row', gap: tokens.spacing.lg, marginBottom: tokens.spacing['2xl'] }}>
+              <TouchableOpacity onPress={() => {}}>
+                <AppText variant="body2" color={tokens.colors.primary.main}>
+                  Switch Account
+                </AppText>
+              </TouchableOpacity>
+              <AppText variant="body2" color={tokens.colors.text.secondary}>|</AppText>
+              <TouchableOpacity>
+                <AppText variant="body2" color={tokens.colors.primary.main}>
+                  Login with Password
+                </AppText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Hidden email/password fields - shown when "Login with Password" is clicked */}
+            <View style={{ marginBottom: tokens.spacing['2xl'], marginTop: tokens.spacing['2xl'], width: '100%' }}>
+              <AppText variant="h2" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
                 Welcome Back
               </AppText>
-              <AppText variant="body1" color={tokens.colors.text.secondary}>
+              <AppText variant="body1" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.xl }}>
                 Sign in to continue to your account
               </AppText>
             </View>
