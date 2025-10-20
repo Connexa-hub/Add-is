@@ -4,7 +4,7 @@
 
 :root {
   --primary: #2BE2FA;
-  --primary-dark: #1FCCE0;
+  --primary-dark: #1BA3B5;
   --primary-light: #E0F9FD;
   --secondary: #10B981;
   --success: #10B981;
@@ -33,6 +33,12 @@
   --radius: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+
+  /* Modal variables */
+  --modal-overlay: rgba(0, 0, 0, 0.75);
+  --modal-backdrop-blur: 8px;
+  --modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --modal-radius: 16px;
 }
 
 * {
@@ -443,7 +449,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--modal-overlay);
+  backdrop-filter: blur(var(--modal-backdrop-blur));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -453,12 +460,12 @@ body {
 
 .modal {
   background: white;
-  border-radius: var(--radius-xl);
+  border-radius: var(--modal-radius);
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--modal-shadow);
 }
 
 .modal-header {

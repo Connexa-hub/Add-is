@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import {
   Users,
@@ -7,9 +8,11 @@ import {
   Activity,
   DollarSign,
   RefreshCw,
+  ArrowRight,
 } from 'lucide-react';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,24 +60,32 @@ export default function Dashboard() {
       value: formatCurrency(stats?.totalRevenue || 0),
       icon: DollarSign,
       color: '#2BE2FA',
+      link: '/transactions',
+      description: 'View all revenue transactions'
     },
     {
       title: 'Total Users',
       value: stats?.totalUsers || 0,
       icon: Users,
       color: '#10B981',
+      link: '/users',
+      description: 'Manage user accounts'
     },
     {
       title: 'Total Transactions',
       value: stats?.totalTransactions || 0,
       icon: Activity,
       color: '#F59E0B',
+      link: '/transactions',
+      description: 'View transaction history'
     },
     {
       title: 'Active Users (30d)',
       value: stats?.activeUsers || 0,
       icon: TrendingUp,
       color: '#3B82F6',
+      link: '/users',
+      description: 'View active users'
     },
   ];
 
@@ -99,7 +110,25 @@ export default function Dashboard() {
 
       <div className="stats-grid">
         {statCards.map((stat, index) => (
-          <div key={index} className="stat-card">
+          <div 
+            key={index} 
+            className="stat-card"
+            onClick={() => navigate(stat.link)}
+            style={{ 
+              cursor: 'pointer', 
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = `0 12px 24px ${stat.color}30`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '';
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div style={{
                 background: `linear-gradient(135deg, ${stat.color}, ${stat.color}dd)`,
@@ -109,9 +138,13 @@ export default function Dashboard() {
               }}>
                 <stat.icon style={{ color: 'white' }} size={24} />
               </div>
+              <ArrowRight size={20} style={{ color: 'var(--gray-400)' }} />
             </div>
             <p className="stat-label">{stat.title}</p>
             <p className="stat-value">{stat.value}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
+              {stat.description}
+            </p>
           </div>
         ))}
       </div>

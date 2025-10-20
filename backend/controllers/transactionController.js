@@ -9,7 +9,8 @@ exports.getAllTransactions = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
-      .populate('userId', 'name email');
+      .populate('userId', 'name email phone')
+      .populate('user', 'name email phone');
 
     const total = await Transaction.countDocuments();
 
