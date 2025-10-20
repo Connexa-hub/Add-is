@@ -35,11 +35,11 @@ export const useBiometric = () => {
   const checkBiometricCapabilities = async () => {
     try {
       setIsLoading(true);
-      
+
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-      
+
       let biometricType = null;
       if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
         biometricType = 'Face ID';
@@ -76,8 +76,8 @@ export const useBiometric = () => {
       if (!capabilities.isAvailable) {
         return {
           success: false,
-          error: capabilities.isEnrolled 
-            ? 'Biometric authentication is not available on this device' 
+          error: capabilities.isEnrolled
+            ? 'Biometric authentication is not available on this device'
             : 'No biometric authentication is enrolled. Please set up fingerprint or face recognition in your device settings.',
         };
       }
@@ -93,7 +93,7 @@ export const useBiometric = () => {
         return { success: true };
       } else {
         let errorMessage = 'Authentication failed';
-        
+
         if (result.error === 'user_cancel') {
           errorMessage = 'Authentication cancelled by user';
         } else if (result.error === 'system_cancel') {
@@ -151,7 +151,7 @@ export const useBiometric = () => {
 
       await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
       await AsyncStorage.setItem('biometric_user_id', userId);
-      
+
       return true;
     } catch (error) {
       console.error('Error enabling biometric:', error);
@@ -164,12 +164,12 @@ export const useBiometric = () => {
     try {
       await AsyncStorage.removeItem(BIOMETRIC_ENABLED_KEY);
       await AsyncStorage.removeItem('biometric_user_id');
-      
+
       const userId = await AsyncStorage.getItem('userId');
       if (userId) {
         await SecureStore.deleteItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`);
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error disabling biometric:', error);
@@ -199,7 +199,7 @@ export const useBiometric = () => {
         `${CREDENTIALS_KEY_PREFIX}${userId}`,
         credentialsData
       );
-      
+
       return true;
     } catch (error) {
       console.error('Error saving credentials:', error);
@@ -216,7 +216,7 @@ export const useBiometric = () => {
       const credentialsData = await SecureStore.getItemAsync(
         `${CREDENTIALS_KEY_PREFIX}${userId}`
       );
-      
+
       if (!credentialsData) {
         return null;
       }
