@@ -5,3 +5,4 @@ export { default as ServiceCard } from './ServiceCard';
 export { default as PromoBanner } from './PromoBanner';
 export { default as PaymentPreviewSheet } from './PaymentPreviewSheet';
 export { default as AppModal } from './AppModal';
+export { default as PaymentProcessingScreen } from './PaymentProcessingScreen';

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,6 +13,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
+import { PaymentPreviewSheet, PaymentProcessingScreen } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -38,6 +39,11 @@ export default function ElectricityScreen() {
   const [selectedMeterType, setSelectedMeterType] = useState('prepaid');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ meterNumber: '', amount: '' });
+  const [showPaymentPreview, setShowPaymentPreview] = useState(false);
+  const [showProcessing, setShowProcessing] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'pending' | 'failed'>('processing');
+  const [transactionReference, setTransactionReference] = useState('');
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const providers: ElectricityProvider[] = [
     { id: 'ikeja-electric', name: 'Ikeja Electric', color: '#FF6B35', icon: 'flash' },
@@ -51,6 +57,25 @@ export default function ElectricityScreen() {
     { id: 'postpaid', name: 'Postpaid', description: 'Monthly billing' },
   ];
 
+  useEffect(() => {
+    fetchWalletBalance();
+  }, []);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(
+        `${API_BASE_URL}/api/auth/profile`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success && response.data.data) {
+        setWalletBalance(response.data.data.walletBalance || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  };
+
   const validateMeterNumber = (meter: string) => {
     const meterRegex = /^[0-9]{10,13}$/;
     return meterRegex.test(meter);
@@ -61,7 +86,7 @@ export default function ElectricityScreen() {
     return numAmount >= 500 && numAmount <= 50000;
   };
 
-  const handlePayment = async () => {
+  const handlePayment = () => {
     let hasError = false;
     const newErrors = { meterNumber: '', amount: '' };
 
@@ -78,7 +103,14 @@ export default function ElectricityScreen() {
     setErrors(newErrors);
     if (hasError) return;
 
-    setLoading(true);
+    setShowPaymentPreview(true);
+  };
+
+  const confirmPayment = async (usedCashback: number) => {
+    setShowPaymentPreview(false);
+    setShowProcessing(true);
+    setPaymentStatus('processing');
+
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await axios.post(
@@ -88,23 +120,48 @@ export default function ElectricityScreen() {
           variation_code: selectedMeterType,
           serviceID: selectedProvider,
           amount: parseFloat(amount),
+          usedCashback,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000, // 30 second timeout
+        }
       );
 
-      Alert.alert(
-        'Success',
-        `Electricity payment successful! Token has been sent to meter ${meterNumber}`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      if (response.data.success) {
+        setTransactionReference(response.data.data.transaction.reference);
+        setPaymentStatus('success');
+        await fetchWalletBalance();
+      } else {
+        setPaymentStatus('failed');
+      }
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to process payment. Please try again.'
-      );
-    } finally {
-      setLoading(false);
+      console.error('Payment error:', error);
+      
+      // Check if it's a network/timeout error
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network')) {
+        setPaymentStatus('pending');
+      } else {
+        setPaymentStatus('failed');
+      }
     }
+  };
+
+  const handleProcessingClose = () => {
+    setShowProcessing(false);
+    if (paymentStatus === 'success' || paymentStatus === 'pending') {
+      navigation.goBack();
+    }
+  };
+
+  const handleRetry = () => {
+    setShowProcessing(false);
+    setShowPaymentPreview(true);
+  };
+
+  const handleAddFunds = () => {
+    setShowPaymentPreview(false);
+    navigation.navigate('WalletFunding' as never);
   };
 
   return (
@@ -255,9 +312,32 @@ export default function ElectricityScreen() {
           fullWidth
           size="lg"
         >
-          {loading ? 'Processing...' : 'Pay Electricity Bill'}
+          Continue to Payment
         </AppButton>
       </ScrollView>
+
+      <PaymentPreviewSheet
+        visible={showPaymentPreview}
+        onClose={() => setShowPaymentPreview(false)}
+        onConfirm={confirmPayment}
+        amount={parseFloat(amount || '0')}
+        serviceType="electricity"
+        serviceName={`${providers.find(p => p.id === selectedProvider)?.name || ''} - ${meterTypes.find(t => t.id === selectedMeterType)?.name || ''}`}
+        recipient={meterNumber}
+        balance={walletBalance}
+        onAddFunds={handleAddFunds}
+      />
+
+      <PaymentProcessingScreen
+        visible={showProcessing}
+        status={paymentStatus}
+        amount={parseFloat(amount || '0')}
+        serviceName={`${providers.find(p => p.id === selectedProvider)?.name || ''} Electricity`}
+        recipient={meterNumber}
+        reference={transactionReference}
+        onClose={handleProcessingClose}
+        onRetry={handleRetry}
+      />
     </View>
   );
 }
