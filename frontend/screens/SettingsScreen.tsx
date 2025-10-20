@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, SafeAreaView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Switch, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppText, AppButton, AppDivider } from '../src/components/atoms';
+import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 
@@ -20,9 +22,26 @@ export default function SettingsScreen({ navigation }: any) {
 
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [notifications, setNotifications] = useState(true);
+  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  
+  // Modal states
+  const [modal, setModal] = useState<{
+    visible: boolean;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+    primaryButton?: { text: string; onPress: () => void };
+    secondaryButton?: { text: string; onPress: () => void };
+  }>({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     loadSettings();
@@ -31,15 +50,19 @@ export default function SettingsScreen({ navigation }: any) {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const [bio, dark, id, email] = await Promise.all([
+      const [bio, dark, notif, twoFA, id, email] = await Promise.all([
         isBiometricEnabled(),
         AsyncStorage.getItem('darkMode'),
+        AsyncStorage.getItem('notifications'),
+        AsyncStorage.getItem('twoFactorAuth'),
         AsyncStorage.getItem('userId'),
         AsyncStorage.getItem('userEmail'),
       ]);
 
       setBiometricEnabled(bio);
       setDarkMode(dark === 'true');
+      setNotifications(notif !== 'false');
+      setTwoFactorAuth(twoFA === 'true');
       setUserId(id || '');
       setUserEmail(email || '');
     } catch (error) {
@@ -49,15 +72,24 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
+  const showModal = (config: typeof modal) => {
+    setModal({ ...config, visible: true });
+  };
+
+  const hideModal = () => {
+    setModal({ ...modal, visible: false });
+  };
+
   const toggleBiometric = async () => {
     if (!capabilities.isAvailable) {
-      Alert.alert(
-        'Biometric Unavailable',
-        capabilities.isEnrolled
+      showModal({
+        visible: true,
+        type: 'warning',
+        title: 'Biometric Unavailable',
+        message: capabilities.isEnrolled
           ? 'Biometric authentication is not supported on this device'
           : `Please set up ${capabilities.biometricType || 'biometric authentication'} in your device settings first.`,
-        [{ text: 'OK' }]
-      );
+      });
       return;
     }
 
@@ -68,37 +100,49 @@ export default function SettingsScreen({ navigation }: any) {
         if (success) {
           await saveCredentials(userId, userEmail);
           setBiometricEnabled(true);
-          Alert.alert(
-            'Success',
-            `${capabilities.biometricType || 'Biometric'} authentication enabled successfully!`
-          );
+          showModal({
+            visible: true,
+            type: 'success',
+            title: 'Success!',
+            message: `${capabilities.biometricType || 'Biometric'} authentication has been enabled successfully.`,
+          });
         }
       } else {
-        Alert.alert(
-          'Disable Biometric',
-          `Are you sure you want to disable ${capabilities.biometricType || 'biometric'} authentication?`,
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
+        showModal({
+          visible: true,
+          type: 'warning',
+          title: 'Disable Biometric',
+          message: `Are you sure you want to disable ${capabilities.biometricType || 'biometric'} authentication?`,
+          primaryButton: {
+            text: 'Disable',
+            onPress: async () => {
+              const success = await disableBiometric();
+              if (success) {
+                setBiometricEnabled(false);
+                hideModal();
+                showModal({
+                  visible: true,
+                  type: 'success',
+                  title: 'Disabled',
+                  message: 'Biometric authentication has been disabled.',
+                });
+              }
             },
-            {
-              text: 'Disable',
-              style: 'destructive',
-              onPress: async () => {
-                const success = await disableBiometric();
-                if (success) {
-                  setBiometricEnabled(false);
-                  Alert.alert('Success', 'Biometric authentication disabled');
-                }
-              },
-            },
-          ]
-        );
+          },
+          secondaryButton: {
+            text: 'Cancel',
+            onPress: hideModal,
+          },
+        });
       }
     } catch (error) {
       console.error('Error toggling biometric:', error);
-      Alert.alert('Error', 'Failed to update biometric settings');
+      showModal({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to update biometric settings. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
@@ -108,32 +152,104 @@ export default function SettingsScreen({ navigation }: any) {
     const newVal = !darkMode;
     setDarkMode(newVal);
     await AsyncStorage.setItem('darkMode', newVal.toString());
+    showModal({
+      visible: true,
+      type: 'info',
+      title: 'Theme Updated',
+      message: `Dark mode ${newVal ? 'enabled' : 'disabled'}. Restart the app to see changes.`,
+    });
+  };
+
+  const toggleNotifications = async () => {
+    const newVal = !notifications;
+    setNotifications(newVal);
+    await AsyncStorage.setItem('notifications', newVal.toString());
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
+    showModal({
+      visible: true,
+      type: 'warning',
+      title: 'Logout',
+      message: 'Are you sure you want to logout from your account?',
+      primaryButton: {
+        text: 'Logout',
+        onPress: async () => {
+          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-          },
-        },
-      ]
+      },
+      secondaryButton: {
+        text: 'Cancel',
+        onPress: hideModal,
+      },
+    });
+  };
+
+  const SettingSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <View style={{ marginBottom: tokens.spacing.xl }}>
+      <AppText variant="subtitle2" weight="semibold" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.base, paddingHorizontal: 4 }}>
+        {title}
+      </AppText>
+      <View style={[styles.section, { backgroundColor: tokens.colors.background.paper, borderRadius: tokens.radius.lg }]}>
+        {children}
+      </View>
+    </View>
+  );
+
+  const SettingRow = ({
+    icon,
+    iconColor,
+    iconBg,
+    title,
+    subtitle,
+    onPress,
+    rightComponent,
+    showDivider = true,
+  }: {
+    icon: string;
+    iconColor: string;
+    iconBg: string;
+    title: string;
+    subtitle?: string;
+    onPress?: () => void;
+    rightComponent?: React.ReactNode;
+    showDivider?: boolean;
+  }) => {
+    const Content = (
+      <>
+        <View style={styles.settingRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View style={[styles.iconWrapper, { backgroundColor: iconBg }]}>
+              <Ionicons name={icon as any} size={20} color={iconColor} />
+            </View>
+            <View style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
+              <AppText variant="body1" weight="semibold">
+                {title}
+              </AppText>
+              {subtitle && (
+                <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: 2 }}>
+                  {subtitle}
+                </AppText>
+              )}
+            </View>
+          </View>
+          {rightComponent}
+        </View>
+        {showDivider && <AppDivider style={{ marginVertical: tokens.spacing.sm }} />}
+      </>
     );
+
+    if (onPress) {
+      return <TouchableOpacity onPress={onPress}>{Content}</TouchableOpacity>;
+    }
+
+    return <View>{Content}</View>;
   };
 
   if (loading && isBiometricLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: tokens.colors.background.default }]}>
         <ActivityIndicator size="large" color={tokens.colors.primary.main} />
       </View>
     );
@@ -141,88 +257,137 @@ export default function SettingsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: tokens.colors.background.default }]}>
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={{ padding: tokens.spacing.lg }}>
           <View style={{ marginBottom: tokens.spacing.xl }}>
             <AppText variant="h2" weight="bold">
               Settings
             </AppText>
             <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.xs }}>
-              Manage your account preferences
+              Manage your account preferences and security
             </AppText>
           </View>
 
-          <View style={[styles.section, { backgroundColor: tokens.colors.background.paper, borderRadius: tokens.radius.lg, padding: tokens.spacing.base }]}>
-            <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.base }}>
-              Security
-            </AppText>
-
+          {/* Security Section */}
+          <SettingSection title="SECURITY">
             {capabilities.isAvailable && (
-              <View style={styles.settingRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <View style={[styles.iconWrapper, { backgroundColor: tokens.colors.primary.light }]}>
-                    <Ionicons name="finger-print" size={20} color={tokens.colors.primary.main} />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                    <AppText variant="body1" weight="semibold">
-                      {capabilities.biometricType || 'Biometric'} Login
-                    </AppText>
-                    <AppText variant="caption" color={tokens.colors.text.secondary}>
-                      {capabilities.isAvailable
-                        ? `Use ${capabilities.biometricType?.toLowerCase() || 'biometric'} for quick login`
-                        : 'Not available on this device'}
-                    </AppText>
-                  </View>
-                </View>
-                <Switch
-                  value={biometricEnabled}
-                  onValueChange={toggleBiometric}
-                  disabled={!capabilities.isAvailable || loading}
-                  color={tokens.colors.primary.main}
-                />
-              </View>
+              <SettingRow
+                icon="finger-print"
+                iconColor={tokens.colors.primary.main}
+                iconBg={tokens.colors.primary.light}
+                title={`${capabilities.biometricType || 'Biometric'} Login`}
+                subtitle={`Use ${capabilities.biometricType?.toLowerCase() || 'biometric'} for quick login`}
+                rightComponent={
+                  <Switch
+                    value={biometricEnabled}
+                    onValueChange={toggleBiometric}
+                    disabled={!capabilities.isAvailable || loading}
+                    color={tokens.colors.primary.main}
+                  />
+                }
+              />
             )}
 
-            <AppDivider style={{ marginVertical: tokens.spacing.sm }} />
-
-            <View style={styles.settingRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View style={[styles.iconWrapper, { backgroundColor: tokens.colors.warning.light }]}>
-                  <Ionicons name="moon" size={20} color={tokens.colors.warning.main} />
-                </View>
-                <View style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                  <AppText variant="body1" weight="semibold">
-                    Dark Mode
-                  </AppText>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    Switch to dark theme
-                  </AppText>
-                </View>
-              </View>
-              <Switch
-                value={darkMode}
-                onValueChange={toggleDarkMode}
-                disabled={loading}
-                color={tokens.colors.primary.main}
-              />
-            </View>
-          </View>
-
-          <View style={{ marginTop: tokens.spacing.xl }}>
-            <AppButton
-              variant="outlined"
+            <SettingRow
+              icon="lock-closed"
+              iconColor={tokens.colors.warning.main}
+              iconBg={tokens.colors.warning.light}
+              title="Change PIN"
+              subtitle="Update your transaction PIN"
               onPress={() => navigation.navigate('PINChange')}
-              fullWidth
-              size="lg"
-              icon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.primary.main} />}
-            >
-              Change PIN
-            </AppButton>
-          </View>
+              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+              showDivider={false}
+            />
+          </SettingSection>
 
-          <View style={{ marginTop: tokens.spacing.xl }}>
+          {/* Appearance Section */}
+          <SettingSection title="APPEARANCE">
+            <SettingRow
+              icon="moon"
+              iconColor={tokens.colors.info.main}
+              iconBg={tokens.colors.info.light}
+              title="Dark Mode"
+              subtitle="Switch to dark theme"
+              rightComponent={
+                <Switch
+                  value={darkMode}
+                  onValueChange={toggleDarkMode}
+                  disabled={loading}
+                  color={tokens.colors.primary.main}
+                />
+              }
+              showDivider={false}
+            />
+          </SettingSection>
+
+          {/* Notifications Section */}
+          <SettingSection title="NOTIFICATIONS">
+            <SettingRow
+              icon="notifications"
+              iconColor={tokens.colors.success.main}
+              iconBg={tokens.colors.success.light}
+              title="Push Notifications"
+              subtitle="Receive transaction alerts"
+              rightComponent={
+                <Switch
+                  value={notifications}
+                  onValueChange={toggleNotifications}
+                  disabled={loading}
+                  color={tokens.colors.primary.main}
+                />
+              }
+              showDivider={false}
+            />
+          </SettingSection>
+
+          {/* Account Section */}
+          <SettingSection title="ACCOUNT">
+            <SettingRow
+              icon="shield-checkmark"
+              iconColor={tokens.colors.primary.main}
+              iconBg={tokens.colors.primary.light}
+              title="KYC Verification"
+              subtitle="Verify your identity"
+              onPress={() => navigation.navigate('KYCPersonalInfo')}
+              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+            />
+
+            <SettingRow
+              icon="card"
+              iconColor={tokens.colors.secondary.main}
+              iconBg={tokens.colors.secondary.light}
+              title="Saved Cards"
+              subtitle="Manage payment methods"
+              onPress={() => navigation.navigate('CardManagement')}
+              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+            />
+
+            <SettingRow
+              icon="help-circle"
+              iconColor={tokens.colors.info.main}
+              iconBg={tokens.colors.info.light}
+              title="Help & Support"
+              subtitle="Get help with your account"
+              onPress={() => {}}
+              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+            />
+
+            <SettingRow
+              icon="document-text"
+              iconColor={tokens.colors.neutral.gray600}
+              iconBg={tokens.colors.neutral.gray200}
+              title="Terms & Conditions"
+              subtitle="View our terms of service"
+              onPress={() => {}}
+              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+              showDivider={false}
+            />
+          </SettingSection>
+
+          {/* Logout Button */}
+          <View style={{ marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.xl }}>
             <AppButton
-              variant="outlined"
+              variant="outline"
               onPress={handleLogout}
               fullWidth
               size="lg"
@@ -236,7 +401,7 @@ export default function SettingsScreen({ navigation }: any) {
           </View>
 
           {capabilities.isAvailable && (
-            <View style={[styles.infoCard, { backgroundColor: tokens.colors.info.light, borderRadius: tokens.radius.lg, padding: tokens.spacing.base, marginTop: tokens.spacing.lg }]}>
+            <View style={[styles.infoCard, { backgroundColor: tokens.colors.info.light, borderRadius: tokens.radius.lg, padding: tokens.spacing.base }]}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                 <Ionicons name="information-circle" size={20} color={tokens.colors.info.main} style={{ marginTop: 2 }} />
                 <View style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
@@ -252,6 +417,17 @@ export default function SettingsScreen({ navigation }: any) {
           )}
         </View>
       </ScrollView>
+
+      {/* Modern Modal */}
+      <AppModal
+        visible={modal.visible}
+        onClose={hideModal}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        primaryButton={modal.primaryButton}
+        secondaryButton={modal.secondaryButton}
+      />
     </SafeAreaView>
   );
 }
@@ -264,7 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    marginBottom: 16,
+    padding: 16,
   },
   settingRow: {
     flexDirection: 'row',
@@ -280,6 +456,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoCard: {
-    marginBottom: 16,
+    marginTop: 16,
   },
 });
