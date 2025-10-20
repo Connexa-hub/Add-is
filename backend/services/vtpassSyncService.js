@@ -126,6 +126,40 @@ const mapVariationToProduct = (variation, serviceID, categoryInfo) => {
   };
 };
 
+const createFlexibleAmountProduct = (serviceID, categoryInfo) => {
+  const network = extractNetworkName(serviceID);
+  const minAmount = 50;
+  const maxAmount = 50000;
+  
+  return {
+    title: `${network} Airtime (₦${minAmount} - ₦${maxAmount.toLocaleString()})`,
+    displayName: `${network} Airtime`,
+    description: `${network} airtime recharge - flexible amount from ₦${minAmount} to ₦${maxAmount.toLocaleString()}`,
+    category: categoryInfo.category,
+    type: categoryInfo.type,
+    serviceID: serviceID,
+    variationCode: 'flexible',
+    network: network,
+    faceValue: 0,
+    sellingPrice: 0,
+    minimumAmount: minAmount,
+    maximumAmount: maxAmount,
+    commissionRate: 2,
+    vendor: 'vtpass',
+    vendorCode: `${serviceID}_flexible`,
+    validity: 'Instant',
+    isActive: true,
+    isPopular: false,
+    displayOrder: 0,
+    lastSyncedAt: new Date(),
+    vtpassData: {
+      isFlexible: true,
+      minAmount,
+      maxAmount
+    }
+  };
+};
+
 const syncCategory = async (categoryKey) => {
   const categoryInfo = categoryMapping[categoryKey];
   if (!categoryInfo) {
@@ -142,6 +176,37 @@ const syncCategory = async (categoryKey) => {
       
       if (variations.length === 0) {
         console.log(`No variations found for ${serviceID}`);
+        
+        if (categoryInfo.type === 'airtime') {
+          try {
+            const productData = createFlexibleAmountProduct(serviceID, categoryInfo);
+            
+            const existingProduct = await VTUProduct.findOne({
+              vendorCode: productData.vendorCode
+            });
+
+            if (existingProduct) {
+              await VTUProduct.findByIdAndUpdate(existingProduct._id, {
+                $set: {
+                  ...productData,
+                  commissionRate: existingProduct.commissionRate,
+                  isActive: existingProduct.isActive,
+                  isPopular: existingProduct.isPopular,
+                  displayOrder: existingProduct.displayOrder
+                }
+              });
+            } else {
+              await VTUProduct.create(productData);
+            }
+            
+            totalSynced++;
+            syncedServices.push(serviceID);
+            console.log(`Created flexible amount product for ${serviceID}`);
+          } catch (error) {
+            console.error(`Error creating flexible product for ${serviceID}:`, error.message);
+            totalErrors++;
+          }
+        }
         continue;
       }
 

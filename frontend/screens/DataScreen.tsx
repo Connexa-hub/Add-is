@@ -71,27 +71,25 @@ export default function DataScreen() {
   const fetchDataPlans = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
+      const networkName = selectedNetwork === '9mobile' ? '9mobile' : selectedNetwork.toUpperCase();
       
       const response = await axios.get(
-        `${API_BASE_URL}/api/services/data-plans/${serviceID}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_BASE_URL}/api/vtu/products?category=data&network=${networkName}`
       );
 
-      if (response.data.success) {
-        const plans = response.data.data.map((plan: any) => ({
-          id: plan.variation_code,
-          name: plan.name,
-          price: plan.variation_amount,
-          validity: plan.validity || '30 days',
+      if (response.data.success && response.data.data.products) {
+        const plans = response.data.data.products.map((product: any) => ({
+          id: product.variationCode,
+          name: product.displayName || product.title,
+          price: product.sellingPrice || product.faceValue,
+          validity: product.validity || '30 days',
           network: selectedNetwork,
         }));
         setDataPlans(plans);
       }
     } catch (error) {
       console.error('Failed to fetch data plans:', error);
-      Alert.alert('Error', 'Failed to load data plans');
+      Alert.alert('Error', 'Failed to load data plans. Please try again.');
     } finally {
       setLoading(false);
     }
