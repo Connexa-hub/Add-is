@@ -7,6 +7,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_BASE_URL } from '../../../constants/api';
+import { useBiometric } from '../../../hooks/useBiometric';
 
 export interface PaymentPreviewSheetProps {
   visible: boolean;
@@ -32,6 +33,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   onAddFunds,
 }) => {
   const { tokens } = useAppTheme();
+  const { capabilities, authenticate, isBiometricEnabled } = useBiometric();
   const [availableCashback, setAvailableCashback] = useState(0);
   const [useCashback, setUseCashback] = useState(true);
   const [cashbackToEarn, setCashbackToEarn] = useState(0);
@@ -71,8 +73,8 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   };
 
   const checkBiometric = async () => {
-    const enabled = await AsyncStorage.getItem('biometricEnabled');
-    setBiometricEnabled(enabled === 'true');
+    const enabled = await isBiometricEnabled();
+    setBiometricEnabled(enabled && capabilities.isAvailable);
   };
 
   const finalAmount = useCashback && availableCashback > 0
@@ -82,10 +84,39 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   const cashbackUsed = useCashback ? Math.min(availableCashback, amount) : 0;
   const insufficientFunds = balance < finalAmount;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (insufficientFunds) {
       return;
     }
+
+    if (biometricEnabled && capabilities.isAvailable) {
+      setLoading(true);
+      const authResult = await authenticate(
+        `Authenticate to pay ₦${finalAmount.toLocaleString()}`,
+        'Cancel'
+      );
+
+      if (!authResult.success) {
+        setLoading(false);
+        Alert.alert(
+          'Authentication Failed',
+          authResult.error || 'Payment cancelled. Please try again or use PIN verification.',
+          [
+            {
+              text: 'Try Again',
+              onPress: handleConfirm,
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => setLoading(false),
+            },
+          ]
+        );
+        return;
+      }
+    }
+
     setLoading(true);
     onConfirm(cashbackUsed);
   };

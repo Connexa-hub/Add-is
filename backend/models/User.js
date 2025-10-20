@@ -51,6 +51,8 @@ const UserSchema = new mongoose.Schema({
       dateOfBirth: Date,
       address: String,
       idNumber: String,
+      bvn: String,
+      nin: String,
       nationality: { type: String, default: 'Nigeria' },
       phoneNumber: String,
       state: String,

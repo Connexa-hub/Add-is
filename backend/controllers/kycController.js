@@ -13,6 +13,13 @@ const submitKYC = async (req, res) => {
       });
     }
 
+    if (!personal.bvn && !personal.nin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either BVN or NIN is required for KYC verification (CBN regulation compliance)'
+      });
+    }
+
     if (!documents || documents.length < 3) {
       return res.status(400).json({
         success: false,
@@ -62,6 +69,8 @@ const submitKYC = async (req, res) => {
         dateOfBirth: new Date(personal.dateOfBirth),
         address: personal.address,
         idNumber: personal.idNumber,
+        bvn: personal.bvn,
+        nin: personal.nin,
         nationality: personal.nationality || 'Nigeria',
         phoneNumber: personal.phoneNumber,
         state: personal.state,

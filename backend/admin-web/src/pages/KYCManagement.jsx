@@ -199,6 +199,26 @@ const KYCManagement = () => {
                     <p className="font-medium">{selectedKYC.kyc?.personal?.idNumber || 'N/A'}</p>
                   </div>
                   <div>
+                    <label className="text-sm text-gray-600">Phone Number</label>
+                    <p className="font-medium">{selectedKYC.kyc?.personal?.phoneNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">BVN</label>
+                    <p className="font-medium">{selectedKYC.kyc?.personal?.bvn || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">NIN</label>
+                    <p className="font-medium">{selectedKYC.kyc?.personal?.nin || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">State</label>
+                    <p className="font-medium">{selectedKYC.kyc?.personal?.state || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">City</label>
+                    <p className="font-medium">{selectedKYC.kyc?.personal?.city || 'N/A'}</p>
+                  </div>
+                  <div>
                     <label className="text-sm text-gray-600">Nationality</label>
                     <p className="font-medium">{selectedKYC.kyc?.personal?.nationality || 'N/A'}</p>
                   </div>

@@ -28,30 +28,34 @@ router.get('/profile', verifyToken, async (req, res, next) => {
       });
     }
 
-    // Auto-create virtual account if not exists
+    // Auto-create virtual account if not exists (only if KYC approved with BVN/NIN)
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
-      try {
-        const monnifyClient = require('../utils/monnifyClient');
-        const accountReference = `USER_${user._id}_${Date.now()}`;
-        const result = await monnifyClient.createReservedAccount({
-          accountReference,
-          accountName: user.name,
-          customerEmail: user.email,
-          customerName: user.name
-        });
+      if (user.kyc && user.kyc.status === 'approved' && (user.kyc.personal.bvn || user.kyc.personal.nin)) {
+        try {
+          const monnifyClient = require('../utils/monnifyClient');
+          const accountReference = `USER_${user._id}_${Date.now()}`;
+          const result = await monnifyClient.createReservedAccount({
+            accountReference,
+            accountName: user.name,
+            customerEmail: user.email,
+            customerName: user.name,
+            bvn: user.kyc.personal.bvn,
+            nin: user.kyc.personal.nin
+          });
 
-        if (result.success) {
-          user.monnifyAccountReference = accountReference;
-          user.monnifyAccounts = result.data.accounts.map(acc => ({
-            accountNumber: acc.accountNumber,
-            accountName: acc.accountName,
-            bankName: acc.bankName,
-            bankCode: acc.bankCode
-          }));
-          await user.save();
+          if (result.success) {
+            user.monnifyAccountReference = accountReference;
+            user.monnifyAccounts = result.data.accounts.map(acc => ({
+              accountNumber: acc.accountNumber,
+              accountName: acc.accountName,
+              bankName: acc.bankName,
+              bankCode: acc.bankCode
+            }));
+            await user.save();
+          }
+        } catch (error) {
+          console.error('Auto virtual account creation failed:', error);
         }
-      } catch (error) {
-        console.error('Auto virtual account creation failed:', error);
       }
     }
 

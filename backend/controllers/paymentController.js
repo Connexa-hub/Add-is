@@ -287,13 +287,29 @@ exports.createVirtualAccount = async (req, res) => {
       });
     }
 
+    if (!user.kyc || user.kyc.status !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'KYC verification must be approved before creating virtual account'
+      });
+    }
+
+    if (!user.kyc.personal.bvn && !user.kyc.personal.nin) {
+      return res.status(400).json({
+        success: false,
+        message: 'BVN or NIN is required for virtual account creation (CBN regulation)'
+      });
+    }
+
     const accountReference = `USER_${userId}_${Date.now()}`;
 
     const result = await monnifyClient.createReservedAccount({
       accountReference,
       accountName: user.name,
       customerEmail: user.email,
-      customerName: user.name
+      customerName: user.name,
+      bvn: user.kyc.personal.bvn,
+      nin: user.kyc.personal.nin
     });
 
     if (result.success) {

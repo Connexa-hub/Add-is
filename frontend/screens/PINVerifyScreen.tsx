@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,13 +12,25 @@ import axios from 'axios';
 import { API_BASE_URL } from '../constants/api';
 import { AppText } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
+import { useBiometric } from '../hooks/useBiometric';
 
 export default function PINVerifyScreen({ navigation, route }) {
   const { tokens } = useAppTheme();
+  const { capabilities, authenticate, isBiometricEnabled } = useBiometric();
   const { title, message, onSuccess } = route.params || {};
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    checkBiometricAvailability();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    const enabled = await isBiometricEnabled();
+    setBiometricAvailable(enabled && capabilities.isAvailable);
+  };
 
   const handlePINInput = (digit: string) => {
     if (pin.length < 4) {
@@ -35,6 +47,37 @@ export default function PINVerifyScreen({ navigation, route }) {
   const handleBackspace = () => {
     setPin(pin.slice(0, -1));
     setError('');
+  };
+
+  const handleBiometricAuth = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const authResult = await authenticate(
+        title || 'Verify Your Identity',
+        'Cancel'
+      );
+
+      if (authResult.success) {
+        if (onSuccess) {
+          onSuccess();
+        }
+        navigation.goBack();
+      } else {
+        setError(authResult.error || 'Authentication failed');
+        Alert.alert(
+          'Authentication Failed',
+          authResult.error || 'Please try again or enter your PIN',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Biometric auth error:', error);
+      setError('Biometric authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const verifyPIN = async (finalPin: string) => {
@@ -114,7 +157,7 @@ export default function PINVerifyScreen({ navigation, route }) {
       ['1', '2', '3'],
       ['4', '5', '6'],
       ['7', '8', '9'],
-      ['', '0', 'back'],
+      [biometricAvailable ? 'biometric' : '', '0', 'back'],
     ];
 
     return (
@@ -124,6 +167,23 @@ export default function PINVerifyScreen({ navigation, route }) {
             {row.map((key, keyIndex) => {
               if (key === '') {
                 return <View key={keyIndex} style={styles.key} />;
+              }
+
+              if (key === 'biometric') {
+                return (
+                  <TouchableOpacity
+                    key={keyIndex}
+                    style={styles.key}
+                    onPress={handleBiometricAuth}
+                    disabled={loading}
+                  >
+                    <Ionicons 
+                      name="finger-print" 
+                      size={32} 
+                      color={tokens.colors.primary.main} 
+                    />
+                  </TouchableOpacity>
+                );
               }
 
               if (key === 'back') {

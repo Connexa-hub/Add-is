@@ -2,6 +2,26 @@
 
 A comprehensive Virtual Top-Up (VTU) bill payment platform with mobile app and admin dashboard for managing electricity, data, TV subscriptions, and wallet services with Opay-style KYC, banners, and payment features.
 
+## 🔐 BVN/NIN Compliance Update - October 20, 2025
+
+**Status**: ✅ **CBN Regulatory Compliance Implemented**
+
+The platform has been updated to comply with Central Bank of Nigeria (CBN) regulations for virtual account creation:
+
+- ✅ **BVN/NIN Collection**: Added Bank Verification Number (BVN) and National Identification Number (NIN) fields to KYC
+- ✅ **Monnify Integration**: Updated Monnify virtual account creation to include BVN/NIN (mandatory as of Sept 16, 2024)
+- ✅ **Validation**: Users must provide either BVN or NIN (11 digits) during KYC submission
+- ✅ **Frontend Updates**: Mobile app KYC screens now collect BVN/NIN with proper validation
+- ✅ **Admin Dashboard**: KYC review panel displays BVN/NIN for verification
+- ✅ **Virtual Account Security**: Accounts only created after KYC approval with valid BVN/NIN
+
+**What Changed:**
+- User model now includes `kyc.personal.bvn` and `kyc.personal.nin` fields
+- KYC submission requires at least one of BVN or NIN
+- Monnify client passes BVN/NIN when creating reserved accounts
+- Virtual account auto-creation only happens after KYC approval
+- Frontend form validates BVN/NIN format (11 digits)
+
 ## 🎉 GitHub Import Complete - October 19, 2025
 
 **Status**: ✅ **Project successfully imported, fixed, and fully operational**
@@ -55,12 +75,14 @@ This platform enables users to:
 
 **New Features Added:**
 
-1. **KYC System**
+1. **KYC System** (Updated Oct 20, 2025 - CBN Compliance)
    - Personal information collection (name, DOB, ID number, address)
+   - **BVN/NIN collection (CBN regulatory requirement)**
    - Document upload (ID front, ID back, selfie)
    - Multi-step verification flow with progress tracking
-   - Admin review panel with approve/reject functionality
+   - Admin review panel with approve/reject functionality + BVN/NIN display
    - Status tracking (not_submitted, pending, approved, rejected)
+   - Virtual account creation only after KYC approval with BVN/NIN
 
 2. **Banner Management**
    - Dynamic promotional banners with scheduling

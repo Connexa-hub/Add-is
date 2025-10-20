@@ -19,6 +19,8 @@ export default function KYCPersonalInfoScreen({ navigation, route }) {
     dateOfBirth: '',
     address: '',
     idNumber: '',
+    bvn: '',
+    nin: '',
     nationality: 'Nigeria',
     phoneNumber: '',
     state: '',
@@ -61,6 +63,18 @@ export default function KYCPersonalInfoScreen({ navigation, route }) {
 
     if (!formData.city.trim()) {
       newErrors.city = 'City is required';
+    }
+
+    if (!formData.bvn.trim() && !formData.nin.trim()) {
+      newErrors.bvn = 'Either BVN or NIN is required (CBN regulation)';
+      newErrors.nin = 'Either BVN or NIN is required (CBN regulation)';
+    } else {
+      if (formData.bvn.trim() && formData.bvn.trim().length !== 11) {
+        newErrors.bvn = 'BVN must be exactly 11 digits';
+      }
+      if (formData.nin.trim() && formData.nin.trim().length !== 11) {
+        newErrors.nin = 'NIN must be exactly 11 digits';
+      }
     }
 
     setErrors(newErrors);
@@ -125,7 +139,7 @@ export default function KYCPersonalInfoScreen({ navigation, route }) {
               >
                 <Ionicons name="information-circle" size={20} color={tokens.colors.primary.main} />
                 <AppText variant="body2" color={tokens.colors.primary.main} style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                  Please provide accurate information. Your details will be verified against your ID documents.
+                  Please provide accurate information including either your BVN or NIN (required by CBN for virtual account creation). Your details will be verified against your ID documents.
                 </AppText>
               </View>
             </View>
@@ -167,6 +181,38 @@ export default function KYCPersonalInfoScreen({ navigation, route }) {
                 error={errors.idNumber}
                 leftIcon={<Ionicons name="card-outline" size={20} color={tokens.colors.text.secondary} />}
               />
+            </View>
+
+            <View style={{ marginBottom: tokens.spacing.lg }}>
+              <AppInput
+                label="BVN (Bank Verification Number)"
+                placeholder="12345678901 (11 digits)"
+                value={formData.bvn}
+                onChangeText={(text) => updateField('bvn', text.replace(/\D/g, ''))}
+                keyboardType="number-pad"
+                maxLength={11}
+                error={errors.bvn}
+                leftIcon={<Ionicons name="shield-checkmark-outline" size={20} color={tokens.colors.text.secondary} />}
+              />
+              <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: 4 }}>
+                Required for virtual account (provide either BVN or NIN)
+              </AppText>
+            </View>
+
+            <View style={{ marginBottom: tokens.spacing.lg }}>
+              <AppInput
+                label="NIN (National Identification Number)"
+                placeholder="12345678901 (11 digits)"
+                value={formData.nin}
+                onChangeText={(text) => updateField('nin', text.replace(/\D/g, ''))}
+                keyboardType="number-pad"
+                maxLength={11}
+                error={errors.nin}
+                leftIcon={<Ionicons name="shield-checkmark-outline" size={20} color={tokens.colors.text.secondary} />}
+              />
+              <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: 4 }}>
+                Alternative to BVN (provide either BVN or NIN)
+              </AppText>
             </View>
 
             <View style={{ marginBottom: tokens.spacing.lg }}>

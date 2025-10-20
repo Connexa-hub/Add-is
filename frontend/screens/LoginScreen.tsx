@@ -1,23 +1,98 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
+import { useBiometric } from '../hooks/useBiometric';
 
 export default function LoginScreen({ navigation }) {
   const { tokens } = useAppTheme();
+  const {
+    capabilities,
+    isLoading: isBiometricLoading,
+    authenticateForLogin,
+    enableBiometric,
+    saveCredentials,
+    isBiometricEnabled,
+    promptEnableBiometric,
+  } = useBiometric();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricConfigured, setBiometricConfigured] = useState(false);
+
+  useEffect(() => {
+    checkBiometricStatus();
+  }, [capabilities]);
+
+  const checkBiometricStatus = async () => {
+    if (!isBiometricLoading) {
+      setBiometricAvailable(capabilities.isAvailable);
+      const enabled = await isBiometricEnabled();
+      setBiometricConfigured(enabled);
+    }
+  };
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      setLoading(true);
+      
+      const result = await authenticateForLogin();
+      
+      if (!result.success) {
+        Alert.alert(
+          'Authentication Failed',
+          result.error || 'Please login with your email and password'
+        );
+        return;
+      }
+
+      const token = await AsyncStorage.getItem('token');
+      if (token && result.userId) {
+        navigation.replace('Main');
+      } else {
+        Alert.alert(
+          'Session Expired',
+          'Please login with your email and password',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await AsyncStorage.removeItem('biometricEnabled');
+              },
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Biometric login error:', error);
+      Alert.alert('Error', 'An error occurred during biometric login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnableBiometric = async (userId: string, userEmail: string) => {
+    const success = await enableBiometric(userId);
+    if (success) {
+      await saveCredentials(userId, userEmail);
+      Alert.alert(
+        'Success',
+        `${capabilities.biometricType || 'Biometric'} login enabled! You can now login quickly using your ${capabilities.biometricType?.toLowerCase() || 'biometric'}.`
+      );
+    }
   };
 
   const handleLogin = async () => {
@@ -52,16 +127,29 @@ export default function LoginScreen({ navigation }) {
       });
 
       if (res.data.success && res.data.data.token) {
+        const userId = res.data.data.user?.id || '';
+        const userEmail = res.data.data.user?.email || '';
+        const userName = res.data.data.user?.name || '';
+
         await AsyncStorage.multiSet([
           ['token', res.data.data.token],
-          ['userId', res.data.data.user?.id || ''],
-          ['userEmail', res.data.data.user?.email || ''],
-          ['userName', res.data.data.user?.name || '']
+          ['userId', userId],
+          ['userEmail', userEmail],
+          ['userName', userName]
         ]);
         
         const savedToken = await AsyncStorage.getItem('token');
         if (savedToken) {
-          navigation.replace('Main');
+          const biometricEnabled = await isBiometricEnabled();
+          
+          if (!biometricEnabled && capabilities.isAvailable) {
+            promptEnableBiometric(
+              () => handleEnableBiometric(userId, userEmail),
+              () => navigation.replace('Main')
+            );
+          } else {
+            navigation.replace('Main');
+          }
         } else {
           setErrors({
             email: '',
@@ -181,6 +269,30 @@ export default function LoginScreen({ navigation }) {
             Sign In
           </AppButton>
 
+          {biometricConfigured && biometricAvailable && (
+            <View style={{ alignItems: 'center', marginTop: tokens.spacing.lg }}>
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.sm }}>
+                or
+              </AppText>
+              <TouchableOpacity
+                onPress={handleBiometricLogin}
+                disabled={loading}
+                style={[
+                  styles.biometricButton,
+                  {
+                    backgroundColor: tokens.colors.primary.light,
+                    borderRadius: tokens.radius.full,
+                  },
+                ]}
+              >
+                <Ionicons name="finger-print" size={32} color={tokens.colors.primary.main} />
+              </TouchableOpacity>
+              <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.sm }}>
+                Login with {capabilities.biometricType || 'Biometric'}
+              </AppText>
+            </View>
+          )}
+
           <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
             <AppText variant="body2" color={tokens.colors.text.secondary}>
               Don't have an account? <AppText variant="subtitle2" color={tokens.colors.primary.main} onPress={() => navigation.navigate('Register')}>Sign Up</AppText>
@@ -211,6 +323,12 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  biometricButton: {
+    width: 64,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -126,7 +126,7 @@ class MonnifyClient {
   async createReservedAccount(params) {
     try {
       const token = await this.getAccessToken();
-      const { accountReference, accountName, customerEmail, customerName } = params;
+      const { accountReference, accountName, customerEmail, customerName, bvn, nin } = params;
 
       const payload = {
         accountReference,
@@ -138,6 +138,12 @@ class MonnifyClient {
         getAllAvailableBanks: false,
         preferredBanks: ['035', '50515']
       };
+
+      if (bvn) {
+        payload.bvn = bvn;
+      } else if (nin) {
+        payload.nin = nin;
+      }
 
       const response = await axios.post(
         `${this.baseUrl}/api/v2/bank-transfer/reserved-accounts`,
