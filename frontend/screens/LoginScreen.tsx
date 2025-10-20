@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,9 +29,10 @@ export default function LoginScreen({ navigation }) {
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricConfigured, setBiometricConfigured] = useState(false);
-  const [savedEmail, setSavedEmail] = useState<string | null>(null);
+  const [savedEmail, setSavedEmail] = useState(null);
   const [showBiometricModal, setShowBiometricModal] = useState(false);
-  const [pendingBiometricData, setPendingBiometricData] = useState<{ userId: string; userEmail: string } | null>(null);
+  const [pendingBiometricData, setPendingBiometricData] = useState(null);
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
 
   useEffect(() => {
     checkBiometricStatus();
@@ -57,7 +59,7 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const validateEmail = (email: string) => {
+  const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
@@ -170,7 +172,7 @@ export default function LoginScreen({ navigation }) {
           ['userId', userId],
           ['userEmail', userEmail],
           ['userName', userName],
-          ['savedEmail', email] // Save the email for biometric login
+          ['savedEmail', email]
         ]);
 
         const savedToken = await AsyncStorage.getItem('token');
@@ -207,8 +209,17 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const getMaskedEmail = () => {
+    if (!savedEmail) return '';
+    const atIndex = savedEmail.indexOf('@');
+    if (atIndex > 3) {
+      return savedEmail.substring(0, 3) + '****' + savedEmail.substring(atIndex);
+    }
+    return savedEmail;
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: tokens.colors.background.default }]}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -218,36 +229,46 @@ export default function LoginScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ padding: tokens.spacing.lg, alignItems: 'center' }}>
-            {/* Logo centered at top */}
-            <View style={{ marginTop: tokens.spacing['2xl'], marginBottom: tokens.spacing['2xl'], alignItems: 'center' }}>
-              <AppText variant="h1" weight="bold" style={{ fontSize: 32, color: tokens.colors.primary.main }}>
+          <View style={[styles.container, { padding: tokens.spacing.lg }]}>
+            {/* Logo */}
+            <View style={[styles.logoContainer, { 
+              marginTop: tokens.spacing['2xl'], 
+              marginBottom: tokens.spacing['2xl'] 
+            }]}>
+              <AppText 
+                variant="h1" 
+                weight="bold" 
+                style={{ fontSize: 32, color: tokens.colors.primary.main }}
+              >
                 Connexa
               </AppText>
             </View>
 
-            {/* User Avatar */}
-            <View style={[styles.avatarContainer, { 
-              backgroundColor: tokens.colors.background.paper,
-              marginBottom: tokens.spacing.lg,
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              ...tokens.shadows.md
-            }]}>
-              <Ionicons name="person" size={50} color={tokens.colors.text.secondary} />
-            </View>
+            {/* Biometric Login Section - Only show if configured and not showing password form */}
+            {biometricConfigured && biometricAvailable && savedEmail && !showPasswordLogin && (
+              <View style={styles.biometricSection}>
+                {/* User Avatar */}
+                <View style={[styles.avatarContainer, { 
+                  backgroundColor: tokens.colors.background.paper,
+                  marginBottom: tokens.spacing.lg,
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  ...tokens.shadows.md
+                }]}>
+                  <Ionicons name="person" size={50} color={tokens.colors.text.secondary} />
+                </View>
 
-            {/* Masked Email/Phone */}
-            {savedEmail && (
-              <AppText variant="h3" weight="semibold" style={{ marginBottom: tokens.spacing['2xl'] }}>
-                {savedEmail.substring(0, 3)}****{savedEmail.substring(savedEmail.indexOf('@'))}
-              </AppText>
-            )}
+                {/* Masked Email */}
+                <AppText 
+                  variant="h3" 
+                  weight="semibold" 
+                  style={{ marginBottom: tokens.spacing['2xl'] }}
+                >
+                  {getMaskedEmail()}
+                </AppText>
 
-            {/* Biometric Login Option (prominent) */}
-            {biometricConfigured && biometricAvailable && savedEmail && (
-              <View style={{ alignItems: 'center', marginBottom: tokens.spacing['2xl'], width: '100%' }}>
+                {/* Biometric Icon */}
                 <View style={[styles.biometricIcon, { 
                   backgroundColor: tokens.colors.background.paper,
                   width: 80,
@@ -260,9 +281,15 @@ export default function LoginScreen({ navigation }) {
                 }]}>
                   <Ionicons name="finger-print" size={50} color={tokens.colors.primary.main} />
                 </View>
-                <AppText variant="body1" color={tokens.colors.primary.main} style={{ marginBottom: tokens.spacing.md }}>
+
+                <AppText 
+                  variant="body1" 
+                  color={tokens.colors.primary.main} 
+                  style={{ marginBottom: tokens.spacing.md }}
+                >
                   Click to log in with {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
                 </AppText>
+
                 <AppButton
                   variant="primary"
                   onPress={handleBiometricLogin}
@@ -274,130 +301,153 @@ export default function LoginScreen({ navigation }) {
                 >
                   Verify {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
                 </AppButton>
+
+                {/* Alternative login options */}
+                <View style={[styles.alternativeOptions, { 
+                  flexDirection: 'row', 
+                  gap: tokens.spacing.lg, 
+                  marginBottom: tokens.spacing['2xl'] 
+                }]}>
+                  <TouchableOpacity onPress={() => {
+                    setSavedEmail(null);
+                    setEmail('');
+                    setShowPasswordLogin(true);
+                  }}>
+                    <AppText variant="body2" color={tokens.colors.primary.main}>
+                      Switch Account
+                    </AppText>
+                  </TouchableOpacity>
+                  <AppText variant="body2" color={tokens.colors.text.secondary}>|</AppText>
+                  <TouchableOpacity onPress={() => setShowPasswordLogin(true)}>
+                    <AppText variant="body2" color={tokens.colors.primary.main}>
+                      Login with Password
+                    </AppText>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
-            {/* Alternative login options */}
-            <View style={{ flexDirection: 'row', gap: tokens.spacing.lg, marginBottom: tokens.spacing['2xl'] }}>
-              <TouchableOpacity onPress={() => {}}>
-                <AppText variant="body2" color={tokens.colors.primary.main}>
-                  Switch Account
-                </AppText>
-              </TouchableOpacity>
-              <AppText variant="body2" color={tokens.colors.text.secondary}>|</AppText>
-              <TouchableOpacity>
-                <AppText variant="body2" color={tokens.colors.primary.main}>
-                  Login with Password
-                </AppText>
-              </TouchableOpacity>
-            </View>
+            {/* Password Login Form - Show if no biometric or user wants password login */}
+            {(!biometricConfigured || !savedEmail || showPasswordLogin) && (
+              <View style={styles.passwordLoginSection}>
+                <View style={{ marginBottom: tokens.spacing['2xl'], marginTop: tokens.spacing['2xl'] }}>
+                  <AppText 
+                    variant="h2" 
+                    weight="bold" 
+                    style={{ marginBottom: tokens.spacing.sm }}
+                  >
+                    Welcome Back
+                  </AppText>
+                  <AppText 
+                    variant="body1" 
+                    color={tokens.colors.text.secondary} 
+                    style={{ marginBottom: tokens.spacing.xl }}
+                  >
+                    Sign in to continue to your account
+                  </AppText>
+                </View>
 
-            {/* Hidden email/password fields - shown when "Login with Password" is clicked */}
-            <View style={{ marginBottom: tokens.spacing['2xl'], marginTop: tokens.spacing['2xl'], width: '100%' }}>
-              <AppText variant="h2" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
-                Welcome Back
-              </AppText>
-              <AppText variant="body1" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.xl }}>
-                Sign in to continue to your account
-              </AppText>
-            </View>
+                <View style={{ marginBottom: tokens.spacing.lg }}>
+                  <AppInput
+                    label="Email Address"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      if (errors.email) setErrors({ ...errors, email: '' });
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    error={errors.email}
+                    editable={!loading}
+                    leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
+                  />
+                </View>
 
-            <View style={{ marginBottom: tokens.spacing.lg }}>
-              <AppInput
-                label="Email Address"
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  setSavedEmail(text); // Update savedEmail when email changes
-                  if (errors.email) setErrors({ ...errors, email: '' });
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                error={errors.email}
-                editable={!loading}
-                leftIcon={<Ionicons name="mail-outline" size={20} color={tokens.colors.text.secondary} />}
-              />
-            </View>
+                <View style={{ marginBottom: tokens.spacing.base }}>
+                  <AppInput
+                    label="Password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      if (errors.password) setErrors({ ...errors, password: '' });
+                    }}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoComplete="password"
+                    error={errors.password}
+                    editable={!loading}
+                    leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
+                    rightIcon={
+                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
+                        <Ionicons 
+                          name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                          size={20} 
+                          color={tokens.colors.text.secondary} 
+                        />
+                      </TouchableOpacity>
+                    }
+                  />
+                </View>
 
-            <View style={{ marginBottom: tokens.spacing.base }}>
-              <AppInput
-                label="Password"
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errors.password) setErrors({ ...errors, password: '' });
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-                error={errors.password}
-                editable={!loading}
-                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={tokens.colors.text.secondary} />}
-                rightIcon={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
-                    <Ionicons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={tokens.colors.text.secondary} 
-                    />
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                  style={{ alignSelf: 'flex-end', marginBottom: tokens.spacing.lg }}
+                >
+                  <AppText variant="subtitle2" color={tokens.colors.primary.main}>
+                    Forgot Password?
+                  </AppText>
+                </TouchableOpacity>
+
+                <AppButton
+                  onPress={handleLogin}
+                  loading={loading}
+                  disabled={loading}
+                  fullWidth
+                  size="lg"
+                >
+                  Sign In
+                </AppButton>
+
+                {biometricConfigured && biometricAvailable && savedEmail && showPasswordLogin && (
+                  <AppButton
+                    variant="outline"
+                    onPress={() => setShowPasswordLogin(false)}
+                    disabled={loading}
+                    fullWidth
+                    size="lg"
+                    style={{ marginTop: tokens.spacing.md }}
+                    icon={<Ionicons name="finger-print" size={20} color={tokens.colors.primary.main} />}
+                  >
+                    Use {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
+                  </AppButton>
+                )}
+
+                <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
+                  <AppText variant="body2" color={tokens.colors.text.secondary}>
+                    Don't have an account?{' '}
+                  </AppText>
+                  <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                    <AppText variant="subtitle2" color={tokens.colors.primary.main}>
+                      Sign Up
+                    </AppText>
                   </TouchableOpacity>
-                }
-              />
-            </View>
-
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('ForgotPassword')}
-            style={{ alignSelf: 'flex-end', marginBottom: tokens.spacing.lg }}
-          >
-            <AppText variant="subtitle2" color={tokens.colors.primary.main}>
-              Forgot Password?
-            </AppText>
-          </TouchableOpacity>
-
-          <AppButton
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
-            fullWidth
-            size="lg"
-          >
-            Sign In
-          </AppButton>
-
-          {biometricConfigured && biometricAvailable && savedEmail && (
-            <AppButton
-              variant="outline"
-              onPress={handleBiometricLogin}
-              loading={loading}
-              disabled={loading}
-              fullWidth
-              size="lg"
-              style={{ marginTop: tokens.spacing.md }}
-              icon={<Ionicons name="finger-print" size={20} color={tokens.colors.primary.main} />}
-            >
-              Login with {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
-            </AppButton>
-          )}
-
-          <View style={[styles.footer, { marginTop: tokens.spacing.xl }]}>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Don't have an account? <AppText variant="subtitle2" color={tokens.colors.primary.main} onPress={() => navigation.navigate('Register')}>Sign Up</AppText>
-            </AppText>
+                </View>
+              </View>
+            )}
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-    {/* Biometric Modal */}
-    <BiometricModal
-      visible={showBiometricModal}
-      onEnable={handleEnableBiometric}
-      onSkip={handleSkipBiometric}
-      biometricType={capabilities.biometricType || 'Biometric'}
-    />
+      {/* Biometric Modal */}
+      <BiometricModal
+        visible={showBiometricModal}
+        onEnable={handleEnableBiometric}
+        onSkip={handleSkipBiometric}
+        biometricType={capabilities.biometricType || 'Biometric'}
+      />
     </SafeAreaView>
   );
 }
@@ -405,20 +455,27 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   keyboardView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
   },
-  avatarContainer: {
+  container: {
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  iconContainer: {
+  logoContainer: {
+    alignItems: 'center',
+  },
+  biometricSection: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  passwordLoginSection: {
+    width: '100%',
+  },
+  avatarContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -426,14 +483,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  alternativeOptions: {
+    alignItems: 'center',
+  },
   footer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  biometricButton: {
-    width: 64,
-    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
   },
