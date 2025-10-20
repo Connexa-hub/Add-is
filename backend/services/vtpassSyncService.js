@@ -88,8 +88,8 @@ const fetchServiceVariations = async (serviceID) => {
       { headers: getAuthHeaders() }
     );
     
-    if (data && data.content && data.content.varations) {
-      return data.content.varations;
+    if (data && data.content && data.content.variations) {
+      return data.content.variations;
     }
     return [];
   } catch (error) {

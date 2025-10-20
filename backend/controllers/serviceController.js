@@ -183,10 +183,10 @@ exports.getDataPlans = async (req, res) => {
       { headers: getAuthHeaders() }
     );
 
-    if (response.data && response.data.content && response.data.content.varations) {
+    if (response.data && response.data.content && response.data.content.variations) {
       res.json({
         success: true,
-        data: response.data.content.varations
+        data: response.data.content.variations
       });
     } else {
       res.json({
