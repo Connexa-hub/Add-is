@@ -51,7 +51,7 @@ export default function HomeScreen({ navigation }) {
 
   const loadRecentTransactions = async (token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/transactions?limit=5`, {
+      const response = await fetch(`${API_BASE_URL}/api/transactions?limit=5`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -165,7 +165,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5c27d9" />
+        <ActivityIndicator size="large" color="#6366f1" />
       </View>
     );
   }

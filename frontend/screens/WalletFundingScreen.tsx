@@ -109,8 +109,8 @@ export default function WalletFundingScreen({ navigation }) {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
 
-      const response = await fetch(`${API_BASE_URL}/payment/verify-payment`, {
-        method: 'GET',
+      // Refresh user profile to get updated wallet balance
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -118,8 +118,8 @@ export default function WalletFundingScreen({ navigation }) {
 
       const data = await response.json();
 
-      if (data.success) {
-        setWalletBalance(data.walletBalance);
+      if (data.success && data.user) {
+        setWalletBalance(data.user.walletBalance || 0);
         Alert.alert('Success', 'Wallet balance updated!');
       }
     } catch (error) {
@@ -301,7 +301,7 @@ export default function WalletFundingScreen({ navigation }) {
           <Appbar.Content title="Fund Wallet" />
         </Appbar.Header>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5c27d9" />
+          <ActivityIndicator size="large" color="#6366f1" />
           <Text style={styles.loadingText}>Loading payment details...</Text>
         </View>
       </View>
@@ -465,7 +465,7 @@ export default function WalletFundingScreen({ navigation }) {
 
           {processingPayment ? (
             <View style={styles.processingContainer}>
-              <ActivityIndicator size="large" color="#5c27d9" />
+              <ActivityIndicator size="large" color="#6366f1" />
               <Text style={styles.processingText}>Verifying payment...</Text>
               <Text style={styles.processingSubtext}>This may take a few moments</Text>
               <Button
@@ -499,7 +499,7 @@ export default function WalletFundingScreen({ navigation }) {
               startInLoadingState={true}
               renderLoading={() => (
                 <View style={styles.webviewLoading}>
-                  <ActivityIndicator size="large" color="#5c27d9" />
+                  <ActivityIndicator size="large" color="#6366f1" />
                 </View>
               )}
             />
