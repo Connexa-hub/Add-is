@@ -40,6 +40,18 @@ The platform features a modern UI with a focus on Opay-style aesthetics. This in
 - **Deployment**: Configured for Replit VM mode, ensuring stateful services and automatic startup of both backend and admin dashboard.
 - **Email Verification**: Mandatory for new accounts, involving OTP delivery via email for account activation.
 
+## Admin Dashboard Access
+- **URL**: Running on port 5000 (accessible via webview)
+- **Default Credentials**:
+  - Email: `admin@example.com`
+  - Password: `Admin123!`
+- **Note**: Change password after first login for security
+
+## Frontend Configuration
+- **Mobile App API**: Configured to use Replit domain (`https://b59379ed-6096-4be9-99d1-6c853dabcb5e-00-1d9abf325xpqy.worf.replit.dev:3001`)
+- **Admin Dashboard API**: Uses Vite proxy to forward `/api` requests to backend on port 3001
+- **Backend API**: Running on port 3001
+
 ## External Dependencies
 - **MongoDB Atlas**: Cloud-hosted database for data storage.
 - **VTPass API**: Integration for VTU services (airtime, data, electricity, TV, etc.), currently in sandbox mode.
