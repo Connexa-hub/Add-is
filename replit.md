@@ -47,15 +47,59 @@ The platform features a modern UI with a focus on Opay-style aesthetics. This in
   - Password: `Admin123!`
 - **Note**: Change password after first login for security
 
-## Frontend Configuration
-- **Mobile App API**: Configured to use Replit domain (`https://b59379ed-6096-4be9-99d1-6c853dabcb5e-00-1d9abf325xpqy.worf.replit.dev:3001`)
-- **Admin Dashboard API**: Uses Vite proxy to forward `/api` requests to backend on port 3001
-- **Backend API**: Running on port 3001
+## Deployment Configuration
+
+### Replit Environment (Development)
+- **Backend API**: Running on port 5000 (`http://0.0.0.0:5000`)
+- **Admin Dashboard**: Served from backend (production mode only)
+- **Health Check**: `http://0.0.0.0:5000/api/health`
+- **Workflow**: `Backend + Admin Panel` (PORT=5000 npm start)
+- **Environment**: Development mode
+
+### Koyeb Deployment (Production)
+- **Dockerfile**: Multi-stage build configured
+- **Port**: 8000 (Koyeb standard)
+- **Health Check**: `/api/health`
+- **Build**: Automated admin panel build + backend deployment
+- **Configuration**: See `koyeb.yaml` and `KOYEB_DEPLOYMENT_COMPLETE.md`
+
+### Frontend Configuration
+- **Mobile App API**: Configure to use deployed backend URL
+- **Admin Dashboard API**: Served from backend in production mode
+- **Development API**: `http://localhost:5000/api` (Replit)
 
 ## External Dependencies
-- **MongoDB Atlas**: Cloud-hosted database for data storage.
-- **VTPass API**: Integration for VTU services (airtime, data, electricity, TV, etc.), currently in sandbox mode.
-- **Monnify Payment Gateway**: Integration for card payments, wallet funding (virtual accounts), and payment verification, currently in sandbox mode.
-- **Nodemailer**: Used for sending email notifications, specifically for email verification.
+- **MongoDB Atlas**: Cloud-hosted database for data storage (✅ Connected).
+- **VTPass API**: Integration for VTU services (airtime, data, electricity, TV, etc.), currently in sandbox mode (✅ Configured).
+- **Monnify Payment Gateway**: Integration for card payments, wallet funding (virtual accounts), and payment verification, currently in sandbox mode (✅ Configured).
+- **Nodemailer**: Used for sending email notifications, specifically for email verification (⚠️ Requires SMTP credentials).
 - **Expo**: For React Native mobile app development and testing.
 - **Lucide React**: Icon library used in the Admin Dashboard.
+
+## Recent Updates (October 20, 2025)
+- ✅ Configured Replit deployment with backend on port 5000
+- ✅ Built admin panel for production deployment
+- ✅ Created Dockerfile for Koyeb deployment (multi-stage build)
+- ✅ Set up koyeb.yaml service configuration
+- ✅ Configured health check endpoint
+- ✅ Updated workflow to serve backend + admin panel
+- ✅ Completed comprehensive app verification report
+- ✅ All environment variables (secrets) configured
+- ✅ MongoDB Atlas connection verified
+
+## Deployment Status
+- **Replit (Development)**: ✅ LIVE - Backend running on port 5000
+- **Koyeb (Production)**: ✅ READY TO DEPLOY - All configuration files prepared
+- **Admin Panel**: ✅ Built and ready (dist folder created)
+- **Database**: ✅ MongoDB Atlas connected
+- **API Health**: ✅ All core endpoints operational
+
+## Next Steps for Production
+1. Deploy to Koyeb using Dockerfile
+2. Update VTPass credentials to production mode
+3. Update Monnify credentials to production mode
+4. Configure proper email SMTP service
+5. Enable MongoDB automated backups
+6. Set up monitoring (Sentry, LogRocket, etc.)
+7. Load testing and security audit
+8. Change default admin password

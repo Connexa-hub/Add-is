@@ -14,7 +14,7 @@ validateEnv();
 const app = express();
 
 const isProduction = process.env.NODE_ENV === 'production';
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 if (!isProduction) {
   app.set('trust proxy', 1);
