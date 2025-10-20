@@ -113,6 +113,7 @@ const vtuRoutes = require('./routes/vtuRoutes');
 const pinRoutes = require('./routes/pinRoutes');
 const cardRoutes = require('./routes/cardRoutes');
 const walletFundingRoutes = require('./routes/walletFundingRoutes');
+const adminVtuRoutes = require('./routes/admin/vtuRoutes');
 
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -130,6 +131,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/support', supportRoutes);
 app.use('/api/admin/cashback', cashbackRoutes);
 app.use('/api/admin/settings', settingsRoutes);
+app.use('/api/admin/vtu', adminVtuRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/uploads', uploadRoutes);

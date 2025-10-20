@@ -1,42 +1,83 @@
 const mongoose = require('mongoose');
 
 const VTUProductSchema = new mongoose.Schema({
+  // Product Display Info
   title: {
     type: String,
     required: true
   },
-  type: {
+  displayName: {
     type: String,
-    enum: ['airtime', 'data', 'electricity', 'cable', 'internet'],
     required: true
   },
+  description: String,
+  
+  // VTPass Category (7 main categories)
+  category: {
+    type: String,
+    enum: ['airtime', 'data', 'tv-subscription', 'electricity-bill', 'education', 'insurance', 'other-services', 'betting'],
+    required: true
+  },
+  
+  // Legacy 'type' field for backward compatibility
+  type: {
+    type: String,
+    enum: ['airtime', 'data', 'electricity', 'cable', 'internet', 'education', 'insurance', 'betting'],
+    required: true
+  },
+  
+  // VTPass Service Details
+  serviceID: {
+    type: String,
+    required: true,
+    index: true
+  },
+  variationCode: {
+    type: String,
+    index: true
+  },
+  
+  // Network/Provider (MTN, GLO, DSTV, etc.)
   network: {
     type: String,
     required: true
   },
-  category: {
-    type: String,
-    default: 'general'
-  },
-  denomination: Number,
-  price: {
+  
+  // Pricing
+  faceValue: {
     type: Number,
-    required: true
+    default: 0
+  },
+  sellingPrice: {
+    type: Number,
+    required: true,
+    alias: 'price'
+  },
+  minimumAmount: Number,
+  maximumAmount: Number,
+  
+  // Commission
+  commissionRate: {
+    type: Number,
+    default: 0,
+    alias: 'commission'
+  },
+  
+  // Vendor Info
+  vendor: {
+    type: String,
+    default: 'vtpass'
   },
   vendorCode: {
     type: String,
     required: true
   },
-  vendor: {
-    type: String,
-    default: 'vtpass'
-  },
-  description: String,
+  
+  // Additional Details
   validity: String,
-  commission: {
-    type: Number,
-    default: 0
-  },
+  denomination: Number,
+  
+  // Status Flags
   isActive: {
     type: Boolean,
     default: true
@@ -49,7 +90,15 @@ const VTUProductSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  
+  // Flexible metadata for provider-specific fields
   metadata: {
+    type: mongoose.Schema.Types.Mixed
+  },
+  
+  // Sync tracking
+  lastSyncedAt: Date,
+  vtpassData: {
     type: mongoose.Schema.Types.Mixed
   }
 }, { timestamps: true });

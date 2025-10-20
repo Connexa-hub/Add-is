@@ -371,3 +371,282 @@ exports.buyData = async (req, res) => {
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
+
+exports.buyEducation = async (req, res, next) => {
+  try {
+    const { serviceID, variation_code, amount, billersCode, phone } = req.body;
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    if (user.walletBalance < amount) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Insufficient wallet balance' 
+      });
+    }
+
+    const reference = `EDU-${uuidv4()}`;
+
+    const result = await requestVTPass(serviceID, {
+      billersCode: billersCode || phone,
+      variation_code,
+      amount,
+      phone: phone || '08011111111',
+      request_id: reference
+    });
+
+    const Cashback = require('../models/Cashback');
+    const cashbackConfig = await Cashback.findOne({ 
+      serviceType: 'Education', 
+      isActive: true 
+    });
+    
+    let cashbackAmount = 0;
+    if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
+      cashbackAmount = (amount * cashbackConfig.percentage) / 100;
+      if (cashbackConfig.maxCashback && cashbackAmount > cashbackConfig.maxCashback) {
+        cashbackAmount = cashbackConfig.maxCashback;
+      }
+    }
+
+    const transaction = await Transaction.create({ 
+      userId: req.userId, 
+      type: 'Education', 
+      transactionType: 'debit', 
+      amount, 
+      reference,
+      recipient: billersCode || phone,
+      status: result.code === '000' ? 'success' : 'failed', 
+      details: result,
+      cashbackAmount
+    });
+
+    if (result.code === '000') {
+      user.walletBalance -= amount;
+      
+      if (cashbackAmount > 0) {
+        user.walletBalance += cashbackAmount;
+        
+        const Notification = require('../models/Notification');
+        await Notification.create({
+          userId: req.userId,
+          title: 'Cashback Earned!',
+          message: `You've earned ₦${cashbackAmount.toFixed(2)} cashback on your education service payment`,
+          type: 'cashback'
+        });
+      }
+      
+      await user.save();
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Education service purchase successful',
+      data: {
+        transaction: {
+          id: transaction._id,
+          reference,
+          amount: transaction.amount,
+          status: transaction.status,
+          recipient: billersCode || phone,
+          details: result
+        },
+        newBalance: user.walletBalance
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.buyInsurance = async (req, res, next) => {
+  try {
+    const { serviceID, variation_code, amount, billersCode, phone } = req.body;
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    if (user.walletBalance < amount) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Insufficient wallet balance' 
+      });
+    }
+
+    const reference = `INS-${uuidv4()}`;
+
+    const result = await requestVTPass(serviceID, {
+      billersCode: billersCode || phone,
+      variation_code,
+      amount,
+      phone: phone || '08011111111',
+      request_id: reference
+    });
+
+    const Cashback = require('../models/Cashback');
+    const cashbackConfig = await Cashback.findOne({ 
+      serviceType: 'Insurance', 
+      isActive: true 
+    });
+    
+    let cashbackAmount = 0;
+    if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
+      cashbackAmount = (amount * cashbackConfig.percentage) / 100;
+      if (cashbackConfig.maxCashback && cashbackAmount > cashbackConfig.maxCashback) {
+        cashbackAmount = cashbackConfig.maxCashback;
+      }
+    }
+
+    const transaction = await Transaction.create({ 
+      userId: req.userId, 
+      type: 'Insurance', 
+      transactionType: 'debit', 
+      amount, 
+      reference,
+      recipient: billersCode || phone,
+      status: result.code === '000' ? 'success' : 'failed', 
+      details: result,
+      cashbackAmount
+    });
+
+    if (result.code === '000') {
+      user.walletBalance -= amount;
+      
+      if (cashbackAmount > 0) {
+        user.walletBalance += cashbackAmount;
+        
+        const Notification = require('../models/Notification');
+        await Notification.create({
+          userId: req.userId,
+          title: 'Cashback Earned!',
+          message: `You've earned ₦${cashbackAmount.toFixed(2)} cashback on your insurance payment`,
+          type: 'cashback'
+        });
+      }
+      
+      await user.save();
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Insurance purchase successful',
+      data: {
+        transaction: {
+          id: transaction._id,
+          reference,
+          amount: transaction.amount,
+          status: transaction.status,
+          recipient: billersCode || phone,
+          details: result
+        },
+        newBalance: user.walletBalance
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.buyOtherService = async (req, res, next) => {
+  try {
+    const { serviceID, variation_code, amount, billersCode, phone } = req.body;
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    if (user.walletBalance < amount) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Insufficient wallet balance' 
+      });
+    }
+
+    const reference = `SVC-${uuidv4()}`;
+
+    const result = await requestVTPass(serviceID, {
+      billersCode: billersCode || phone,
+      variation_code,
+      amount,
+      phone: phone || '08011111111',
+      request_id: reference
+    });
+
+    const Cashback = require('../models/Cashback');
+    const cashbackConfig = await Cashback.findOne({ 
+      serviceType: 'Internet', 
+      isActive: true 
+    });
+    
+    let cashbackAmount = 0;
+    if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
+      cashbackAmount = (amount * cashbackConfig.percentage) / 100;
+      if (cashbackConfig.maxCashback && cashbackAmount > cashbackConfig.maxCashback) {
+        cashbackAmount = cashbackConfig.maxCashback;
+      }
+    }
+
+    const transaction = await Transaction.create({ 
+      userId: req.userId, 
+      type: 'Internet', 
+      transactionType: 'debit', 
+      amount, 
+      reference,
+      recipient: billersCode || phone,
+      status: result.code === '000' ? 'success' : 'failed', 
+      details: result,
+      cashbackAmount
+    });
+
+    if (result.code === '000') {
+      user.walletBalance -= amount;
+      
+      if (cashbackAmount > 0) {
+        user.walletBalance += cashbackAmount;
+        
+        const Notification = require('../models/Notification');
+        await Notification.create({
+          userId: req.userId,
+          title: 'Cashback Earned!',
+          message: `You've earned ₦${cashbackAmount.toFixed(2)} cashback on your service payment`,
+          type: 'cashback'
+        });
+      }
+      
+      await user.save();
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Service purchase successful',
+      data: {
+        transaction: {
+          id: transaction._id,
+          reference,
+          amount: transaction.amount,
+          status: transaction.status,
+          recipient: billersCode || phone,
+          details: result
+        },
+        newBalance: user.walletBalance
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
