@@ -4,11 +4,14 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
+import AuthLoadingScreen from '../../screens/AuthLoadingScreen';
+import WelcomeScreen from '../../screens/WelcomeScreen';
 import LoginScreen from '../../screens/LoginScreen';
 import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../screens/ResetPasswordScreen';
 import EmailVerificationScreen from '../../screens/EmailVerificationScreen';
+import BiometricLoginScreen from '../../screens/BiometricLoginScreen';
 
 import HomeScreen from '../../screens/HomeScreen';
 import WalletFundingScreen from '../../screens/WalletFundingScreen';
@@ -73,13 +76,16 @@ function MainTabs() {
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="AuthLoading">
         {/* Auth flow */}
+        <Stack.Screen name="AuthLoading" component={AuthLoadingScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        <Stack.Screen name="BiometricLogin" component={BiometricLoginScreen} />
 
         {/* Main App */}
         <Stack.Screen name="Main" component={MainTabs} />

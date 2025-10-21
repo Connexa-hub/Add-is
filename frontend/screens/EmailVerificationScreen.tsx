@@ -52,7 +52,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
         
         const savedToken = await AsyncStorage.getItem('token');
         if (savedToken) {
-          navigation.replace('Main');
+          navigation.replace('Settings', { setupMode: true });
         } else {
           setError('Failed to save session. Please try again.');
         }

@@ -7,7 +7,7 @@ export type AppButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 export type AppButtonSize = 'sm' | 'md' | 'lg';
 
 export interface AppButtonProps {
-  children: string;
+  children: React.ReactNode;
   onPress: () => void;
   variant?: AppButtonVariant;
   size?: AppButtonSize;
@@ -91,7 +91,7 @@ export const AppButton: React.FC<AppButtonProps> = ({
       onPress={onPress}
       disabled={disabled || loading}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel || children}
+      accessibilityLabel={typeof children === 'string' ? accessibilityLabel || children : accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
       style={[

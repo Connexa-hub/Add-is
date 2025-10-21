@@ -9,8 +9,10 @@ import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 
-export default function SettingsScreen({ navigation }: any) {
+export default function SettingsScreen({ route, navigation }: any) {
   const { tokens } = useAppTheme();
+  const setupMode = route.params?.setupMode || false;
+
   const {
     capabilities,
     isLoading: isBiometricLoading,
@@ -23,12 +25,11 @@ export default function SettingsScreen({ navigation }: any) {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
+  const [autoLogout, setAutoLogout] = useState('Never');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState('');
   const [userEmail, setUserEmail] = useState('');
   
-  // Modal states
   const [modal, setModal] = useState<{
     visible: boolean;
     type: 'success' | 'error' | 'warning' | 'info';
@@ -50,21 +51,21 @@ export default function SettingsScreen({ navigation }: any) {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const [bio, dark, notif, twoFA, id, email] = await Promise.all([
+      const [bio, dark, notif, id, email, logout] = await Promise.all([
         isBiometricEnabled(),
         AsyncStorage.getItem('darkMode'),
         AsyncStorage.getItem('notifications'),
-        AsyncStorage.getItem('twoFactorAuth'),
         AsyncStorage.getItem('userId'),
         AsyncStorage.getItem('userEmail'),
+        AsyncStorage.getItem('autoLogout'),
       ]);
 
       setBiometricEnabled(bio);
       setDarkMode(dark === 'true');
       setNotifications(notif !== 'false');
-      setTwoFactorAuth(twoFA === 'true');
       setUserId(id || '');
       setUserEmail(email || '');
+      setAutoLogout(logout || 'Never');
     } catch (error) {
       console.error('Error loading settings:', error);
     } finally {
@@ -186,6 +187,10 @@ export default function SettingsScreen({ navigation }: any) {
     });
   };
 
+  const handleContinue = () => {
+    navigation.replace('Main');
+  };
+
   const SettingSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <View style={{ marginBottom: tokens.spacing.xl }}>
       <AppText variant="subtitle2" weight="semibold" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.base, paddingHorizontal: 4 }}>
@@ -261,14 +266,13 @@ export default function SettingsScreen({ navigation }: any) {
         <View style={{ padding: tokens.spacing.lg }}>
           <View style={{ marginBottom: tokens.spacing.xl }}>
             <AppText variant="h2" weight="bold">
-              Settings
+              {setupMode ? 'Setup Login Preferences' : 'Settings'}
             </AppText>
             <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.xs }}>
-              Manage your account preferences and security
+              {setupMode ? 'Secure your account and enable quick login options.' : 'Manage your account preferences and security'}
             </AppText>
           </View>
 
-          {/* Security Section */}
           <SettingSection title="SECURITY">
             {capabilities.isAvailable && (
               <SettingRow
@@ -287,138 +291,142 @@ export default function SettingsScreen({ navigation }: any) {
                 }
               />
             )}
-
-            <SettingRow
-              icon="lock-closed"
-              iconColor={tokens.colors.warning.main}
-              iconBg={tokens.colors.warning.light}
-              title="Change PIN"
-              subtitle="Update your transaction PIN"
-              onPress={() => navigation.navigate('PINChange')}
-              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
-              showDivider={false}
-            />
-          </SettingSection>
-
-          {/* Appearance Section */}
-          <SettingSection title="APPEARANCE">
-            <SettingRow
-              icon="moon"
+             <SettingRow
+              icon="time-outline"
               iconColor={tokens.colors.info.main}
               iconBg={tokens.colors.info.light}
-              title="Dark Mode"
-              subtitle="Switch to dark theme"
-              rightComponent={
-                <Switch
-                  value={darkMode}
-                  onValueChange={toggleDarkMode}
-                  disabled={loading}
-                  color={tokens.colors.primary.main}
+              title="Auto-logout"
+              subtitle={autoLogout}
+              onPress={() => showModal({
+                  visible: true,
+                  type: 'info',
+                  title: 'Auto-logout',
+                  message: 'This feature is under development.'
+              })}
+              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+            />
+            {!setupMode && (
+              <SettingRow
+                icon="lock-closed"
+                iconColor={tokens.colors.warning.main}
+                iconBg={tokens.colors.warning.light}
+                title="Change PIN"
+                subtitle="Update your transaction PIN"
+                onPress={() => navigation.navigate('PINChange')}
+                rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+                showDivider={false}
+              />
+            )}
+          </SettingSection>
+
+          {!setupMode && (
+            <>
+              <SettingSection title="APPEARANCE">
+                <SettingRow
+                  icon="moon"
+                  iconColor={tokens.colors.info.main}
+                  iconBg={tokens.colors.info.light}
+                  title="Dark Mode"
+                  subtitle="Switch to dark theme"
+                  rightComponent={
+                    <Switch
+                      value={darkMode}
+                      onValueChange={toggleDarkMode}
+                      disabled={loading}
+                      color={tokens.colors.primary.main}
+                    />
+                  }
+                  showDivider={false}
                 />
-              }
-              showDivider={false}
-            />
-          </SettingSection>
+              </SettingSection>
 
-          {/* Notifications Section */}
-          <SettingSection title="NOTIFICATIONS">
-            <SettingRow
-              icon="notifications"
-              iconColor={tokens.colors.success.main}
-              iconBg={tokens.colors.success.light}
-              title="Push Notifications"
-              subtitle="Receive transaction alerts"
-              rightComponent={
-                <Switch
-                  value={notifications}
-                  onValueChange={toggleNotifications}
-                  disabled={loading}
-                  color={tokens.colors.primary.main}
+              <SettingSection title="NOTIFICATIONS">
+                <SettingRow
+                  icon="notifications"
+                  iconColor={tokens.colors.success.main}
+                  iconBg={tokens.colors.success.light}
+                  title="Push Notifications"
+                  subtitle="Receive transaction alerts"
+                  rightComponent={
+                    <Switch
+                      value={notifications}
+                      onValueChange={toggleNotifications}
+                      disabled={loading}
+                      color={tokens.colors.primary.main}
+                    />
+                  }
+                  showDivider={false}
                 />
-              }
-              showDivider={false}
-            />
-          </SettingSection>
+              </SettingSection>
 
-          {/* Account Section */}
-          <SettingSection title="ACCOUNT">
-            <SettingRow
-              icon="shield-checkmark"
-              iconColor={tokens.colors.primary.main}
-              iconBg={tokens.colors.primary.light}
-              title="KYC Verification"
-              subtitle="Verify your identity"
-              onPress={() => navigation.navigate('KYCPersonalInfo')}
-              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
-            />
+              <SettingSection title="ACCOUNT">
+                <SettingRow
+                  icon="shield-checkmark"
+                  iconColor={tokens.colors.primary.main}
+                  iconBg={tokens.colors.primary.light}
+                  title="KYC Verification"
+                  subtitle="Verify your identity"
+                  onPress={() => navigation.navigate('KYCPersonalInfo')}
+                  rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+                />
 
-            <SettingRow
-              icon="card"
-              iconColor={tokens.colors.secondary.main}
-              iconBg={tokens.colors.secondary.light}
-              title="Saved Cards"
-              subtitle="Manage payment methods"
-              onPress={() => navigation.navigate('CardManagement')}
-              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
-            />
+                <SettingRow
+                  icon="card"
+                  iconColor={tokens.colors.secondary.main}
+                  iconBg={tokens.colors.secondary.light}
+                  title="Saved Cards"
+                  subtitle="Manage payment methods"
+                  onPress={() => navigation.navigate('CardManagement')}
+                  rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+                />
 
-            <SettingRow
-              icon="help-circle"
-              iconColor={tokens.colors.info.main}
-              iconBg={tokens.colors.info.light}
-              title="Help & Support"
-              subtitle="Get help with your account"
-              onPress={() => {}}
-              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
-            />
+                <SettingRow
+                  icon="help-circle"
+                  iconColor={tokens.colors.info.main}
+                  iconBg={tokens.colors.info.light}
+                  title="Help & Support"
+                  subtitle="Get help with your account"
+                  onPress={() => {}}
+                  rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+                />
 
-            <SettingRow
-              icon="document-text"
-              iconColor={tokens.colors.neutral.gray600}
-              iconBg={tokens.colors.neutral.gray200}
-              title="Terms & Conditions"
-              subtitle="View our terms of service"
-              onPress={() => {}}
-              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
-              showDivider={false}
-            />
-          </SettingSection>
-
-          {/* Logout Button */}
-          <View style={{ marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.xl }}>
-            <AppButton
-              variant="outline"
-              onPress={handleLogout}
-              fullWidth
-              size="lg"
-              style={{ borderColor: tokens.colors.error.main }}
-              icon={<Ionicons name="log-out-outline" size={20} color={tokens.colors.error.main} />}
-            >
-              <AppText variant="button" color={tokens.colors.error.main}>
-                Logout
-              </AppText>
-            </AppButton>
-          </View>
-
-          {capabilities.isAvailable && (
-            <View style={[styles.infoCard, { backgroundColor: tokens.colors.info.light, borderRadius: tokens.radius.lg, padding: tokens.spacing.base }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Ionicons name="information-circle" size={20} color={tokens.colors.info.main} style={{ marginTop: 2 }} />
-                <View style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                  <AppText variant="body2" color={tokens.colors.info.main}>
-                    {capabilities.biometricType} Enabled
-                  </AppText>
-                  <AppText variant="caption" color={tokens.colors.info.main}>
-                    Your device supports {capabilities.biometricType?.toLowerCase()} authentication for secure and convenient access.
-                  </AppText>
-                </View>
-              </View>
-            </View>
+                <SettingRow
+                  icon="document-text"
+                  iconColor={tokens.colors.neutral.gray600}
+                  iconBg={tokens.colors.neutral.gray200}
+                  title="Terms & Conditions"
+                  subtitle="View our terms of service"
+                  onPress={() => {}}
+                  rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+                  showDivider={false}
+                />
+              </SettingSection>
+            </>
           )}
+
+          <View style={{ marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.xl }}>
+            {setupMode ? (
+              <AppButton onPress={handleContinue} fullWidth size="lg">
+                Continue
+              </AppButton>
+            ) : (
+              <AppButton
+                variant="outline"
+                onPress={handleLogout}
+                fullWidth
+                size="lg"
+                style={{ borderColor: tokens.colors.error.main }}
+                icon={<Ionicons name="log-out-outline" size={20} color={tokens.colors.error.main} />}
+              >
+                <AppText variant="button" color={tokens.colors.error.main}>
+                  Logout
+                </AppText>
+              </AppButton>
+            )}
+          </View>
         </View>
       </ScrollView>
 
-      {/* Modern Modal */}
       <AppModal
         visible={modal.visible}
         onClose={hideModal}
