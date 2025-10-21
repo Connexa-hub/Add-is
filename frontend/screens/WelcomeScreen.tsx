@@ -65,7 +65,7 @@ const WelcomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../../assets/splash-icon.png')} style={styles.logo} />
+      <Image source={require('../assets/images/splash-icon.png')} style={styles.logo} />
       <View style={styles.carouselContainer}>{renderCarousel()}</View>
       <View style={styles.buttonContainer}>
         <AppButton onPress={handleCreateAccount} fullWidth>

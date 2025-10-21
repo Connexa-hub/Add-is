@@ -84,7 +84,7 @@ export default function LoginScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.container, { padding: tokens.spacing.lg }]}>
-            <Image source={require('../../assets/splash-icon.png')} style={styles.logo} />
+            <Image source={require('../assets/images/splash-icon.png')} style={styles.logo} />
 
             <View style={styles.form}>
               <AppInput

@@ -10,11 +10,14 @@ import { AppButton } from '../src/components/atoms';
 export default function BiometricLoginScreen({ navigation }) {
   const { tokens } = useAppTheme();
   const [userName, setUserName] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
 
   useEffect(() => {
     const getUserData = async () => {
       const name = await AsyncStorage.getItem('userName');
+      const picture = await AsyncStorage.getItem('profilePicture');
       setUserName(name || 'User');
+      setProfilePicture(picture);
     };
     getUserData();
     handleBiometricAuth();
@@ -39,10 +42,21 @@ export default function BiometricLoginScreen({ navigation }) {
     }
   };
 
+  const renderAvatar = () => {
+    if (profilePicture) {
+      return <Image source={{ uri: profilePicture }} style={styles.avatar} />;
+    }
+    return (
+      <View style={[styles.avatar, styles.avatarIcon]}>
+        <Ionicons name="person" size={50} color={tokens.colors.text.secondary} />
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: tokens.colors.background.default }]}>
       <View style={styles.container}>
-        <Image source={require('../../assets/images/user-avatar.png')} style={styles.avatar} />
+        {renderAvatar()}
         <Text style={styles.welcomeText}>Welcome back, {userName}</Text>
         <TouchableOpacity onPress={handleBiometricAuth} style={styles.fingerprintContainer}>
           <Ionicons name="finger-print" size={64} color={tokens.colors.primary.main} />
@@ -69,6 +83,11 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     marginBottom: 20,
+  },
+  avatarIcon: {
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   welcomeText: {
     fontSize: 22,

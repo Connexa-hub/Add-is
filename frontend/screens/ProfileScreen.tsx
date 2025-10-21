@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, 'useState', 'useEffect' from 'react';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Appbar, Card, Text, List, Divider, Avatar, Button, ActivityIndicator } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { API_BASE_URL } from '../constants/api';
 
 export default function ProfileScreen({ navigation }) {
@@ -13,6 +14,7 @@ export default function ProfileScreen({ navigation }) {
     totalSpent: 0,
     totalCashback: 0,
   });
+  const [profilePicture, setProfilePicture] = useState(null);
 
   useEffect(() => {
     loadUserData();
@@ -21,6 +23,8 @@ export default function ProfileScreen({ navigation }) {
   const loadUserData = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
+      const picture = await AsyncStorage.getItem('profilePicture');
+      setProfilePicture(picture);
       
       const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
@@ -59,6 +63,20 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setProfilePicture(result.assets[0].uri);
+      await AsyncStorage.setItem('profilePicture', result.assets[0].uri);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -74,21 +92,26 @@ export default function ProfileScreen({ navigation }) {
       </Appbar.Header>
 
       <ScrollView style={styles.scrollView}>
-        {/* Profile Header */}
         <Card style={styles.profileCard}>
           <Card.Content style={styles.profileContent}>
-            <Avatar.Text 
-              size={80} 
-              label={user?.name?.substring(0, 2).toUpperCase() || 'U'} 
-              style={styles.avatar}
-            />
+            <TouchableOpacity onPress={pickImage}>
+              {profilePicture ? (
+                <Avatar.Image size={80} source={{ uri: profilePicture }} style={styles.avatar} />
+              ) : (
+                <Avatar.Text
+                  size={80}
+                  label={user?.name?.substring(0, 2).toUpperCase() || 'U'}
+                  style={styles.avatar}
+                />
+              )}
+            </TouchableOpacity>
             <Text style={styles.name}>{user?.name}</Text>
             <Text style={styles.email}>{user?.email}</Text>
             <Text style={styles.phone}>{user?.phone || 'No phone number'}</Text>
           </Card.Content>
         </Card>
 
-        {/* Stats Cards */}
+        {/* The rest of the screen remains the same */}
         <View style={styles.statsContainer}>
           <Card style={styles.statCard}>
             <Card.Content>
@@ -112,7 +135,6 @@ export default function ProfileScreen({ navigation }) {
           </Card>
         </View>
 
-        {/* Account Information */}
         <Card style={styles.card}>
           <Card.Content>
             <Text style={styles.cardTitle}>Account Information</Text>
@@ -147,7 +169,6 @@ export default function ProfileScreen({ navigation }) {
           </Card.Content>
         </Card>
 
-        {/* Quick Actions */}
         <Card style={styles.card}>
           <Card.Content>
             <Text style={styles.cardTitle}>Quick Actions</Text>

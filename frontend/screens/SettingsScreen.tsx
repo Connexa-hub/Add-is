@@ -5,7 +5,7 @@ import { Switch, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppText, AppButton, AppDivider } from '../src/components/atoms';
-import { AppModal } from '../src/components/molecules';
+import { AppModal, DropdownModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 
@@ -29,6 +29,7 @@ export default function SettingsScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [autoLogoutModalVisible, setAutoLogoutModalVisible] = useState(false);
   
   const [modal, setModal] = useState<{
     visible: boolean;
@@ -167,6 +168,12 @@ export default function SettingsScreen({ route, navigation }: any) {
     await AsyncStorage.setItem('notifications', newVal.toString());
   };
 
+  const handleAutoLogoutSelect = async (value) => {
+    setAutoLogout(value);
+    await AsyncStorage.setItem('autoLogout', value);
+    setAutoLogoutModalVisible(false);
+  };
+
   const handleLogout = async () => {
     showModal({
       visible: true,
@@ -297,12 +304,7 @@ export default function SettingsScreen({ route, navigation }: any) {
               iconBg={tokens.colors.info.light}
               title="Auto-logout"
               subtitle={autoLogout}
-              onPress={() => showModal({
-                  visible: true,
-                  type: 'info',
-                  title: 'Auto-logout',
-                  message: 'This feature is under development.'
-              })}
+              onPress={() => setAutoLogoutModalVisible(true)}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
             />
             {!setupMode && (
@@ -435,6 +437,12 @@ export default function SettingsScreen({ route, navigation }: any) {
         message={modal.message}
         primaryButton={modal.primaryButton}
         secondaryButton={modal.secondaryButton}
+      />
+      <DropdownModal
+        visible={autoLogoutModalVisible}
+        options={['Never', '1 Hour', '24 Hours', '30 Days']}
+        onSelect={handleAutoLogoutSelect}
+        onClose={() => setAutoLogoutModalVisible(false)}
       />
     </SafeAreaView>
   );
