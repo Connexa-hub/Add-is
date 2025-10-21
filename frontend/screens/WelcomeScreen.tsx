@@ -3,11 +3,11 @@ import { View, StyleSheet, Image, Dimensions, ActivityIndicator } from 'react-na
 import Carousel from 'react-native-reanimated-carousel';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import { AppButton } from '../components/atoms/AppButton';
-import { useAppTheme } from '../hooks/useAppTheme';
-import { getBanners } from '../services/api';
-import AppText from '../components/atoms/AppText';
+import { RootStackParamList } from '../src/navigation/AppNavigator';
+import { AppButton } from '../src/components/atoms/AppButton';
+import { useAppTheme } from '../src/hooks/useAppTheme';
+import { getBanners } from '../src/services/api';
+import AppText from '../src/components/atoms/AppText';
 
 const WelcomeScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
