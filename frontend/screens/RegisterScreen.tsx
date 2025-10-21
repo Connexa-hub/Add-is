@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView, Image } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
@@ -117,13 +117,17 @@ export default function RegisterScreen({ navigation }) {
             <View style={{ padding: tokens.spacing.lg }}>
               <View style={{ marginBottom: tokens.spacing.xl, marginTop: tokens.spacing['2xl'] }}>
                 <View style={[styles.iconContainer, { 
-                  backgroundColor: tokens.colors.primary.light,
                   marginBottom: tokens.spacing.lg,
-                  width: 80,
-                  height: 80,
-                  borderRadius: tokens.radius.lg
+                  width: 100,
+                  height: 100,
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }]}>
-                  <Ionicons name="person-add" size={40} color={tokens.colors.primary.main} />
+                  <Image
+                    source={require('../assets/images/splash-icon.png')}
+                    style={{ width: 100, height: 100 }}
+                    resizeMode="contain"
+                  />
                 </View>
 
                 <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>

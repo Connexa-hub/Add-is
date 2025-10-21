@@ -41,25 +41,16 @@ export default function Login() {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '90px',
-            height: '90px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #2BE2FA 0%, #10B981 100%)',
-            boxShadow: '0 20px 40px rgba(43, 226, 250, 0.3)',
+            width: '140px',
+            height: '140px',
             marginBottom: '1.5rem'
           }}>
-            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '3rem' }}>C</span>
+            <img 
+              src="/splash-icon.png" 
+              alt="Logo" 
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
-          <h1 style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #2BE2FA 0%, #10B981 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '0.5rem'
-          }}>
-            Connexa
-          </h1>
           <p style={{ color: '#667eea', fontWeight: '600', fontSize: '1.1rem' }}>Admin Portal</p>
         </div>
 

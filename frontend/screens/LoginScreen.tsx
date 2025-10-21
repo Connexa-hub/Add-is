@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -235,13 +235,11 @@ export default function LoginScreen({ navigation }) {
               marginTop: tokens.spacing['2xl'], 
               marginBottom: tokens.spacing['2xl'] 
             }]}>
-              <AppText 
-                variant="h1" 
-                weight="bold" 
-                style={{ fontSize: 32, color: tokens.colors.primary.main }}
-              >
-                Connexa
-              </AppText>
+              <Image
+                source={require('../assets/images/splash-icon.png')}
+                style={{ width: 120, height: 120 }}
+                resizeMode="contain"
+              />
             </View>
 
             {/* Biometric Login Section - Only show if configured and not showing password form */}

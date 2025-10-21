@@ -64,18 +64,21 @@ export default function Layout({ children }) {
           <div className="flex items-center justify-between">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-xl">C</span>
-                </div>
+                <img 
+                  src="/splash-icon.png" 
+                  alt="Logo" 
+                  className="w-10 h-10 object-contain"
+                />
                 <div>
-                  <h2 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Connexa</h2>
                   <p className="text-xs text-gray-400">Admin Portal</p>
                 </div>
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg mx-auto">
-                <span className="text-white font-bold text-xl">C</span>
-              </div>
+              <img 
+                src="/splash-icon.png" 
+                alt="Logo" 
+                className="w-10 h-10 object-contain mx-auto"
+              />
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
