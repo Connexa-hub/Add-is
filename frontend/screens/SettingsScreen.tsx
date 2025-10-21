@@ -4,9 +4,9 @@ import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 're
 import { Switch, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppText, AppButton, AppDivider } from '../src/components/atoms';
-import { AppModal, DropdownModal } from '../src/components/molecules';
-import { useAppTheme } from '../src/hooks/useAppTheme';
+import { AppText, AppButton, AppDivider } from '../components/atoms';
+import { AppModal, DropdownModal } from '../components/molecules';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 
 export default function SettingsScreen({ route, navigation }: any) {

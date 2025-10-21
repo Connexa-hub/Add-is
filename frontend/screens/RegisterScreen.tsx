@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
-import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { useAppTheme } from '../src/hooks/useAppTheme';
+import { AppText, AppInput, AppButton } from '../components/atoms';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 export default function RegisterScreen({ navigation }) {
   const { tokens } = useAppTheme();

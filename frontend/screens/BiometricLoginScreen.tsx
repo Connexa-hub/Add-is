@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppTheme } from '../src/hooks/useAppTheme';
-import { AppButton } from '../src/components/atoms';
+import { useAppTheme } from '../hooks/useAppTheme';
+import { AppButton } from '../components/atoms';
 
 export default function BiometricLoginScreen({ navigation }) {
   const { tokens } = useAppTheme();

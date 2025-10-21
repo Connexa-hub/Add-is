@@ -6,8 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
-import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { useAppTheme } from '../src/hooks/useAppTheme';
+import { AppText, AppInput, AppButton } from '../components/atoms';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 export default function LoginScreen({ navigation }) {
   const { tokens } = useAppTheme();
