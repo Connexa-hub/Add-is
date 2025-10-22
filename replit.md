@@ -114,12 +114,41 @@ The platform features a modern UI with a focus on Opay-style aesthetics. This in
 - **Database**: ✅ MongoDB Atlas connected
 - **API Health**: ✅ All core endpoints operational
 
+## Current Implementation Goals (OPay-Style Transformation)
+
+### Main Objective
+Transform the app from static/hardcoded to fully dynamic, matching OPay app standards with bottom sheet navigation, dynamic provider loading, and complete admin control.
+
+### Key Problems Being Solved
+1. **Remove All Hardcoded Data**: TV providers, electricity companies, network providers, betting platforms, amount grids - everything must be dynamic from backend
+2. **Bottom Sheet UI Pattern**: Implement OPay-style bottom sheet navigation for all services
+3. **Dynamic Amount Grids**: Admin-configurable quick amount selections per provider/service
+4. **Admin Content Management**: Intelligent system to assign banners, text notices, and content to specific screens
+5. **100% VTPass Parity**: Implement all 372+ VTPass services
+
+### Reference Materials
+- **Screenshots**: Located in `attached_assets/` folder (50+ reference images showing OPay-style UI patterns)
+- **Requirements Document**: `attached_assets/Pasted--COMPLETE-APP-DEVELOPMENT-REQUIREMENTS-Reference-OPay-App-Standard-Implementation-L-*.txt`
+- **OPay App**: Download from Play Store/App Store for live reference
+- **Test Credentials**: 
+  - Frontend: akinadeisrael5@gmail.com / OLAJUMOKE###
+  - Admin: admin@example.com / Admin123!
+
+### Implementation Task List
+See task list for complete 31-task breakdown organized in 5 phases:
+1. Remove Static Data & Backend APIs (5 tasks)
+2. Admin Panel Enhancements (7 tasks)
+3. Frontend Dynamic Implementation (15 tasks)
+4. VTPass Service Audit (2 tasks)
+5. Testing & Polish (2 tasks)
+
 ## Next Steps for Production
-1. Deploy to Koyeb using Dockerfile
-2. Update VTPass credentials to production mode
-3. Update Monnify credentials to production mode
-4. Configure proper email SMTP service
-5. Enable MongoDB automated backups
-6. Set up monitoring (Sentry, LogRocket, etc.)
-7. Load testing and security audit
-8. Change default admin password
+1. Complete OPay-style transformation (see task list)
+2. Deploy to Koyeb using Dockerfile
+3. Update VTPass credentials to production mode
+4. Update Monnify credentials to production mode
+5. Configure proper email SMTP service
+6. Enable MongoDB automated backups
+7. Set up monitoring (Sentry, LogRocket, etc.)
+8. Load testing and security audit
+9. Change default admin password
