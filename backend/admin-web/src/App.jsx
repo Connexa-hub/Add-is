@@ -146,7 +146,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/screen-content" element={<ScreenContent />} />
+          <Route
+            path="/screen-content"
+            element={
+              <ProtectedRoute>
+                <ScreenContent />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -17,6 +17,7 @@ import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { PaymentPreviewSheet, BannerCarousel } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
+import { ScreenContentDisplay } from '../src/components/molecules';
 
 interface DataPlan {
   id: string;
@@ -107,9 +108,9 @@ export default function DataScreen() {
             icon: 'phone-portrait'
           };
         });
-        
+
         setNetworks(networkList);
-        
+
         if (networkList.length > 0 && !selectedNetwork) {
           setSelectedNetwork(networkList[0].id);
         }
@@ -128,7 +129,7 @@ export default function DataScreen() {
     setLoading(true);
     try {
       const networkName = selectedNetwork === '9mobile' ? '9mobile' : selectedNetwork.toUpperCase();
-      
+
       const response = await axios.get(
         `${API_BASE_URL}/api/vtu/products?category=data&network=${networkName}`
       );
@@ -273,6 +274,12 @@ export default function DataScreen() {
       <BannerCarousel section="data" />
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: tokens.spacing.xl }} showsVerticalScrollIndicator={false}>
+        <ScreenContentDisplay 
+          screenName="data" 
+          contentType="tip"
+          onNavigate={(screen) => navigation.navigate(screen)}
+        />
+
         <View style={{ paddingHorizontal: tokens.spacing.lg, marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.lg }}>
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Select Network
@@ -358,7 +365,7 @@ export default function DataScreen() {
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Data Plans
           </AppText>
-          
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: tokens.spacing.md }}>
             <View style={{ flexDirection: 'row', gap: tokens.spacing.sm }}>
               {tabs.map((tab) => (
@@ -427,7 +434,7 @@ export default function DataScreen() {
                       </AppText>
                     </View>
                   )}
-                  
+
                   <View style={{ marginBottom: tokens.spacing.xs }}>
                     {plan.dataAmount && (
                       <AppText variant="h2" weight="bold" color={tokens.colors.primary.main}>
@@ -438,12 +445,12 @@ export default function DataScreen() {
                       {plan.name}
                     </AppText>
                   </View>
-                  
+
                   <View style={{ marginTop: tokens.spacing.sm }}>
                     <AppText variant="caption" color={tokens.colors.text.secondary}>Price</AppText>
                     <AppText variant="h3" weight="bold">₦{plan.price.toLocaleString()}</AppText>
                   </View>
-                  
+
                   <View style={{ marginTop: tokens.spacing.xs }}>
                     <AppText variant="caption" color={tokens.colors.text.secondary}>Validity</AppText>
                     <AppText variant="body2" weight="semibold">{plan.validity}</AppText>

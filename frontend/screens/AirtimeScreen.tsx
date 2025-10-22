@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,7 +12,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { PaymentPreviewSheet, BannerCarousel } from '../src/components/molecules';
+import { PaymentPreviewSheet, BannerCarousel, ScreenContentDisplay } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -111,9 +110,9 @@ export default function AirtimeScreen() {
             icon: 'phone-portrait'
           };
         });
-        
+
         setProviders(networkList);
-        
+
         if (networkList.length > 0 && !selectedNetwork) {
           setSelectedNetwork(networkList[0].id);
         }
@@ -130,25 +129,25 @@ export default function AirtimeScreen() {
 
   const fetchQuickAmounts = async () => {
     if (!selectedNetwork) return;
-    
+
     setLoadingQuickAmounts(true);
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/vtu/quick-amounts/airtime/${selectedNetwork}`
       );
-      
+
       if (response.data.success && response.data.data.amounts) {
         const amounts = response.data.data.amounts.map((amt: number) => ({
           value: amt.toString(),
           label: `₦${amt.toLocaleString()}`
         }));
         setQuickAmounts(amounts);
-        
+
         // Set layout configuration
         if (response.data.data.layout) {
           setGridLayout(response.data.data.layout);
         }
-        
+
         // Set custom input permission
         if (response.data.data.allowCustomInput !== undefined) {
           setAllowCustomInput(response.data.data.allowCustomInput);
@@ -235,7 +234,7 @@ export default function AirtimeScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
-      
+
       const response = await axios.post(
         `${API_BASE_URL}/services/buy-airtime`,
         {
@@ -272,7 +271,7 @@ export default function AirtimeScreen() {
 
   const getNetworkIcon = () => {
     if (!selectedNetwork) return null;
-    const network = networks.find(n => n.id === selectedNetwork);
+    const network = providers.find(n => n.id === selectedNetwork);
     return network ? (
       <View style={[styles.networkIndicator, { backgroundColor: network.color }]}>
         <AppText variant="caption" weight="bold" color={network.textColor}>
@@ -295,13 +294,19 @@ export default function AirtimeScreen() {
 
       <BannerCarousel section="airtime" />
 
+      <ScreenContentDisplay 
+        screenName="airtime" 
+        contentType="announcement"
+        onNavigate={(screen) => navigation.navigate(screen)}
+      />
+
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: tokens.spacing.lg }}>
         <View style={{ marginBottom: tokens.spacing.xl }}>
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Select Network
           </AppText>
           <View style={styles.networkRow}>
-            {networks.map((network) => (
+            {providers.map((network) => (
               <Pressable
                 key={network.id}
                 style={[
@@ -336,7 +341,7 @@ export default function AirtimeScreen() {
               color={tokens.colors.success.main} 
               style={{ marginTop: tokens.spacing.sm, textAlign: 'center' }}
             >
-              ✓ {networks.find(n => n.id === selectedNetwork)?.name} Detected
+              ✓ {providers.find(n => n.id === selectedNetwork)?.name} Detected
             </AppText>
           )}
         </View>
@@ -438,7 +443,7 @@ export default function AirtimeScreen() {
               Purchase Summary
             </AppText>
             <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Network: {networks.find(n => n.id === selectedNetwork)?.name}
+              Network: {providers.find(n => n.id === selectedNetwork)?.name}
             </AppText>
             <AppText variant="body2" color={tokens.colors.text.secondary}>
               Phone Number: {phoneNumber}
@@ -466,7 +471,7 @@ export default function AirtimeScreen() {
         onConfirm={confirmPurchase}
         amount={parseFloat(amount || '0')}
         serviceType="airtime"
-        serviceName={`${networks.find(n => n.id === selectedNetwork)?.name || ''} Airtime`}
+        serviceName={`${providers.find(n => n.id === selectedNetwork)?.name || ''} Airtime`}
         recipient={phoneNumber}
         balance={walletBalance}
         onAddFunds={handleAddFunds}

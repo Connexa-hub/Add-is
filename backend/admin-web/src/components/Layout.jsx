@@ -37,7 +37,7 @@ export default function Layout({ children }) {
     { icon: Shield, label: 'KYC Management', path: '/kyc' },
     { icon: Image, label: 'Banners', path: '/banners' },
     { icon: ShoppingBag, label: 'VTU Products', path: '/vtu-products' },
-    { icon: Activity, label: 'Quick Amount Grids', path: '/quick-amounts' },
+    { icon: Activity, label: 'Quick Amount Grids', path: '/quick-amount-grids' },
     { icon: MessageSquare, label: 'Screen Content', path: '/screen-content' },
     { icon: Activity, label: 'Transactions', path: '/transactions' },
     { icon: Wallet, label: 'Payment Integration', path: '/vtpass-wallet' },
