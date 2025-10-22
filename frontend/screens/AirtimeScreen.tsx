@@ -17,11 +17,28 @@ import { PaymentPreviewSheet, BannerCarousel } from '../src/components/molecules
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
+interface NetworkProvider {
+  id: string;
+  name: string;
+  color: string;
+  textColor: string;
+  icon: string;
+}
+
 const NETWORK_PREFIXES = {
   mtn: ['0703', '0706', '0803', '0806', '0810', '0813', '0814', '0816', '0903', '0906', '0913', '0916'],
   glo: ['0705', '0805', '0807', '0811', '0815', '0905', '0915'],
   airtel: ['0701', '0708', '0802', '0808', '0812', '0901', '0902', '0904', '0907', '0912'],
   '9mobile': ['0809', '0817', '0818', '0909', '0908']
+};
+
+const NETWORK_COLORS: { [key: string]: { color: string; textColor: string } } = {
+  'mtn': { color: '#FFCC00', textColor: '#000000' },
+  'glo': { color: '#00B050', textColor: '#FFFFFF' },
+  'airtel': { color: '#FF0000', textColor: '#FFFFFF' },
+  '9mobile': { color: '#006F3F', textColor: '#FFFFFF' },
+  'etisalat': { color: '#006F3F', textColor: '#FFFFFF' },
+  default: { color: '#6B7280', textColor: '#FFFFFF' }
 };
 
 export default function AirtimeScreen() {
@@ -31,6 +48,8 @@ export default function AirtimeScreen() {
   const [amount, setAmount] = useState('');
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [providers, setProviders] = useState<NetworkProvider[]>([]);
   const [errors, setErrors] = useState({ phoneNumber: '', amount: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -43,16 +62,10 @@ export default function AirtimeScreen() {
     { value: '5000', label: '₦5,000' },
   ]);
 
-  const networks = [
-    { id: 'mtn', name: 'MTN', color: '#FFCC00', textColor: '#000000', icon: 'phone-portrait' },
-    { id: 'glo', name: 'GLO', color: '#00B050', textColor: '#FFFFFF', icon: 'phone-portrait' },
-    { id: 'airtel', name: 'Airtel', color: '#FF0000', textColor: '#FFFFFF', icon: 'phone-portrait' },
-    { id: '9mobile', name: '9mobile', color: '#006F3F', textColor: '#FFFFFF', icon: 'phone-portrait' },
-  ];
-
   useEffect(() => {
     fetchWalletBalance();
     fetchQuickAmounts();
+    fetchProviders();
   }, []);
 
   useEffect(() => {
