@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { Switch, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,15 +10,33 @@ import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 
 export default function SettingsScreen({ navigation }: any) {
-  const { tokens } = useAppTheme();
-  const {
-    capabilities,
-    isLoading: isBiometricLoading,
-    isBiometricEnabled,
-    enableBiometric,
-    disableBiometric,
-    saveCredentials,
-  } = useBiometric();
+  let theme: any;
+  let tokens: any = undefined;
+  try {
+    theme = useAppTheme();
+    tokens = theme?.tokens;
+  } catch (error) {
+    console.error('Error loading theme in SettingsScreen:', error);
+  }
+
+  let biometricHook;
+  try {
+    biometricHook = useBiometric();
+  } catch (error) {
+    console.error('Error loading biometric hook in SettingsScreen:', error);
+  }
+
+  const capabilities = biometricHook?.capabilities || { 
+    isAvailable: false, 
+    isEnrolled: false, 
+    biometricType: null, 
+    supportedTypes: [] 
+  };
+  const isBiometricLoading = biometricHook?.isLoading || false;
+  const isBiometricEnabled = biometricHook?.isBiometricEnabled || (async () => false);
+  const enableBiometric = biometricHook?.enableBiometric || (async () => false);
+  const disableBiometric = biometricHook?.disableBiometric || (async () => false);
+  const saveCredentials = biometricHook?.saveCredentials || (async () => false);
 
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -44,19 +62,28 @@ export default function SettingsScreen({ navigation }: any) {
   });
 
   useEffect(() => {
-    loadSettings();
-  }, []);
+    if (!isBiometricLoading) {
+      loadSettings();
+    }
+  }, [isBiometricLoading]);
 
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const [bio, dark, notif, twoFA, id, email] = await Promise.all([
-        isBiometricEnabled(),
-        AsyncStorage.getItem('darkMode'),
-        AsyncStorage.getItem('notifications'),
-        AsyncStorage.getItem('twoFactorAuth'),
-        AsyncStorage.getItem('userId'),
-        AsyncStorage.getItem('userEmail'),
+      
+      let bio = false;
+      try {
+        bio = await isBiometricEnabled();
+      } catch (error) {
+        console.error('Error checking biometric status:', error);
+      }
+
+      const [dark, notif, twoFA, id, email] = await Promise.all([
+        AsyncStorage.getItem('darkMode').catch(() => null),
+        AsyncStorage.getItem('notifications').catch(() => null),
+        AsyncStorage.getItem('twoFactorAuth').catch(() => null),
+        AsyncStorage.getItem('userId').catch(() => null),
+        AsyncStorage.getItem('userEmail').catch(() => null),
       ]);
 
       setBiometricEnabled(bio);
@@ -67,6 +94,11 @@ export default function SettingsScreen({ navigation }: any) {
       setUserEmail(email || '');
     } catch (error) {
       console.error('Error loading settings:', error);
+      Alert.alert(
+        'Error Loading Settings',
+        'Some settings could not be loaded. Using default values.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoading(false);
     }
@@ -175,8 +207,15 @@ export default function SettingsScreen({ navigation }: any) {
       primaryButton: {
         text: 'Logout',
         onPress: async () => {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
-          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          try {
+            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+            if (navigation?.reset) {
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            }
+          } catch (error) {
+            console.error('Error during logout:', error);
+            Alert.alert('Logout Error', 'An error occurred during logout. Please try again.');
+          }
         },
       },
       secondaryButton: {
@@ -184,6 +223,19 @@ export default function SettingsScreen({ navigation }: any) {
         onPress: hideModal,
       },
     });
+  };
+
+  const safeNavigate = (routeName: string) => {
+    try {
+      if (!navigation) {
+        Alert.alert('Navigation Error', 'Navigation is not available');
+        return;
+      }
+      navigation.navigate(routeName);
+    } catch (error) {
+      console.error(`Error navigating to ${routeName}:`, error);
+      Alert.alert('Navigation Error', `Could not navigate to ${routeName}`);
+    }
   };
 
   const SettingSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -247,7 +299,15 @@ export default function SettingsScreen({ navigation }: any) {
     return <View>{Content}</View>;
   };
 
-  if (loading && isBiometricLoading) {
+  if (!tokens) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
+        <ActivityIndicator size="large" color="#6200ee" />
+      </View>
+    );
+  }
+
+  if (loading || isBiometricLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: tokens.colors.background.default }]}>
         <ActivityIndicator size="large" color={tokens.colors.primary.main} />
@@ -294,7 +354,7 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.warning.light}
               title="Change PIN"
               subtitle="Update your transaction PIN"
-              onPress={() => navigation.navigate('PINChange')}
+              onPress={() => safeNavigate('PINChange')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
               showDivider={false}
             />
@@ -348,7 +408,7 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.primary.light}
               title="KYC Verification"
               subtitle="Verify your identity"
-              onPress={() => navigation.navigate('KYCPersonalInfo')}
+              onPress={() => safeNavigate('KYCPersonalInfo')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
             />
 
@@ -358,7 +418,7 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.secondary.light}
               title="Saved Cards"
               subtitle="Manage payment methods"
-              onPress={() => navigation.navigate('CardManagement')}
+              onPress={() => safeNavigate('CardManagement')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
             />
 
