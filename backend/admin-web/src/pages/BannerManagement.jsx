@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -74,9 +73,9 @@ const BannerManagement = () => {
 
   const loadBanners = async () => {
     try {
-      const response = await api.get('/api/banners/admin/list');
+      const response = await api.get('/banners/admin/list');
       if (response.data.success) {
-        setBanners(response.data.data.banners);
+        setBanners(response.data.data);
       }
     } catch (error) {
       console.error('Failed to load banners:', error);
@@ -85,7 +84,7 @@ const BannerManagement = () => {
 
   const loadOnboardingSlides = async () => {
     try {
-      const response = await api.get('/api/admin/onboarding');
+      const response = await api.get('/admin/onboarding');
       if (response.data.success) {
         setOnboardingSlides(response.data.data);
       }
@@ -98,10 +97,10 @@ const BannerManagement = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await api.put(`/api/banners/admin/${editingId}`, bannerFormData);
+        await api.put(`/banners/admin/${editingId}`, bannerFormData);
         alert('Banner updated successfully');
       } else {
-        await api.post('/api/banners/admin', bannerFormData);
+        await api.post('/banners/admin', bannerFormData);
         alert('Banner created successfully');
       }
       resetForm();
@@ -115,10 +114,10 @@ const BannerManagement = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await api.put(`/api/admin/onboarding/${editingId}`, onboardingFormData);
+        await api.put(`/admin/onboarding/${editingId}`, onboardingFormData);
         alert('Onboarding slide updated successfully');
       } else {
-        await api.post('/api/admin/onboarding', onboardingFormData);
+        await api.post('/admin/onboarding', onboardingFormData);
         alert('Onboarding slide created successfully');
       }
       resetForm();
@@ -131,7 +130,7 @@ const BannerManagement = () => {
   const deleteBanner = async (id) => {
     if (!confirm('Are you sure you want to delete this banner?')) return;
     try {
-      await api.delete(`/api/banners/admin/${id}`);
+      await api.delete(`/banners/admin/${id}`);
       alert('Banner deleted successfully');
       loadBanners();
     } catch (error) {
@@ -142,7 +141,7 @@ const BannerManagement = () => {
   const deleteOnboardingSlide = async (id) => {
     if (!confirm('Are you sure you want to delete this slide?')) return;
     try {
-      await api.delete(`/api/admin/onboarding/${id}`);
+      await api.delete(`/admin/onboarding/${id}`);
       alert('Onboarding slide deleted successfully');
       loadOnboardingSlides();
     } catch (error) {
@@ -152,7 +151,7 @@ const BannerManagement = () => {
 
   const toggleBannerStatus = async (id, currentStatus) => {
     try {
-      await api.put(`/api/banners/admin/${id}`, { isActive: !currentStatus });
+      await api.put(`/banners/admin/${id}`, { isActive: !currentStatus });
       loadBanners();
     } catch (error) {
       alert('Failed to toggle banner status');
@@ -161,7 +160,7 @@ const BannerManagement = () => {
 
   const toggleOnboardingStatus = async (id, currentStatus) => {
     try {
-      await api.put(`/api/admin/onboarding/${id}`, { isActive: !currentStatus });
+      await api.put(`/admin/onboarding/${id}`, { isActive: !currentStatus });
       loadOnboardingSlides();
     } catch (error) {
       alert('Failed to toggle slide status');
@@ -275,7 +274,7 @@ const BannerManagement = () => {
     setOnboardingSlides(items);
 
     try {
-      await api.post('/api/admin/onboarding/reorder', { slides: reorderedWithNewOrder });
+      await api.post('/admin/onboarding/reorder', { slides: reorderedWithNewOrder });
     } catch (error) {
       alert('Failed to reorder slides');
       loadOnboardingSlides();

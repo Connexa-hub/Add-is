@@ -53,7 +53,7 @@ const VTUProductManagement = () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ limit: 500 });
-      const response = await api.get(`/api/admin/vtu/products?${params}`);
+      const response = await api.get(`/admin/vtu/products?${params}`);
       if (response.data.success) {
         setProducts(response.data.data.products);
       }
@@ -67,7 +67,7 @@ const VTUProductManagement = () => {
 
   const loadSyncStatus = async () => {
     try {
-      const response = await api.get('/api/admin/vtu/sync/status');
+      const response = await api.get('/admin/vtu/sync/status');
       if (response.data.success) {
         setSyncStatus(response.data.data);
       }
@@ -82,7 +82,7 @@ const VTUProductManagement = () => {
     try {
       setSyncing(true);
       const payload = category ? { category } : {};
-      const response = await api.post('/api/admin/vtu/sync', payload);
+      const response = await api.post('/admin/vtu/sync', payload);
       
       if (response.data.success) {
         alert(`Sync completed! ${response.data.data.totalProducts || 0} products synced.`);
@@ -107,10 +107,10 @@ const VTUProductManagement = () => {
       };
 
       if (editingId) {
-        await api.put(`/api/admin/vtu/products/${editingId}`, payload);
+        await api.put(`/admin/vtu/products/${editingId}`, payload);
         alert('Product updated successfully');
       } else {
-        await api.post('/api/admin/vtu/products', payload);
+        await api.post('/admin/vtu/products', payload);
         alert('Product created successfully');
       }
       resetForm();
@@ -123,7 +123,7 @@ const VTUProductManagement = () => {
   const deleteProduct = async (id) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
-      await api.delete(`/api/admin/vtu/products/${id}`);
+      await api.delete(`/admin/vtu/products/${id}`);
       alert('Product deleted successfully');
       loadProducts();
     } catch (error) {
@@ -133,7 +133,7 @@ const VTUProductManagement = () => {
 
   const toggleProductStatus = async (id) => {
     try {
-      await api.put(`/api/admin/vtu/products/${id}/toggle`);
+      await api.put(`/admin/vtu/products/${id}/toggle`);
       loadProducts();
     } catch (error) {
       alert('Failed to toggle product status');
@@ -193,7 +193,7 @@ const VTUProductManagement = () => {
     }
     
     try {
-      await api.post('/api/admin/vtu/products/bulk-update', {
+      await api.post('/admin/vtu/products/bulk-update', {
         productIds: selectedProducts,
         isActive
       });
