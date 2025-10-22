@@ -325,50 +325,56 @@ export default function TVScreen() {
           ) : tvPackages.length === 0 ? (
             <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
               <Ionicons name="information-circle-outline" size={48} color={tokens.colors.text.secondary} />
-              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
-                No packages available for this provider
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md, textAlign: 'center' }}>
+                No packages available for this provider.{'\n'}Please select a different provider.
               </AppText>
             </View>
           ) : (
-            tvPackages.map((pkg) => (
-              <Pressable
-                key={pkg.id}
-                style={[
-                  styles.packageCard,
-                  {
-                    backgroundColor: tokens.colors.background.paper,
-                    borderWidth: 2,
-                    borderColor: selectedPackage?.id === pkg.id
-                      ? tokens.colors.primary.main
-                      : tokens.colors.border.default,
-                    borderRadius: tokens.radius.lg,
-                    padding: tokens.spacing.md,
-                    marginBottom: tokens.spacing.sm,
-                    ...tokens.shadows.sm,
-                  }
-                ]}
-                onPress={() => setSelectedPackage(pkg)}
-              >
-                <View style={styles.packageContent}>
-                  <View style={{ flex: 1 }}>
-                    <AppText variant="h3" weight="bold">
-                      {pkg.name}
-                    </AppText>
-                    <AppText variant="caption" color={tokens.colors.text.secondary}>
-                      Valid for {pkg.validity}
-                    </AppText>
+            <ScrollView 
+              style={{ maxHeight: 400 }} 
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
+              {tvPackages.map((pkg) => (
+                <Pressable
+                  key={pkg.id}
+                  style={[
+                    styles.packageCard,
+                    {
+                      backgroundColor: tokens.colors.background.paper,
+                      borderWidth: 2,
+                      borderColor: selectedPackage?.id === pkg.id
+                        ? tokens.colors.primary.main
+                        : tokens.colors.border.default,
+                      borderRadius: tokens.radius.lg,
+                      padding: tokens.spacing.md,
+                      marginBottom: tokens.spacing.sm,
+                      ...tokens.shadows.sm,
+                    }
+                  ]}
+                  onPress={() => setSelectedPackage(pkg)}
+                >
+                  <View style={styles.packageContent}>
+                    <View style={{ flex: 1 }}>
+                      <AppText variant="subtitle2" weight="bold">
+                        {pkg.name}
+                      </AppText>
+                      <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: 2 }}>
+                        Valid for {pkg.validity}
+                      </AppText>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <AppText variant="h3" weight="bold" color={tokens.colors.primary.main}>
+                        ₦{pkg.price.toLocaleString()}
+                      </AppText>
+                      {selectedPackage?.id === pkg.id && (
+                        <Ionicons name="checkmark-circle" size={20} color={tokens.colors.primary.main} style={{ marginTop: 4 }} />
+                      )}
+                    </View>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <AppText variant="h3" weight="bold" color={tokens.colors.primary.main}>
-                      ₦{pkg.price.toLocaleString()}
-                    </AppText>
-                    {selectedPackage?.id === pkg.id && (
-                      <Ionicons name="checkmark-circle" size={20} color={tokens.colors.primary.main} style={{ marginTop: 4 }} />
-                    )}
-                  </View>
-                </View>
-              </Pressable>
-            ))
+                </Pressable>
+              ))}
+            </ScrollView>
           )}
         </View>
 
