@@ -11,6 +11,7 @@ router.get('/providers/:serviceType', vtuController.getProvidersByService);
 router.get('/providers/category/:category', vtuController.getProvidersByService);
 
 router.get('/quick-amounts/:serviceType/:provider', vtuController.getQuickAmounts);
+router.get('/quick-amounts/list', verifyToken, isAdmin, vtuController.listQuickAmountGrids);
 
 router.get('/screen-content/:screenName', vtuController.getScreenContent);
 

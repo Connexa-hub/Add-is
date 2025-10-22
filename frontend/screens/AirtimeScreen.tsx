@@ -55,6 +55,8 @@ export default function AirtimeScreen() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [quickAmounts, setQuickAmounts] = useState<Array<{value: string; label: string}>>([]);
   const [loadingQuickAmounts, setLoadingQuickAmounts] = useState(true);
+  const [gridLayout, setGridLayout] = useState({ columns: 3, rows: 2 });
+  const [allowCustomInput, setAllowCustomInput] = useState(true);
 
   useEffect(() => {
     fetchWalletBalance();
@@ -141,6 +143,16 @@ export default function AirtimeScreen() {
           label: `₦${amt.toLocaleString()}`
         }));
         setQuickAmounts(amounts);
+        
+        // Set layout configuration
+        if (response.data.data.layout) {
+          setGridLayout(response.data.data.layout);
+        }
+        
+        // Set custom input permission
+        if (response.data.data.allowCustomInput !== undefined) {
+          setAllowCustomInput(response.data.data.allowCustomInput);
+        }
       } else {
         // Fallback to default amounts
         setQuickAmounts([
@@ -151,6 +163,8 @@ export default function AirtimeScreen() {
           { value: '2000', label: '₦2,000' },
           { value: '5000', label: '₦5,000' },
         ]);
+        setGridLayout({ columns: 3, rows: 2 });
+        setAllowCustomInput(true);
       }
     } catch (error) {
       console.error('Failed to fetch quick amounts:', error);
@@ -163,9 +177,10 @@ export default function AirtimeScreen() {
         { value: '2000', label: '₦2,000' },
         { value: '5000', label: '₦5,000' },
       ]);
+      setGridLayout({ columns: 3, rows: 2 });
+      setAllowCustomInput(true);
     } finally {
       setLoadingQuickAmounts(false);
-    }Amounts(false);
     }
   };
 
@@ -347,55 +362,68 @@ export default function AirtimeScreen() {
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Quick Amount
           </AppText>
-          <View style={styles.quickAmountsGrid}>
-            {quickAmounts.map((item) => (
-              <Pressable
-                key={item.value}
-                style={[
-                  styles.quickAmountCard,
-                  {
-                    backgroundColor: amount === item.value 
-                      ? tokens.colors.primary.light 
-                      : tokens.colors.background.paper,
-                    borderWidth: 2,
-                    borderColor: amount === item.value
-                      ? tokens.colors.primary.main
-                      : tokens.colors.border.default,
-                    borderRadius: tokens.radius.md,
-                    padding: tokens.spacing.md,
-                  }
-                ]}
-                onPress={() => setAmount(item.value)}
-              >
-                <AppText 
-                  variant="body1" 
-                  weight="semibold"
-                  color={amount === item.value ? tokens.colors.primary.main : tokens.colors.text.primary}
+          {loadingQuickAmounts ? (
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={tokens.colors.primary.main} />
+            </View>
+          ) : (
+            <View style={[styles.quickAmountsGrid, { 
+              flexDirection: 'row', 
+              flexWrap: 'wrap',
+              justifyContent: 'space-between'
+            }]}>
+              {quickAmounts.map((item) => (
+                <Pressable
+                  key={item.value}
+                  style={[
+                    styles.quickAmountCard,
+                    {
+                      width: gridLayout.columns === 2 ? '48%' : gridLayout.columns === 4 ? '23%' : '31%',
+                      backgroundColor: amount === item.value 
+                        ? tokens.colors.primary.light 
+                        : tokens.colors.background.paper,
+                      borderWidth: 2,
+                      borderColor: amount === item.value
+                        ? tokens.colors.primary.main
+                        : tokens.colors.border.default,
+                      borderRadius: tokens.radius.md,
+                      padding: tokens.spacing.md,
+                    }
+                  ]}
+                  onPress={() => setAmount(item.value)}
                 >
-                  {item.label}
-                </AppText>
-              </Pressable>
-            ))}
-          </View>
+                  <AppText 
+                    variant="body1" 
+                    weight="semibold"
+                    color={amount === item.value ? tokens.colors.primary.main : tokens.colors.text.primary}
+                  >
+                    {item.label}
+                  </AppText>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
 
-        <View style={{ marginBottom: tokens.spacing.lg }}>
-          <AppInput
-            label="Or Enter Custom Amount (₦)"
-            placeholder="1000"
-            value={amount}
-            onChangeText={(text) => {
-              setAmount(text);
-              if (errors.amount) setErrors({ ...errors, amount: '' });
-            }}
-            keyboardType="number-pad"
-            error={errors.amount}
-            leftIcon={<Ionicons name="cash" size={20} color={tokens.colors.text.secondary} />}
-          />
-          <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.xs }}>
-            Minimum: ₦50 | Maximum: ₦50,000
-          </AppText>
-        </View>
+        {allowCustomInput && (
+          <View style={{ marginBottom: tokens.spacing.lg }}>
+            <AppInput
+              label="Or Enter Custom Amount (₦)"
+              placeholder="1000"
+              value={amount}
+              onChangeText={(text) => {
+                setAmount(text);
+                if (errors.amount) setErrors({ ...errors, amount: '' });
+              }}
+              keyboardType="number-pad"
+              error={errors.amount}
+              leftIcon={<Ionicons name="cash" size={20} color={tokens.colors.text.secondary} />}
+            />
+            <AppText variant="caption" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.xs }}>
+              Minimum: ₦50 | Maximum: ₦50,000
+            </AppText>
+          </View>
+        )}
 
         {amount && phoneNumber && selectedNetwork && (
           <View
