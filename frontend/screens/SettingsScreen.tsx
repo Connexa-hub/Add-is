@@ -10,33 +10,15 @@ import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 
 export default function SettingsScreen({ navigation }: any) {
-  let theme: any;
-  let tokens: any = undefined;
-  try {
-    theme = useAppTheme();
-    tokens = theme?.tokens;
-  } catch (error) {
-    console.error('Error loading theme in SettingsScreen:', error);
-  }
-
-  let biometricHook;
-  try {
-    biometricHook = useBiometric();
-  } catch (error) {
-    console.error('Error loading biometric hook in SettingsScreen:', error);
-  }
-
-  const capabilities = biometricHook?.capabilities || { 
-    isAvailable: false, 
-    isEnrolled: false, 
-    biometricType: null, 
-    supportedTypes: [] 
-  };
-  const isBiometricLoading = biometricHook?.isLoading || false;
-  const isBiometricEnabled = biometricHook?.isBiometricEnabled || (async () => false);
-  const enableBiometric = biometricHook?.enableBiometric || (async () => false);
-  const disableBiometric = biometricHook?.disableBiometric || (async () => false);
-  const saveCredentials = biometricHook?.saveCredentials || (async () => false);
+  const { tokens } = useAppTheme();
+  const {
+    capabilities,
+    isLoading: isBiometricLoading,
+    isBiometricEnabled,
+    enableBiometric,
+    disableBiometric,
+    saveCredentials,
+  } = useBiometric();
 
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -225,19 +207,6 @@ export default function SettingsScreen({ navigation }: any) {
     });
   };
 
-  const safeNavigate = (routeName: string) => {
-    try {
-      if (!navigation) {
-        Alert.alert('Navigation Error', 'Navigation is not available');
-        return;
-      }
-      navigation.navigate(routeName);
-    } catch (error) {
-      console.error(`Error navigating to ${routeName}:`, error);
-      Alert.alert('Navigation Error', `Could not navigate to ${routeName}`);
-    }
-  };
-
   const SettingSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <View style={{ marginBottom: tokens.spacing.xl }}>
       <AppText variant="subtitle2" weight="semibold" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.base, paddingHorizontal: 4 }}>
@@ -299,14 +268,6 @@ export default function SettingsScreen({ navigation }: any) {
     return <View>{Content}</View>;
   };
 
-  if (!tokens) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }]}>
-        <ActivityIndicator size="large" color="#6200ee" />
-      </View>
-    );
-  }
-
   if (loading || isBiometricLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: tokens.colors.background.default }]}>
@@ -354,7 +315,7 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.warning.light}
               title="Change PIN"
               subtitle="Update your transaction PIN"
-              onPress={() => safeNavigate('PINChange')}
+              onPress={() => navigation.navigate('PINChange')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
               showDivider={false}
             />
@@ -408,7 +369,7 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.primary.light}
               title="KYC Verification"
               subtitle="Verify your identity"
-              onPress={() => safeNavigate('KYCPersonalInfo')}
+              onPress={() => navigation.navigate('KYCPersonalInfo')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
             />
 
@@ -418,7 +379,7 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.secondary.light}
               title="Saved Cards"
               subtitle="Manage payment methods"
-              onPress={() => safeNavigate('CardManagement')}
+              onPress={() => navigation.navigate('CardManagement')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
             />
 
