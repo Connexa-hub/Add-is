@@ -16,6 +16,7 @@ import BannerManagement from './pages/BannerManagement';
 import VTUProductManagement from './pages/VTUProductManagement';
 import Reconciliation from './pages/Reconciliation';
 import QuickAmountGrids from './pages/QuickAmountGrids';
+import ScreenContent from './pages/ScreenContent';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -145,6 +146,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/screen-content" element={<ScreenContent />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
