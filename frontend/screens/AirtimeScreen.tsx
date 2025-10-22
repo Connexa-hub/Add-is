@@ -53,20 +53,19 @@ export default function AirtimeScreen() {
   const [errors, setErrors] = useState({ phoneNumber: '', amount: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
-  const [quickAmounts, setQuickAmounts] = useState([
-    { value: '100', label: '₦100' },
-    { value: '200', label: '₦200' },
-    { value: '500', label: '₦500' },
-    { value: '1000', label: '₦1,000' },
-    { value: '2000', label: '₦2,000' },
-    { value: '5000', label: '₦5,000' },
-  ]);
+  const [quickAmounts, setQuickAmounts] = useState<Array<{value: string; label: string}>>([]);
+  const [loadingQuickAmounts, setLoadingQuickAmounts] = useState(true);
 
   useEffect(() => {
     fetchWalletBalance();
-    fetchQuickAmounts();
     fetchProviders();
   }, []);
+
+  useEffect(() => {
+    if (selectedNetwork) {
+      fetchQuickAmounts();
+    }
+  }, [selectedNetwork]);
 
   useEffect(() => {
     if (phoneNumber.length >= 4) {
@@ -91,27 +90,79 @@ export default function AirtimeScreen() {
     }
   };
 
-  const fetchQuickAmounts = async () => {
+  const fetchProviders = async () => {
+    setLoadingProviders(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/api/vtu/products?category=airtime&popular=true`
+        `${API_BASE_URL}/api/vtu/providers/airtime`
       );
-      
-      if (response.data.success && response.data.data.products?.length > 0) {
-        const amounts = response.data.data.products
-          .filter((p: any) => p.denomination)
-          .slice(0, 6)
-          .map((p: any) => ({
-            value: p.denomination.toString(),
-            label: `₦${p.denomination.toLocaleString()}`
-          }));
+
+      if (response.data.success && response.data.data.providers) {
+        const networkList: NetworkProvider[] = response.data.data.providers.map((provider: any) => {
+          const networkId = provider.id || provider.serviceID?.toLowerCase();
+          const colorInfo = NETWORK_COLORS[networkId] || NETWORK_COLORS.default;
+          return {
+            id: networkId,
+            name: provider.name,
+            color: colorInfo.color,
+            textColor: colorInfo.textColor,
+            icon: 'phone-portrait'
+          };
+        });
         
-        if (amounts.length > 0) {
-          setQuickAmounts(amounts);
+        setProviders(networkList);
+        
+        if (networkList.length > 0 && !selectedNetwork) {
+          setSelectedNetwork(networkList[0].id);
         }
+      } else {
+        Alert.alert('Error', 'No networks available at the moment. Please try again later.');
       }
     } catch (error) {
-      console.log('Using default quick amounts');
+      console.error('Failed to fetch providers:', error);
+      Alert.alert('Error', 'Failed to load networks. Please check your connection and try again.');
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
+  const fetchQuickAmounts = async () => {
+    if (!selectedNetwork) return;
+    
+    setLoadingQuickAmounts(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/vtu/quick-amounts/airtime/${selectedNetwork}`
+      );
+      
+      if (response.data.success && response.data.data.amounts) {
+        const amounts = response.data.data.amounts.map((amt: number) => ({
+          value: amt.toString(),
+          label: `₦${amt.toLocaleString()}`
+        }));
+        setQuickAmounts(amounts);
+      } else {
+        setQuickAmounts([
+          { value: '100', label: '₦100' },
+          { value: '200', label: '₦200' },
+          { value: '500', label: '₦500' },
+          { value: '1000', label: '₦1,000' },
+          { value: '2000', label: '₦2,000' },
+          { value: '5000', label: '₦5,000' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch quick amounts:', error);
+      setQuickAmounts([
+        { value: '100', label: '₦100' },
+        { value: '200', label: '₦200' },
+        { value: '500', label: '₦500' },
+        { value: '1000', label: '₦1,000' },
+        { value: '2000', label: '₦2,000' },
+        { value: '5000', label: '₦5,000' },
+      ]);
+    } finally {
+      setLoadingQuickAmounts(false);
     }
   };
 

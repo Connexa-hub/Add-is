@@ -27,15 +27,33 @@ interface DataPlan {
   dataAmount?: string;
 }
 
+interface Network {
+  id: string;
+  name: string;
+  serviceID: string;
+  color: string;
+  icon: string;
+}
+
 type TabType = 'hot' | 'daily' | 'weekly' | 'monthly';
+
+const NETWORK_COLORS: { [key: string]: string } = {
+  'mtn': '#FFCC00',
+  'glo': '#00B050',
+  'airtel': '#FF0000',
+  '9mobile': '#006F3F',
+  'default': '#6B7280'
+};
 
 export default function DataScreen() {
   const navigation = useNavigation();
   const { tokens } = useAppTheme();
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [selectedNetwork, setSelectedNetwork] = useState('mtn');
+  const [selectedNetwork, setSelectedNetwork] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingNetworks, setLoadingNetworks] = useState(true);
+  const [networks, setNetworks] = useState<Network[]>([]);
   const [dataPlans, setDataPlans] = useState<DataPlan[]>([]);
   const [filteredPlans, setFilteredPlans] = useState<DataPlan[]>([]);
   const [selectedTab, setSelectedTab] = useState<TabType>('hot');
@@ -43,15 +61,9 @@ export default function DataScreen() {
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
 
-  const networks = [
-    { id: 'mtn', name: 'MTN', color: '#FFCC00', icon: 'phone-portrait' },
-    { id: 'glo', name: 'GLO', color: '#00B050', icon: 'phone-portrait' },
-    { id: 'airtel', name: 'Airtel', color: '#FF0000', icon: 'phone-portrait' },
-    { id: '9mobile', name: '9mobile', color: '#006F3F', icon: 'phone-portrait' },
-  ];
-
   useEffect(() => {
     fetchWalletBalance();
+    fetchNetworks();
   }, []);
 
   useEffect(() => {
@@ -74,6 +86,41 @@ export default function DataScreen() {
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
+    }
+  };
+
+  const fetchNetworks = async () => {
+    setLoadingNetworks(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/vtu/providers/data`
+      );
+
+      if (response.data.success && response.data.data.providers) {
+        const networkList: Network[] = response.data.data.providers.map((provider: any) => {
+          const networkId = provider.id || provider.serviceID?.toLowerCase();
+          return {
+            id: networkId,
+            name: provider.name,
+            serviceID: provider.serviceID,
+            color: NETWORK_COLORS[networkId] || NETWORK_COLORS.default,
+            icon: 'phone-portrait'
+          };
+        });
+        
+        setNetworks(networkList);
+        
+        if (networkList.length > 0 && !selectedNetwork) {
+          setSelectedNetwork(networkList[0].id);
+        }
+      } else {
+        Alert.alert('Error', 'No data networks available at the moment. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Failed to fetch networks:', error);
+      Alert.alert('Error', 'Failed to load networks. Please check your connection and try again.');
+    } finally {
+      setLoadingNetworks(false);
     }
   };
 
@@ -230,33 +277,54 @@ export default function DataScreen() {
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Select Network
           </AppText>
-          <View style={styles.networkGrid}>
-            {networks.map((network) => (
-              <Pressable
-                key={network.id}
-                style={[
-                  styles.networkCard,
-                  {
-                    backgroundColor: tokens.colors.background.paper,
-                    borderWidth: 2,
-                    borderColor: selectedNetwork === network.id
-                      ? tokens.colors.primary.main
-                      : tokens.colors.border.default,
-                    borderRadius: tokens.radius.lg,
-                    ...tokens.shadows.sm,
-                  }
-                ]}
-                onPress={() => setSelectedNetwork(network.id)}
-              >
-                <View style={[styles.networkIcon, { backgroundColor: network.color }]}>
-                  <Ionicons name={network.icon as any} size={24} color="#FFFFFF" />
-                </View>
-                <AppText variant="body2" weight="semibold" style={{ marginTop: tokens.spacing.xs }}>
-                  {network.name}
-                </AppText>
-              </Pressable>
-            ))}
-          </View>
+          {loadingNetworks ? (
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={tokens.colors.primary.main} />
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+                Loading networks...
+              </AppText>
+            </View>
+          ) : networks.length === 0 ? (
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <Ionicons name="alert-circle-outline" size={48} color={tokens.colors.text.secondary} />
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+                No networks available
+              </AppText>
+            </View>
+          ) : (
+            <View style={styles.networkGrid}>
+              {networks.map((network) => (
+                <Pressable
+                  key={network.id}
+                  style={[
+                    styles.networkCard,
+                    {
+                      backgroundColor: tokens.colors.background.paper,
+                      borderWidth: 2,
+                      borderColor: selectedNetwork === network.id
+                        ? tokens.colors.primary.main
+                        : tokens.colors.border.default,
+                      borderRadius: tokens.radius.lg,
+                      ...tokens.shadows.sm,
+                    }
+                  ]}
+                  onPress={() => setSelectedNetwork(network.id)}
+                >
+                  <View style={[styles.networkIcon, { backgroundColor: network.color }]}>
+                    <Ionicons name={network.icon as any} size={24} color="#FFFFFF" />
+                  </View>
+                  <AppText variant="body2" weight="semibold" style={{ marginTop: tokens.spacing.xs }}>
+                    {network.name}
+                  </AppText>
+                  {selectedNetwork === network.id && (
+                    <View style={{ marginTop: 4 }}>
+                      <Ionicons name="checkmark-circle" size={16} color={tokens.colors.primary.main} />
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.lg }}>
@@ -424,7 +492,7 @@ export default function DataScreen() {
           <AppButton
             onPress={handlePurchase}
             loading={loading}
-            disabled={loading || !selectedPlan || !phoneNumber}
+            disabled={loading || loadingNetworks || !selectedPlan || !phoneNumber || !selectedNetwork}
             fullWidth
             size="lg"
           >

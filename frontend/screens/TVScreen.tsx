@@ -114,13 +114,12 @@ export default function TVScreen() {
       }
     } catch (error) {
       console.error('Failed to fetch providers:', error);
-      const fallbackProviders: TVProvider[] = [
-        { id: 'dstv', name: 'DSTV', color: '#0033A0', icon: 'tv' },
-        { id: 'gotv', name: 'GOtv', color: '#FF0000', icon: 'tv' },
-        { id: 'startimes', name: 'StarTimes', color: '#FFD700', icon: 'tv' },
-      ];
-      setProviders(fallbackProviders);
-      setSelectedProvider('dstv');
+      Alert.alert(
+        'Error',
+        'Failed to load TV providers. Please check your connection and try again.',
+        [{ text: 'Retry', onPress: fetchProviders }]
+      );
+      setProviders([]);
     } finally {
       setLoadingProviders(false);
     }
