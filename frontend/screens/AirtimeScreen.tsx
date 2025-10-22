@@ -142,6 +142,7 @@ export default function AirtimeScreen() {
         }));
         setQuickAmounts(amounts);
       } else {
+        // Fallback to default amounts
         setQuickAmounts([
           { value: '100', label: '₦100' },
           { value: '200', label: '₦200' },
@@ -153,6 +154,7 @@ export default function AirtimeScreen() {
       }
     } catch (error) {
       console.error('Failed to fetch quick amounts:', error);
+      // Fallback to default amounts
       setQuickAmounts([
         { value: '100', label: '₦100' },
         { value: '200', label: '₦200' },
@@ -163,6 +165,7 @@ export default function AirtimeScreen() {
       ]);
     } finally {
       setLoadingQuickAmounts(false);
+    }Amounts(false);
     }
   };
 

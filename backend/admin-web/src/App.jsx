@@ -15,6 +15,7 @@ import KYCManagement from './pages/KYC';
 import BannerManagement from './pages/BannerManagement';
 import VTUProductManagement from './pages/VTUProductManagement';
 import Reconciliation from './pages/Reconciliation';
+import QuickAmountGrids from './pages/QuickAmountGrids';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -133,6 +134,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Reconciliation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quick-amount-grids"
+            element={
+              <ProtectedRoute>
+                <QuickAmountGrids />
               </ProtectedRoute>
             }
           />
