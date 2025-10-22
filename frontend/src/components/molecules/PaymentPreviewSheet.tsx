@@ -165,33 +165,49 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Balance Section */}
+            {/* Balance Section - Prominent Display */}
             <View
               style={[
                 styles.balanceCard,
                 {
-                  backgroundColor: tokens.colors.primary.light,
+                  backgroundColor: insufficientFunds ? tokens.colors.error.light : tokens.colors.primary.light,
                   borderRadius: tokens.radius.lg,
-                  padding: tokens.spacing.base,
+                  padding: tokens.spacing.lg,
                   marginBottom: tokens.spacing.base,
+                  borderWidth: 2,
+                  borderColor: insufficientFunds ? tokens.colors.error.main : tokens.colors.primary.main,
                 },
               ]}
             >
-              <View style={styles.balanceRow}>
-                <View>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    Wallet Balance
+              <View style={{ marginBottom: tokens.spacing.md }}>
+                <AppText variant="caption" color={tokens.colors.text.secondary}>
+                  Current Wallet Balance
+                </AppText>
+                <AppText variant="h1" weight="bold" color={insufficientFunds ? tokens.colors.error.main : tokens.colors.primary.main}>
+                  ₦{balance.toLocaleString()}
+                </AppText>
+              </View>
+              
+              <View style={styles.balanceBreakdown}>
+                <View style={styles.balanceRow}>
+                  <AppText variant="body2" color={tokens.colors.text.secondary}>
+                    Payment Amount
                   </AppText>
-                  <AppText variant="h2" weight="bold" color={tokens.colors.primary.main}>
-                    ₦{balance.toLocaleString()}
+                  <AppText variant="body1" weight="semibold">
+                    -₦{finalAmount.toLocaleString()}
                   </AppText>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    Amount
+                
+                <View style={[styles.balanceRow, { marginTop: tokens.spacing.xs, paddingTop: tokens.spacing.xs, borderTopWidth: 1, borderTopColor: tokens.colors.border.default }]}>
+                  <AppText variant="subtitle2" weight="semibold">
+                    Balance After Payment
                   </AppText>
-                  <AppText variant="h3" weight="bold">
-                    -₦{finalAmount.toLocaleString()}
+                  <AppText 
+                    variant="h3" 
+                    weight="bold" 
+                    color={balance - finalAmount >= 0 ? tokens.colors.success.main : tokens.colors.error.main}
+                  >
+                    ₦{Math.max(0, balance - finalAmount).toLocaleString()}
                   </AppText>
                 </View>
               </View>
@@ -430,6 +446,9 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     marginBottom: 16,
+  },
+  balanceBreakdown: {
+    marginTop: 8,
   },
   balanceRow: {
     flexDirection: 'row',

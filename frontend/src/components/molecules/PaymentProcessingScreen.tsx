@@ -16,6 +16,8 @@ export interface PaymentProcessingScreenProps {
   reference?: string;
   onClose: () => void;
   onRetry?: () => void;
+  walletBalanceBefore?: number;
+  walletBalanceAfter?: number;
 }
 
 export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = ({
@@ -27,6 +29,8 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
   reference,
   onClose,
   onRetry,
+  walletBalanceBefore,
+  walletBalanceAfter,
 }) => {
   const { tokens } = useAppTheme();
   const [spinValue] = useState(new Animated.Value(0));
@@ -214,7 +218,7 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
             )}
             <View style={styles.detailRow}>
               <AppText variant="caption" color={tokens.colors.text.secondary}>
-                Amount
+                Amount Paid
               </AppText>
               <AppText variant="h3" weight="bold" color={config.color}>
                 ₦{amount.toLocaleString()}
@@ -231,6 +235,76 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
               </View>
             )}
           </View>
+
+          {/* Wallet Deduction Info */}
+          {status === 'success' && walletBalanceBefore !== undefined && walletBalanceAfter !== undefined && (
+            <View
+              style={[
+                styles.walletCard,
+                {
+                  backgroundColor: tokens.colors.success.light,
+                  borderRadius: tokens.radius.lg,
+                  padding: tokens.spacing.base,
+                  marginBottom: tokens.spacing.lg,
+                  borderWidth: 1,
+                  borderColor: tokens.colors.success.main,
+                },
+              ]}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: tokens.spacing.sm }}>
+                <Ionicons name="wallet" size={20} color={tokens.colors.success.main} />
+                <AppText variant="subtitle2" weight="semibold" style={{ marginLeft: tokens.spacing.xs }} color={tokens.colors.success.main}>
+                  Wallet Updated
+                </AppText>
+              </View>
+              <View style={styles.detailRow}>
+                <AppText variant="caption" color={tokens.colors.text.secondary}>
+                  Previous Balance
+                </AppText>
+                <AppText variant="body2" weight="medium">
+                  ₦{walletBalanceBefore.toLocaleString()}
+                </AppText>
+              </View>
+              <View style={styles.detailRow}>
+                <AppText variant="caption" color={tokens.colors.text.secondary}>
+                  Amount Deducted
+                </AppText>
+                <AppText variant="body2" weight="medium" color={tokens.colors.error.main}>
+                  -₦{amount.toLocaleString()}
+                </AppText>
+              </View>
+              <View style={[styles.detailRow, { marginTop: tokens.spacing.xs, paddingTop: tokens.spacing.xs, borderTopWidth: 1, borderTopColor: tokens.colors.success.main }]}>
+                <AppText variant="subtitle2" weight="semibold">
+                  New Balance
+                </AppText>
+                <AppText variant="h3" weight="bold" color={tokens.colors.success.main}>
+                  ₦{walletBalanceAfter.toLocaleString()}
+                </AppText>
+              </View>
+            </View>
+          )}
+
+          {/* Processing Wallet Info */}
+          {status === 'processing' && (
+            <View
+              style={[
+                styles.processingCard,
+                {
+                  backgroundColor: tokens.colors.primary.light,
+                  borderRadius: tokens.radius.lg,
+                  padding: tokens.spacing.md,
+                  marginBottom: tokens.spacing.lg,
+                },
+              ]}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="wallet" size={18} color={tokens.colors.primary.main} />
+                <AppText variant="body2" color={tokens.colors.primary.main} style={{ marginLeft: tokens.spacing.xs }}>
+                  Deducting ₦{amount.toLocaleString()} from your wallet...
+                </AppText>
+              </View>
+            </View>
+          )}
 
           {/* Status-specific message */}
           {status === 'pending' && (
@@ -308,6 +382,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   alertBox: {
+    width: '100%',
+  },
+  walletCard: {
+    width: '100%',
+  },
+  processingCard: {
     width: '100%',
   },
   actions: {

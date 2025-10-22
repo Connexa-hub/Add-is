@@ -4,6 +4,7 @@ import { Appbar, Card, Text, Avatar, Button, ActivityIndicator } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/api';
+import { BannerCarousel } from '../src/components/molecules';
 
 export default function HomeScreen({ navigation }) {
   const [user, setUser] = useState(null);
@@ -293,27 +294,8 @@ export default function HomeScreen({ navigation }) {
           </Card.Content>
         </Card>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <Pressable style={styles.quickActionBtn} onPress={() => navigation.navigate('Wallet')}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="person-outline" size={24} color="#00B894" />
-            </View>
-            <Text style={styles.quickActionText}>To OPay</Text>
-          </Pressable>
-          <Pressable style={styles.quickActionBtn}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#E3F2FD' }]}>
-              <Ionicons name="business-outline" size={24} color="#2196F3" />
-            </View>
-            <Text style={styles.quickActionText}>To Bank</Text>
-          </Pressable>
-          <Pressable style={styles.quickActionBtn}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="cash-outline" size={24} color="#FF9800" />
-            </View>
-            <Text style={styles.quickActionText}>Withdraw</Text>
-          </Pressable>
-        </View>
+        {/* Top Banner Carousel */}
+        <BannerCarousel section="home-top" />
 
         {/* VTU Services Section with Badge */}
         <View style={styles.servicesSection}>
@@ -338,25 +320,8 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Promotional Banner - Will be fetched from backend */}
-        <View style={styles.bannerSection}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            pagingEnabled
-            style={styles.bannerScroll}
-          >
-            <Pressable style={styles.bannerCard}>
-              <View style={styles.bannerContent}>
-                <Ionicons name="trophy" size={40} color="#FFFFFF" />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.bannerTitle}>Be the Next big winner now!</Text>
-                  <Text style={styles.bannerSubtitle}>Big wins are happening daily on iLOTBet. Play now and find out!</Text>
-                </View>
-              </View>
-            </Pressable>
-          </ScrollView>
-        </View>
+        {/* Middle Banner Carousel */}
+        <BannerCarousel section="home-middle" />
 
         {/* Bills & Services Section */}
         <View style={styles.servicesSection}>
@@ -395,6 +360,9 @@ export default function HomeScreen({ navigation }) {
             ))}
           </View>
         </View>
+
+        {/* Bottom Banner Carousel */}
+        <BannerCarousel section="home-bottom" />
 
         {/* Recent Transactions */}
         {recentTransactions.length > 0 && (
@@ -509,28 +477,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 13,
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  quickActionBtn: {
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  quickActionText: {
-    fontSize: 12,
-    color: '#333',
-    fontWeight: '500',
-  },
   badgeContainer: {
     position: 'absolute',
     top: -4,
@@ -544,35 +490,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: 'bold',
-  },
-  bannerSection: {
-    marginVertical: 16,
-    paddingLeft: 16,
-  },
-  bannerScroll: {
-    marginBottom: 8,
-  },
-  bannerCard: {
-    width: 340,
-    height: 120,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    marginRight: 12,
-    padding: 16,
-  },
-  bannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  bannerTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  bannerSubtitle: {
-    color: '#CCCCCC',
-    fontSize: 12,
   },
   servicesSection: {
     paddingHorizontal: 16,

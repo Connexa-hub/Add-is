@@ -13,7 +13,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { PaymentPreviewSheet, PaymentProcessingScreen } from '../src/components/molecules';
+import { PaymentPreviewSheet, PaymentProcessingScreen, BannerCarousel } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -32,13 +32,23 @@ interface TVPackage {
   provider: string;
 }
 
+const PROVIDER_COLORS: { [key: string]: string } = {
+  'dstv': '#0033A0',
+  'gotv': '#FF0000',
+  'startimes': '#FFD700',
+  'showmax': '#FF1744',
+  default: '#6B7280'
+};
+
 export default function TVScreen() {
   const navigation = useNavigation();
   const { tokens } = useAppTheme();
   const [smartcardNumber, setSmartcardNumber] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState('dstv');
+  const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<TVPackage | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [providers, setProviders] = useState<TVProvider[]>([]);
   const [tvPackages, setTvPackages] = useState<TVPackage[]>([]);
   const [errors, setErrors] = useState({ smartcardNumber: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
@@ -47,18 +57,15 @@ export default function TVScreen() {
   const [transactionReference, setTransactionReference] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
 
-  const providers: TVProvider[] = [
-    { id: 'dstv', name: 'DSTV', color: '#0033A0', icon: 'tv' },
-    { id: 'gotv', name: 'GOtv', color: '#FF0000', icon: 'tv' },
-    { id: 'startimes', name: 'StarTimes', color: '#FFD700', icon: 'tv' },
-  ];
-
   useEffect(() => {
     fetchWalletBalance();
+    fetchProviders();
   }, []);
 
   useEffect(() => {
-    fetchTVPackages();
+    if (selectedProvider) {
+      fetchTVPackages();
+    }
   }, [selectedProvider]);
 
   const fetchWalletBalance = async () => {
@@ -76,11 +83,61 @@ export default function TVScreen() {
     }
   };
 
+  const fetchProviders = async () => {
+    setLoadingProviders(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/vtu/products?category=tv-subscription`
+      );
+
+      if (response.data.success && response.data.data.products) {
+        const uniqueProviders = new Map<string, TVProvider>();
+        
+        response.data.data.products.forEach((product: any) => {
+          const providerId = product.serviceID || product.network?.toLowerCase();
+          if (providerId && !uniqueProviders.has(providerId)) {
+            uniqueProviders.set(providerId, {
+              id: providerId,
+              name: product.network || formatProviderName(providerId),
+              color: PROVIDER_COLORS[providerId] || PROVIDER_COLORS.default,
+              icon: 'tv',
+            });
+          }
+        });
+
+        const providerList = Array.from(uniqueProviders.values());
+        setProviders(providerList);
+        
+        if (providerList.length > 0 && !selectedProvider) {
+          setSelectedProvider(providerList[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch providers:', error);
+      const fallbackProviders: TVProvider[] = [
+        { id: 'dstv', name: 'DSTV', color: '#0033A0', icon: 'tv' },
+        { id: 'gotv', name: 'GOtv', color: '#FF0000', icon: 'tv' },
+        { id: 'startimes', name: 'StarTimes', color: '#FFD700', icon: 'tv' },
+      ];
+      setProviders(fallbackProviders);
+      setSelectedProvider('dstv');
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
+  const formatProviderName = (id: string): string => {
+    return id
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const fetchTVPackages = async () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/api/vtu/products?category=tv&provider=${selectedProvider}`
+        `${API_BASE_URL}/api/vtu/products?category=tv-subscription&serviceID=${selectedProvider}`
       );
 
       if (response.data.success && response.data.data.products) {
@@ -189,38 +246,54 @@ export default function TVScreen() {
         </AppText>
       </View>
 
+      <BannerCarousel section="tv" />
+
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: tokens.spacing.lg }}>
         <View style={{ marginBottom: tokens.spacing.xl }}>
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Select Provider
           </AppText>
-          <View style={styles.providerGrid}>
-            {providers.map((provider) => (
-              <Pressable
-                key={provider.id}
-                style={[
-                  styles.providerCard,
-                  {
-                    backgroundColor: tokens.colors.background.paper,
-                    borderWidth: 2,
-                    borderColor: selectedProvider === provider.id
-                      ? tokens.colors.primary.main
-                      : tokens.colors.border.default,
-                    borderRadius: tokens.radius.lg,
-                    ...tokens.shadows.sm,
-                  }
-                ]}
-                onPress={() => setSelectedProvider(provider.id)}
-              >
-                <View style={[styles.providerIcon, { backgroundColor: provider.color }]}>
-                  <Ionicons name={provider.icon as any} size={24} color="#FFFFFF" />
-                </View>
-                <AppText variant="caption" weight="semibold" style={{ marginTop: tokens.spacing.xs, textAlign: 'center' }}>
-                  {provider.name}
-                </AppText>
-              </Pressable>
-            ))}
-          </View>
+          {loadingProviders ? (
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={tokens.colors.primary.main} />
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+                Loading providers...
+              </AppText>
+            </View>
+          ) : (
+            <View style={styles.providerGrid}>
+              {providers.map((provider) => (
+                <Pressable
+                  key={provider.id}
+                  style={[
+                    styles.providerCard,
+                    {
+                      backgroundColor: tokens.colors.background.paper,
+                      borderWidth: 2,
+                      borderColor: selectedProvider === provider.id
+                        ? tokens.colors.primary.main
+                        : tokens.colors.border.default,
+                      borderRadius: tokens.radius.lg,
+                      ...tokens.shadows.sm,
+                    }
+                  ]}
+                  onPress={() => setSelectedProvider(provider.id)}
+                >
+                  <View style={[styles.providerIcon, { backgroundColor: provider.color }]}>
+                    <Ionicons name={provider.icon as any} size={24} color="#FFFFFF" />
+                  </View>
+                  <AppText variant="caption" weight="semibold" style={{ marginTop: tokens.spacing.xs, textAlign: 'center' }}>
+                    {provider.name}
+                  </AppText>
+                  {selectedProvider === provider.id && (
+                    <View style={{ marginTop: 4 }}>
+                      <Ionicons name="checkmark-circle" size={16} color={tokens.colors.primary.main} />
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ marginBottom: tokens.spacing.lg }}>
@@ -244,7 +317,19 @@ export default function TVScreen() {
             Select Package
           </AppText>
           {loading ? (
-            <ActivityIndicator size="large" color={tokens.colors.primary.main} />
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={tokens.colors.primary.main} />
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+                Loading packages...
+              </AppText>
+            </View>
+          ) : tvPackages.length === 0 ? (
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <Ionicons name="information-circle-outline" size={48} color={tokens.colors.text.secondary} />
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+                No packages available for this provider
+              </AppText>
+            </View>
           ) : (
             tvPackages.map((pkg) => (
               <Pressable
@@ -274,9 +359,14 @@ export default function TVScreen() {
                       Valid for {pkg.validity}
                     </AppText>
                   </View>
-                  <AppText variant="h3" weight="bold" color={tokens.colors.primary.main}>
-                    ₦{pkg.price.toLocaleString()}
-                  </AppText>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <AppText variant="h3" weight="bold" color={tokens.colors.primary.main}>
+                      ₦{pkg.price.toLocaleString()}
+                    </AppText>
+                    {selectedPackage?.id === pkg.id && (
+                      <Ionicons name="checkmark-circle" size={20} color={tokens.colors.primary.main} style={{ marginTop: 4 }} />
+                    )}
+                  </View>
                 </View>
               </Pressable>
             ))
@@ -313,7 +403,7 @@ export default function TVScreen() {
         <AppButton
           onPress={handleSubscribe}
           loading={loading}
-          disabled={loading || !selectedPackage || !smartcardNumber}
+          disabled={loading || loadingProviders || !selectedPackage || !smartcardNumber}
           fullWidth
           size="lg"
         >
@@ -337,7 +427,7 @@ export default function TVScreen() {
         visible={showProcessing}
         status={paymentStatus}
         amount={selectedPackage?.price || 0}
-        serviceName={`${providers.find(p => p.id === selectedProvider)?.name || ''} TV`}
+        serviceName={`${providers.find(p => p.id === selectedProvider)?.name || ''} Subscription`}
         recipient={smartcardNumber}
         reference={transactionReference}
         onClose={handleProcessingClose}
@@ -363,13 +453,13 @@ const styles = StyleSheet.create({
   providerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 12,
   },
   providerCard: {
     width: '30%',
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
-    marginBottom: 12,
   },
   providerIcon: {
     width: 48,

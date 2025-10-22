@@ -19,7 +19,12 @@ const BannerSchema = new mongoose.Schema({
   targetUrl: String,
   targetSection: [{
     type: String,
-    enum: ['home', 'airtime', 'data', 'electricity', 'cable', 'wallet'],
+    enum: [
+      'home-top', 'home-middle', 'home-bottom',
+      'airtime', 'data', 'tv', 'electricity',
+      'internet', 'education', 'betting', 'insurance',
+      'onboarding'
+    ],
     required: true
   }],
   weight: {

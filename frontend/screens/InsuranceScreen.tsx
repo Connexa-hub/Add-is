@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Appbar, Text, Card } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { BannerCarousel } from '../src/components/molecules';
 
 export default function InsuranceScreen({ navigation }: any) {
   return (
@@ -10,6 +11,8 @@ export default function InsuranceScreen({ navigation }: any) {
         <Appbar.BackAction onPress={() => navigation.goBack()} color="#FFFFFF" />
         <Appbar.Content title="Insurance Services" titleStyle={styles.headerTitle} />
       </Appbar.Header>
+
+      <BannerCarousel section="insurance" />
 
       <ScrollView style={styles.content}>
         <Card style={styles.card}>

@@ -14,7 +14,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { PaymentPreviewSheet } from '../src/components/molecules';
+import { PaymentPreviewSheet, BannerCarousel } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -24,7 +24,10 @@ interface DataPlan {
   price: number;
   validity: string;
   network: string;
+  dataAmount?: string;
 }
+
+type TabType = 'hot' | 'daily' | 'weekly' | 'monthly';
 
 export default function DataScreen() {
   const navigation = useNavigation();
@@ -34,6 +37,8 @@ export default function DataScreen() {
   const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [dataPlans, setDataPlans] = useState<DataPlan[]>([]);
+  const [filteredPlans, setFilteredPlans] = useState<DataPlan[]>([]);
+  const [selectedTab, setSelectedTab] = useState<TabType>('hot');
   const [errors, setErrors] = useState({ phoneNumber: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -52,6 +57,10 @@ export default function DataScreen() {
   useEffect(() => {
     fetchDataPlans();
   }, [selectedNetwork]);
+
+  useEffect(() => {
+    filterPlansByTab();
+  }, [selectedTab, dataPlans]);
 
   const fetchWalletBalance = async () => {
     try {
@@ -84,6 +93,7 @@ export default function DataScreen() {
           price: product.sellingPrice || product.faceValue,
           validity: product.validity || '30 days',
           network: selectedNetwork,
+          dataAmount: extractDataAmount(product.displayName || product.title),
         }));
         setDataPlans(plans);
       }
@@ -94,6 +104,47 @@ export default function DataScreen() {
       setLoading(false);
     }
     setSelectedPlan(null);
+  };
+
+  const extractDataAmount = (name: string): string => {
+    const match = name.match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
+    return match ? `${match[1]}${match[2]}` : '';
+  };
+
+  const filterPlansByTab = () => {
+    let filtered = [...dataPlans];
+
+    switch (selectedTab) {
+      case 'hot':
+        filtered = dataPlans.filter(plan => 
+          plan.price >= 1000 && plan.price <= 5000
+        ).slice(0, 10);
+        break;
+      case 'daily':
+        filtered = dataPlans.filter(plan => 
+          plan.validity.toLowerCase().includes('day') || 
+          plan.validity.toLowerCase().includes('1 day') ||
+          plan.validity.toLowerCase().includes('24')
+        );
+        break;
+      case 'weekly':
+        filtered = dataPlans.filter(plan => 
+          plan.validity.toLowerCase().includes('week') || 
+          plan.validity.toLowerCase().includes('7 days')
+        );
+        break;
+      case 'monthly':
+        filtered = dataPlans.filter(plan => 
+          plan.validity.toLowerCase().includes('month') || 
+          plan.validity.toLowerCase().includes('30 days') ||
+          plan.validity.toLowerCase().includes('30days')
+        );
+        break;
+      default:
+        filtered = dataPlans;
+    }
+
+    setFilteredPlans(filtered);
   };
 
   const validatePhoneNumber = (phone: string) => {
@@ -137,6 +188,7 @@ export default function DataScreen() {
         `Data purchase successful! ${selectedPlan!.name} has been sent to ${phoneNumber}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
+      await fetchWalletBalance();
     } catch (error: any) {
       setShowPaymentPreview(false);
       Alert.alert(
@@ -153,6 +205,13 @@ export default function DataScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
+  const tabs: Array<{id: TabType, label: string}> = [
+    { id: 'hot', label: 'HOT DEALS' },
+    { id: 'daily', label: 'Daily' },
+    { id: 'weekly', label: 'Weekly' },
+    { id: 'monthly', label: 'Monthly' },
+  ];
+
   return (
     <View style={[styles.container, { backgroundColor: tokens.colors.background.default }]}>
       <View style={[styles.header, { backgroundColor: tokens.colors.primary.main, paddingTop: 50 }]}>
@@ -164,37 +223,10 @@ export default function DataScreen() {
         </AppText>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: tokens.spacing.lg }} showsVerticalScrollIndicator={false}>
-        {/* Promotional Banner Carousel */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-          style={{ marginBottom: tokens.spacing.lg }}
-        >
-          <View style={[styles.promoBanner, { backgroundColor: '#00B894', marginRight: 12 }]}>
-            <View style={{ flex: 1 }}>
-              <AppText variant="h3" weight="bold" color="#FFFFFF" style={{ marginBottom: 4 }}>
-                OUT OF AIRTIME?
-              </AppText>
-              <AppText variant="caption" color="#FFFFFF">
-                Top up anytime, anywhere and enjoy up to 6% cashback
-              </AppText>
-            </View>
-          </View>
-          <View style={[styles.promoBanner, { backgroundColor: '#2196F3' }]}>
-            <View style={{ flex: 1 }}>
-              <AppText variant="h3" weight="bold" color="#FFFFFF" style={{ marginBottom: 4 }}>
-                Simply Dial
-              </AppText>
-              <AppText variant="caption" color="#FFFFFF">
-                *955*4* mobile no#
-              </AppText>
-            </View>
-          </View>
-        </ScrollView>
+      <BannerCarousel section="data" />
 
-        <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.xl }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: tokens.spacing.xl }} showsVerticalScrollIndicator={false}>
+        <View style={{ paddingHorizontal: tokens.spacing.lg, marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.lg }}>
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Select Network
           </AppText>
@@ -227,7 +259,7 @@ export default function DataScreen() {
           </View>
         </View>
 
-        <View style={{ marginBottom: tokens.spacing.lg }}>
+        <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.lg }}>
           <AppInput
             label="Phone Number"
             placeholder="08012345678"
@@ -243,7 +275,6 @@ export default function DataScreen() {
           />
         </View>
 
-        {/* Promo Info Banner */}
         <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.md }}>
           <View style={[styles.infoCard, { backgroundColor: '#00B894', borderRadius: tokens.radius.lg, padding: tokens.spacing.md }]}>
             <AppText variant="body2" weight="semibold" color="#FFFFFF">
@@ -260,73 +291,105 @@ export default function DataScreen() {
             Data Plans
           </AppText>
           
-          {/* Tabs for plan categories */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: tokens.spacing.md }}>
             <View style={{ flexDirection: 'row', gap: tokens.spacing.sm }}>
-              <Pressable style={[styles.tabBtn, { backgroundColor: tokens.colors.primary.main, borderBottomWidth: 3, borderBottomColor: tokens.colors.primary.main }]}>
-                <AppText variant="body2" weight="bold" color="#FFFFFF">HOT</AppText>
-              </Pressable>
-              <Pressable style={styles.tabBtn}>
-                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Daily</AppText>
-              </Pressable>
-              <Pressable style={styles.tabBtn}>
-                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Weekly</AppText>
-              </Pressable>
-              <Pressable style={styles.tabBtn}>
-                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Monthly</AppText>
-              </Pressable>
-              <Pressable style={styles.tabBtn}>
-                <AppText variant="body2" weight="semibold" color={tokens.colors.text.secondary}>Always-On</AppText>
-              </Pressable>
+              {tabs.map((tab) => (
+                <Pressable 
+                  key={tab.id}
+                  style={[
+                    styles.tabBtn, 
+                    selectedTab === tab.id && { 
+                      backgroundColor: tokens.colors.primary.main, 
+                      borderBottomWidth: 3, 
+                      borderBottomColor: tokens.colors.primary.main 
+                    }
+                  ]}
+                  onPress={() => setSelectedTab(tab.id)}
+                >
+                  <AppText 
+                    variant="body2" 
+                    weight={selectedTab === tab.id ? "bold" : "semibold"} 
+                    color={selectedTab === tab.id ? "#FFFFFF" : tokens.colors.text.secondary}
+                  >
+                    {tab.label}
+                  </AppText>
+                </Pressable>
+              ))}
             </View>
           </ScrollView>
 
-          {dataPlans.map((plan) => (
-            <Pressable
-              key={plan.id}
-              style={[
-                styles.planCard,
-                {
-                  backgroundColor: selectedPlan?.id === plan.id ? '#E8F5E9' : tokens.colors.background.paper,
-                  borderWidth: 1,
-                  borderColor: selectedPlan?.id === plan.id
-                    ? tokens.colors.success.main
-                    : tokens.colors.border.default,
-                  borderRadius: tokens.radius.lg,
-                  padding: tokens.spacing.md,
-                  marginBottom: tokens.spacing.sm,
-                }
-              ]}
-              onPress={() => setSelectedPlan(plan)}
-            >
-              {/* Cashback badge */}
-              {plan.price > 1000 && (
-                <View style={{ position: 'absolute', top: -8, left: 12, backgroundColor: '#00B894', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
-                  <AppText variant="caption" weight="bold" color="#FFFFFF">
-                    ₦{(plan.price * 0.02).toFixed(0)} Cashback
-                  </AppText>
-                </View>
-              )}
-              <View style={{ marginBottom: tokens.spacing.xs }}>
-                <AppText variant="h3" weight="bold">
-                  {plan.name}
-                </AppText>
-                <AppText variant="caption" color={tokens.colors.text.secondary}>
-                  {plan.name}, valid for {plan.validity}
-                </AppText>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: tokens.spacing.xs }}>
-                <View>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>Price</AppText>
-                  <AppText variant="h3" weight="bold">₦{plan.price.toLocaleString()}</AppText>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>Validity</AppText>
-                  <AppText variant="body2" weight="semibold">{plan.validity}</AppText>
-                </View>
-              </View>
-            </Pressable>
-          ))}
+          {loading ? (
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={tokens.colors.primary.main} />
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+                Loading data plans...
+              </AppText>
+            </View>
+          ) : filteredPlans.length === 0 ? (
+            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+              <Ionicons name="information-circle-outline" size={48} color={tokens.colors.text.secondary} />
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+                No plans available for this category
+              </AppText>
+            </View>
+          ) : (
+            <View style={styles.plansGrid}>
+              {filteredPlans.map((plan) => (
+                <Pressable
+                  key={plan.id}
+                  style={[
+                    styles.planGridCard,
+                    {
+                      backgroundColor: selectedPlan?.id === plan.id ? tokens.colors.primary.light : tokens.colors.background.paper,
+                      borderWidth: 2,
+                      borderColor: selectedPlan?.id === plan.id
+                        ? tokens.colors.primary.main
+                        : tokens.colors.border.default,
+                      borderRadius: tokens.radius.lg,
+                      padding: tokens.spacing.md,
+                      marginBottom: tokens.spacing.sm,
+                    }
+                  ]}
+                  onPress={() => setSelectedPlan(plan)}
+                >
+                  {plan.price > 1000 && selectedTab === 'hot' && (
+                    <View style={{ position: 'absolute', top: -8, left: 8, backgroundColor: '#FF6B35', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, zIndex: 1 }}>
+                      <AppText variant="caption" weight="bold" color="#FFFFFF">
+                        🔥 HOT
+                      </AppText>
+                    </View>
+                  )}
+                  
+                  <View style={{ marginBottom: tokens.spacing.xs }}>
+                    {plan.dataAmount && (
+                      <AppText variant="h2" weight="bold" color={tokens.colors.primary.main}>
+                        {plan.dataAmount}
+                      </AppText>
+                    )}
+                    <AppText variant="body2" color={tokens.colors.text.secondary} numberOfLines={2}>
+                      {plan.name}
+                    </AppText>
+                  </View>
+                  
+                  <View style={{ marginTop: tokens.spacing.sm }}>
+                    <AppText variant="caption" color={tokens.colors.text.secondary}>Price</AppText>
+                    <AppText variant="h3" weight="bold">₦{plan.price.toLocaleString()}</AppText>
+                  </View>
+                  
+                  <View style={{ marginTop: tokens.spacing.xs }}>
+                    <AppText variant="caption" color={tokens.colors.text.secondary}>Validity</AppText>
+                    <AppText variant="body2" weight="semibold">{plan.validity}</AppText>
+                  </View>
+
+                  {selectedPlan?.id === plan.id && (
+                    <View style={{ marginTop: tokens.spacing.sm, alignItems: 'center' }}>
+                      <Ionicons name="checkmark-circle" size={24} color={tokens.colors.primary.main} />
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
 
         {selectedPlan && (
@@ -335,11 +398,12 @@ export default function DataScreen() {
               backgroundColor: tokens.colors.primary.light,
               padding: tokens.spacing.md,
               borderRadius: tokens.radius.lg,
+              marginHorizontal: tokens.spacing.lg,
               marginBottom: tokens.spacing.lg,
             }}
           >
             <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.xs }}>
-              Summary
+              Purchase Summary
             </AppText>
             <AppText variant="body2" color={tokens.colors.text.secondary}>
               Network: {networks.find(n => n.id === selectedNetwork)?.name}
@@ -351,20 +415,22 @@ export default function DataScreen() {
               Phone: {phoneNumber || 'Not entered'}
             </AppText>
             <AppText variant="h3" weight="bold" color={tokens.colors.primary.main} style={{ marginTop: tokens.spacing.xs }}>
-              Total: ₦{selectedPlan.price}
+              Total: ₦{selectedPlan.price.toLocaleString()}
             </AppText>
           </View>
         )}
 
-        <AppButton
-          onPress={handlePurchase}
-          loading={loading}
-          disabled={loading || !selectedPlan || !phoneNumber}
-          fullWidth
-          size="lg"
-        >
-          Purchase Data
-        </AppButton>
+        <View style={{ paddingHorizontal: tokens.spacing.lg }}>
+          <AppButton
+            onPress={handlePurchase}
+            loading={loading}
+            disabled={loading || !selectedPlan || !phoneNumber}
+            fullWidth
+            size="lg"
+          >
+            Purchase Data
+          </AppButton>
+        </View>
       </ScrollView>
 
       <PaymentPreviewSheet
@@ -428,6 +494,16 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  plansGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  planGridCard: {
+    width: '48%',
+    marginBottom: 12,
+    position: 'relative',
   },
   planCard: {
     marginBottom: 8,

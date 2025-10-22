@@ -13,7 +13,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { PaymentPreviewSheet } from '../src/components/molecules';
+import { PaymentPreviewSheet, BannerCarousel } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -34,6 +34,14 @@ export default function AirtimeScreen() {
   const [errors, setErrors] = useState({ phoneNumber: '', amount: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [quickAmounts, setQuickAmounts] = useState([
+    { value: '100', label: '₦100' },
+    { value: '200', label: '₦200' },
+    { value: '500', label: '₦500' },
+    { value: '1000', label: '₦1,000' },
+    { value: '2000', label: '₦2,000' },
+    { value: '5000', label: '₦5,000' },
+  ]);
 
   const networks = [
     { id: 'mtn', name: 'MTN', color: '#FFCC00', textColor: '#000000', icon: 'phone-portrait' },
@@ -42,17 +50,9 @@ export default function AirtimeScreen() {
     { id: '9mobile', name: '9mobile', color: '#006F3F', textColor: '#FFFFFF', icon: 'phone-portrait' },
   ];
 
-  const quickAmounts = [
-    { value: '100', label: '₦100' },
-    { value: '200', label: '₦200' },
-    { value: '500', label: '₦500' },
-    { value: '1000', label: '₦1,000' },
-    { value: '2000', label: '₦2,000' },
-    { value: '5000', label: '₦5,000' },
-  ];
-
   useEffect(() => {
     fetchWalletBalance();
+    fetchQuickAmounts();
   }, []);
 
   useEffect(() => {
@@ -75,6 +75,30 @@ export default function AirtimeScreen() {
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
+    }
+  };
+
+  const fetchQuickAmounts = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/vtu/products?category=airtime&popular=true`
+      );
+      
+      if (response.data.success && response.data.data.products?.length > 0) {
+        const amounts = response.data.data.products
+          .filter((p: any) => p.denomination)
+          .slice(0, 6)
+          .map((p: any) => ({
+            value: p.denomination.toString(),
+            label: `₦${p.denomination.toLocaleString()}`
+          }));
+        
+        if (amounts.length > 0) {
+          setQuickAmounts(amounts);
+        }
+      }
+    } catch (error) {
+      console.log('Using default quick amounts');
     }
   };
 
@@ -147,6 +171,7 @@ export default function AirtimeScreen() {
         `Airtime purchase successful! ₦${amount} has been sent to ${phoneNumber}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
+      await fetchWalletBalance();
     } catch (error) {
       setShowPaymentPreview(false);
       Alert.alert(
@@ -163,6 +188,18 @@ export default function AirtimeScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
+  const getNetworkIcon = () => {
+    if (!selectedNetwork) return null;
+    const network = networks.find(n => n.id === selectedNetwork);
+    return network ? (
+      <View style={[styles.networkIndicator, { backgroundColor: network.color }]}>
+        <AppText variant="caption" weight="bold" color={network.textColor}>
+          {network.name}
+        </AppText>
+      </View>
+    ) : null;
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: tokens.colors.background.default }]}>
       <View style={[styles.header, { backgroundColor: tokens.colors.primary.main, paddingTop: 50 }]}>
@@ -173,6 +210,8 @@ export default function AirtimeScreen() {
           Buy Airtime
         </AppText>
       </View>
+
+      <BannerCarousel section="airtime" />
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: tokens.spacing.lg }}>
         <View style={{ marginBottom: tokens.spacing.xl }}>
@@ -233,6 +272,7 @@ export default function AirtimeScreen() {
             maxLength={11}
             error={errors.phoneNumber}
             leftIcon={<Ionicons name="call" size={20} color={tokens.colors.text.secondary} />}
+            rightIcon={getNetworkIcon()}
           />
         </View>
 
@@ -371,5 +411,10 @@ const styles = StyleSheet.create({
     width: '31%',
     marginBottom: 12,
     alignItems: 'center',
+  },
+  networkIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
 });

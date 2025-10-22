@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Appbar, Text, Card } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { BannerCarousel } from '../src/components/molecules';
 
 export default function EducationScreen({ navigation }: any) {
   return (
@@ -10,6 +11,8 @@ export default function EducationScreen({ navigation }: any) {
         <Appbar.BackAction onPress={() => navigation.goBack()} color="#FFFFFF" />
         <Appbar.Content title="Education Services" titleStyle={styles.headerTitle} />
       </Appbar.Header>
+
+      <BannerCarousel section="education" />
 
       <ScrollView style={styles.content}>
         <Card style={styles.card}>
