@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../constants/api';
 
 import OnboardingScreen from '../../screens/OnboardingScreen';
 import LoginScreen from '../../screens/LoginScreen';
@@ -81,13 +82,54 @@ export default function AppNavigator() {
     checkOnboardingStatus();
   }, []);
 
+  const validateToken = async (token) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        return response.status === 401 ? false : 'network_error';
+      }
+      
+      const data = await response.json();
+      return data.success && data.data ? true : false;
+    } catch (error) {
+      if (error.name === 'AbortError' || error.message.includes('Network') || error.message.includes('timeout')) {
+        console.log('Token validation network error - preserving session');
+        return 'network_error';
+      }
+      console.log('Token validation failed:', error.message);
+      return false;
+    }
+  };
+
   const checkOnboardingStatus = async () => {
     try {
       const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
-      const hasToken = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem('token');
       
-      if (hasToken) {
-        setInitialRoute('Main');
+      if (token) {
+        const validationResult = await validateToken(token);
+        
+        if (validationResult === true || validationResult === 'network_error') {
+          setInitialRoute('Main');
+        } else {
+          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
+          if (onboardingCompleted === 'true') {
+            setInitialRoute('Login');
+          } else {
+            setInitialRoute('Onboarding');
+          }
+        }
       } else if (onboardingCompleted === 'true') {
         setInitialRoute('Login');
       } else {

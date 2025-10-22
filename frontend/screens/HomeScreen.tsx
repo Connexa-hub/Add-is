@@ -12,9 +12,12 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadUserData();
+    loadUnreadNotifications();
   }, []);
 
   const loadUserData = async () => {
@@ -68,9 +71,29 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const loadUnreadNotifications = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/notifications/unread/count`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setUnreadNotifications(data.count || 0);
+      }
+    } catch (error) {
+      console.error('Error loading unread notifications:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadUserData();
+    await Promise.all([loadUserData(), loadUnreadNotifications()]);
     setRefreshing(false);
   };
 
@@ -178,7 +201,26 @@ export default function HomeScreen({ navigation }) {
           title={`Hello, ${user?.name?.split(' ')[0] || 'User'}`}
           titleStyle={styles.headerTitle}
         />
-        <Appbar.Action icon="bell-outline" onPress={() => navigation.navigate('Notifications')} />
+        <Appbar.Action 
+          icon="magnify" 
+          onPress={() => Alert.alert('Search', 'Global search functionality coming soon!')} 
+        />
+        <View style={{ position: 'relative' }}>
+          <Appbar.Action 
+            icon="bell-outline" 
+            onPress={() => {
+              loadUnreadNotifications();
+              Alert.alert('Notifications', 'Notification screen coming soon!');
+            }} 
+          />
+          {unreadNotifications > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>
+                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+              </Text>
+            </View>
+          )}
+        </View>
         <Appbar.Action icon="account-circle" onPress={() => navigation.navigate('Profile')} />
       </Appbar.Header>
 
@@ -598,5 +640,22 @@ const styles = StyleSheet.create({
   kycBannerMessage: {
     fontSize: 13,
     color: '#666',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
