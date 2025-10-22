@@ -114,6 +114,8 @@ const pinRoutes = require('./routes/pinRoutes');
 const cardRoutes = require('./routes/cardRoutes');
 const walletFundingRoutes = require('./routes/walletFundingRoutes');
 const adminVtuRoutes = require('./routes/admin/vtuRoutes');
+const onboardingRoutes = require('./routes/onboardingRoutes');
+const adminOnboardingRoutes = require('./routes/admin/onboardingRoutes');
 
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -140,6 +142,8 @@ app.use('/api/vtu', vtuRoutes);
 app.use('/api/pin', pinRoutes);
 app.use('/api/cards', cardRoutes);
 app.use('/api/wallet/funding', walletFundingRoutes);
+app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/admin/onboarding', adminOnboardingRoutes);
 
 // Serve admin dashboard SPA in production
 if (isProduction) {

@@ -30,7 +30,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
 
     // Auto-create virtual account if not exists (only if KYC approved with BVN/NIN)
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
-      if (user.kyc && user.kyc.status === 'approved' && (user.kyc.personal.bvn || user.kyc.personal.nin)) {
+      if (user.kyc && user.kyc.status === 'approved' && user.kyc.personal && (user.kyc.personal.bvn || user.kyc.personal.nin)) {
         try {
           const monnifyClient = require('../utils/monnifyClient');
           const accountReference = `USER_${user._id}_${Date.now()}`;
@@ -65,12 +65,18 @@ router.get('/profile', verifyToken, async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phoneNumber: user.phoneNumber,
+        profilePicture: user.profilePicture,
         role: user.role,
         walletBalance: user.walletBalance,
         virtualAccountNumber: user.virtualAccountNumber,
         createdAt: user.createdAt,
         monnifyAccounts: user.monnifyAccounts,
-        monnifyAccountReference: user.monnifyAccountReference
+        monnifyAccountReference: user.monnifyAccountReference,
+        kyc: {
+          status: user.kyc?.status || 'not_submitted',
+          tier: user.kyc?.status === 'approved' ? (user.kyc?.personal?.bvn || user.kyc?.personal?.nin ? 'tier2' : 'tier1') : 'unverified'
+        }
       }
     });
   } catch (error) {
@@ -140,6 +146,32 @@ router.post('/register', registerValidation, async (req, res, next) => {
       verificationExpires: Date.now() + 3600000,
       emailVerified: false
     });
+
+    try {
+      const monnifyClient = require('../utils/monnifyClient');
+      const accountReference = `USER_${user._id}_${Date.now()}`;
+      
+      const reservedAccountResult = await monnifyClient.createReservedAccount({
+        accountReference,
+        accountName: name,
+        customerEmail: email,
+        customerName: name
+      });
+
+      if (reservedAccountResult.success && reservedAccountResult.data) {
+        const accounts = reservedAccountResult.data.accounts || [];
+        user.monnifyAccountReference = accountReference;
+        user.monnifyAccounts = accounts.map(acc => ({
+          accountNumber: acc.accountNumber,
+          accountName: acc.accountName,
+          bankName: acc.bankName,
+          bankCode: acc.bankCode
+        }));
+        await user.save();
+      }
+    } catch (monnifyError) {
+      console.error('Monnify account creation failed:', monnifyError.message);
+    }
 
     const { sendVerificationEmail } = require('../utils/emailService');
     await sendVerificationEmail(user, otp);

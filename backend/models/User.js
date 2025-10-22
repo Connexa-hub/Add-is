@@ -4,6 +4,8 @@ const UserSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: String,
+  phoneNumber: String,
+  profilePicture: String,
   biometricToken: String,
   role: {
     type: String,

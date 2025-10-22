@@ -55,6 +55,80 @@ const systemSettingsSchema = new mongoose.Schema({
       default: 500
     }
   },
+  kycLimits: {
+    unverified: {
+      maxSingleTransaction: {
+        type: Number,
+        default: 5000
+      },
+      maxDailyTransaction: {
+        type: Number,
+        default: 20000
+      },
+      maxMonthlyTransaction: {
+        type: Number,
+        default: 100000
+      },
+      maxWalletBalance: {
+        type: Number,
+        default: 50000
+      }
+    },
+    tier1: {
+      maxSingleTransaction: {
+        type: Number,
+        default: 50000
+      },
+      maxDailyTransaction: {
+        type: Number,
+        default: 200000
+      },
+      maxMonthlyTransaction: {
+        type: Number,
+        default: 1000000
+      },
+      maxWalletBalance: {
+        type: Number,
+        default: 500000
+      }
+    },
+    tier2: {
+      maxSingleTransaction: {
+        type: Number,
+        default: 500000
+      },
+      maxDailyTransaction: {
+        type: Number,
+        default: 2000000
+      },
+      maxMonthlyTransaction: {
+        type: Number,
+        default: 10000000
+      },
+      maxWalletBalance: {
+        type: Number,
+        default: 5000000
+      }
+    },
+    tier3: {
+      maxSingleTransaction: {
+        type: Number,
+        default: -1
+      },
+      maxDailyTransaction: {
+        type: Number,
+        default: -1
+      },
+      maxMonthlyTransaction: {
+        type: Number,
+        default: -1
+      },
+      maxWalletBalance: {
+        type: Number,
+        default: -1
+      }
+    }
+  },
   updatedAt: {
     type: Date,
     default: Date.now
