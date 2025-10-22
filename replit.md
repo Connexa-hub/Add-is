@@ -42,10 +42,7 @@ The platform features a modern UI with a focus on Opay-style aesthetics. This in
 
 ## Admin Dashboard Access
 - **URL**: Running on port 5000 (accessible via webview)
-- **Default Credentials**:
-  - Email: `admin@example.com`
-  - Password: `Admin123!`
-- **Note**: Change password after first login for security
+- **Note**: Admin credentials are configured via environment variables for security. Contact your system administrator for access.
 
 ## Deployment Configuration
 
@@ -130,9 +127,7 @@ Transform the app from static/hardcoded to fully dynamic, matching OPay app stan
 - **Screenshots**: Located in `attached_assets/` folder (50+ reference images showing OPay-style UI patterns)
 - **Requirements Document**: `attached_assets/Pasted--COMPLETE-APP-DEVELOPMENT-REQUIREMENTS-Reference-OPay-App-Standard-Implementation-L-*.txt`
 - **OPay App**: Download from Play Store/App Store for live reference
-- **Test Credentials**: 
-  - Frontend: akinadeisrael5@gmail.com / OLAJUMOKE###
-  - Admin: admin@example.com / Admin123!
+- **Test Access**: User accounts are configured in the database. Contact your administrator for test account credentials.
 
 ### Implementation Task List
 See task list for complete 31-task breakdown organized in 5 phases:
