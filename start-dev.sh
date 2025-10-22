@@ -2,7 +2,7 @@
 
 # Start backend API server
 echo "Starting backend API on port 3001..."
-cd backend && node server.js &
+cd backend && PORT=3001 node server.js &
 BACKEND_PID=$!
 
 # Wait for backend to start
