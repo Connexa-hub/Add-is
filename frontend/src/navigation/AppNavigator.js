@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import OnboardingScreen from '../../screens/OnboardingScreen';
 import LoginScreen from '../../screens/LoginScreen';
 import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
@@ -71,9 +74,47 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  const [initialRoute, setInitialRoute] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, []);
+
+  const checkOnboardingStatus = async () => {
+    try {
+      const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
+      const hasToken = await AsyncStorage.getItem('token');
+      
+      if (hasToken) {
+        setInitialRoute('Main');
+      } else if (onboardingCompleted === 'true') {
+        setInitialRoute('Login');
+      } else {
+        setInitialRoute('Onboarding');
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      setInitialRoute('Onboarding');
+    } finally {
+      setIsReady(true);
+    }
+  };
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <ActivityIndicator size="large" color="#6200ee" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
+        {/* Onboarding */}
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        
         {/* Auth flow */}
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
