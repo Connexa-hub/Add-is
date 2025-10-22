@@ -1,0 +1,102 @@
+🧭 1. Login Flow
+
+On first launch → show onboarding screen.
+
+User can choose Create Account or Already Have an Account.
+
+After login, if biometric login is enabled in settings → next app launch should skip onboarding and go from splash → login screen (email & password).
+
+Login layout similar to provided screenshot, but with email & password, not phone.
+
+
+
+---
+
+🏠 2. Home Screen & Admin Control
+
+Remove “Opay”, “To Bank”, and “Withdraw” — keep only the services/products grid.
+
+Each grid item can show notification threads from backend (e.g., promos or “awoof” alerts).
+
+All banners and carousels are dynamic and managed by the admin panel:
+
+Admin can send:
+
+Carousel for onboarding screen.
+
+Auto-sliding banners for home screen (top/middle/bottom).
+
+Banners and carousels for every service/product screen, like Opay.
+
+
+No static banners/carousels in the code — only display when backend sends data.
+
+Layout should auto-adjust when banners exist.
+
+
+Admin panel must allow complete management of all banners, carousels, and notifications.
+
+
+
+---
+
+⚙️ 3. Services & Products Screens
+
+No static data — everything fetched dynamically from VTpass API.
+
+
+Airtime screen
+
+Input for phone number → auto-detect network icon.
+
+Dropdown for manual network select.
+
+Grid for quick top-up amounts + manual entry option.
+
+
+Data screen
+
+Tabs/filters for Daily, Monthly, Hot, etc.
+
+Each tab loads relevant plans dynamically in grid view.
+
+
+TV & Electricity
+
+Dynamic grid of service providers (with icons & details from VTpass).
+
+On selection → go to details input page → payment preview screen.
+
+
+Payment Preview & Wallet System
+
+Payment preview should fetch user wallet balance (from “Add Funds” section powered by Minify).
+
+If the wallet is funded → allow direct payment deduction from wallet automatically.
+
+Checkout flow should be like Opay — smooth transition from processing → success, showing animation and status.
+
+All payments, wallet funding, and transactions must be trackable and manageable from the admin panel.
+
+
+Banners and Carousels
+
+All product/service screens must include auto-sliding banners and carousels (just like Opay), dynamically fetched per route from backend.
+
+
+
+---
+
+⚙️ 4. Settings & Admin Backend
+
+Fix settings navigation (“nested screen”) error.
+
+Expand Admin Panel to:
+
+Manage banners, carousels, notifications, and onboarding carousels.
+
+Control wallet funding, payment deductions, and transaction history.
+
+Oversee all VTpass integrations and product/service updates dynamically.
+
+
