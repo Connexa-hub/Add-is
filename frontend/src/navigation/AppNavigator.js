@@ -96,18 +96,15 @@ export default function AppNavigator() {
       
       clearTimeout(timeoutId);
       
-      if (!response.ok) {
-        return response.status === 401 ? false : 'network_error';
+      if (response.status === 200) {
+        const data = await response.json();
+        return data.success && data.data ? true : false;
       }
       
-      const data = await response.json();
-      return data.success && data.data ? true : false;
+      console.log('Token validation failed - Status:', response.status);
+      return false;
     } catch (error) {
-      if (error.name === 'AbortError' || error.message.includes('Network') || error.message.includes('timeout')) {
-        console.log('Token validation network error - preserving session');
-        return 'network_error';
-      }
-      console.log('Token validation failed:', error.message);
+      console.log('Token validation error:', error.message);
       return false;
     }
   };
@@ -118,9 +115,9 @@ export default function AppNavigator() {
       const token = await AsyncStorage.getItem('token');
       
       if (token) {
-        const validationResult = await validateToken(token);
+        const isValid = await validateToken(token);
         
-        if (validationResult === true || validationResult === 'network_error') {
+        if (isValid) {
           setInitialRoute('Main');
         } else {
           await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
