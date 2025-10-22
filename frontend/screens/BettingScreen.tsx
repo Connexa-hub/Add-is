@@ -47,11 +47,19 @@ export default function BettingScreen() {
   const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'pending' | 'failed'>('processing');
   const [transactionReference, setTransactionReference] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
+  const [quickAmounts, setQuickAmounts] = useState<Array<{ value: string; label: string }>>([]);
+  const [loadingQuickAmounts, setLoadingQuickAmounts] = useState(false);
 
   useEffect(() => {
     fetchWalletBalance();
     fetchProviders();
   }, []);
+
+  useEffect(() => {
+    if (selectedProvider) {
+      fetchQuickAmounts();
+    }
+  }, [selectedProvider]);
 
   const fetchWalletBalance = async () => {
     try {
@@ -107,6 +115,46 @@ export default function BettingScreen() {
       setSelectedProvider('bet9ja');
     } finally {
       setLoadingProviders(false);
+    }
+  };
+
+  const fetchQuickAmounts = async () => {
+    if (!selectedProvider) return;
+    
+    setLoadingQuickAmounts(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/vtu/quick-amounts/betting/${selectedProvider}`
+      );
+      
+      if (response.data.success && response.data.data.amounts) {
+        const amounts = response.data.data.amounts.map((amt: number) => ({
+          value: amt.toString(),
+          label: `₦${amt.toLocaleString()}`
+        }));
+        setQuickAmounts(amounts);
+      } else {
+        setQuickAmounts([
+          { value: '500', label: '₦500' },
+          { value: '1000', label: '₦1,000' },
+          { value: '2000', label: '₦2,000' },
+          { value: '5000', label: '₦5,000' },
+          { value: '10000', label: '₦10,000' },
+          { value: '20000', label: '₦20,000' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch quick amounts:', error);
+      setQuickAmounts([
+        { value: '500', label: '₦500' },
+        { value: '1000', label: '₦1,000' },
+        { value: '2000', label: '₦2,000' },
+        { value: '5000', label: '₦5,000' },
+        { value: '10000', label: '₦10,000' },
+        { value: '20000', label: '₦20,000' },
+      ]);
+    } finally {
+      setLoadingQuickAmounts(false);
     }
   };
 
@@ -278,9 +326,54 @@ export default function BettingScreen() {
         </View>
 
         <View style={{ marginBottom: tokens.spacing.lg }}>
+          <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
+            Quick Amount
+          </AppText>
+          {loadingQuickAmounts ? (
+            <View style={{ paddingVertical: tokens.spacing.md, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={tokens.colors.primary.main} />
+            </View>
+          ) : (
+            <View style={styles.quickAmountsGrid}>
+              {quickAmounts.map((item) => (
+                <Pressable
+                  key={item.value}
+                  style={[
+                    styles.quickAmountCard,
+                    {
+                      backgroundColor: amount === item.value 
+                        ? tokens.colors.primary.light 
+                        : tokens.colors.background.paper,
+                      borderWidth: 2,
+                      borderColor: amount === item.value
+                        ? tokens.colors.primary.main
+                        : tokens.colors.border.default,
+                      borderRadius: tokens.radius.md,
+                      padding: tokens.spacing.md,
+                    }
+                  ]}
+                  onPress={() => {
+                    setAmount(item.value);
+                    if (errors.amount) setErrors({ ...errors, amount: '' });
+                  }}
+                >
+                  <AppText 
+                    variant="body1" 
+                    weight="semibold"
+                    color={amount === item.value ? tokens.colors.primary.main : tokens.colors.text.primary}
+                  >
+                    {item.label}
+                  </AppText>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={{ marginBottom: tokens.spacing.lg }}>
           <AppInput
-            label="Amount (₦)"
-            placeholder="1000"
+            label="Custom Amount (₦)"
+            placeholder="Enter custom amount"
             value={amount}
             onChangeText={(text) => {
               setAmount(text);
@@ -385,6 +478,16 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickAmountsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  quickAmountCard: {
+    width: '31%',
+    marginBottom: 12,
     alignItems: 'center',
   },
 });
