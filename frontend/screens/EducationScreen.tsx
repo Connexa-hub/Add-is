@@ -1,31 +1,97 @@
+
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Appbar, Text, Card } from 'react-native-paper';
+import { Appbar } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { AppText, AppButton } from '../src/components/atoms';
 import { BannerCarousel } from '../src/components/molecules';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 
 export default function EducationScreen({ navigation }: any) {
+  const { tokens } = useAppTheme();
+
   return (
     <View style={styles.container}>
-      <Appbar.Header style={styles.header}>
+      <Appbar.Header style={[styles.header, { backgroundColor: tokens.colors.primary.main }]}>
         <Appbar.BackAction onPress={() => navigation.goBack()} color="#FFFFFF" />
         <Appbar.Content title="Education Services" titleStyle={styles.headerTitle} />
       </Appbar.Header>
 
       <BannerCarousel section="education" />
 
-      <ScrollView style={styles.content}>
-        <Card style={styles.card}>
-          <Card.Content style={styles.cardContent}>
-            <Ionicons name="school" size={64} color="#E17055" />
-            <Text style={styles.title}>Education Services</Text>
-            <Text style={styles.subtitle}>Coming Soon!</Text>
-            <Text style={styles.description}>
-              Educational services and exam pin purchases will be available here soon. 
-              WAEC, NECO, JAMB and more!
-            </Text>
-          </Card.Content>
-        </Card>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <View style={styles.comingSoonCard}>
+          <View style={[styles.iconContainer, { backgroundColor: tokens.colors.warning.light }]}>
+            <Ionicons name="school-outline" size={80} color={tokens.colors.warning.main} />
+          </View>
+          
+          <AppText 
+            variant="h2" 
+            weight="bold" 
+            align="center"
+            style={{ marginTop: tokens.spacing.lg, color: tokens.colors.text.primary }}
+          >
+            Education Services
+          </AppText>
+          
+          <AppText 
+            variant="h3" 
+            weight="semibold"
+            align="center"
+            style={{ marginTop: tokens.spacing.sm, color: tokens.colors.warning.main }}
+          >
+            Coming Soon!
+          </AppText>
+          
+          <AppText 
+            variant="body1" 
+            color={tokens.colors.text.secondary}
+            align="center"
+            style={{ marginTop: tokens.spacing.base, lineHeight: 24, paddingHorizontal: tokens.spacing.lg }}
+          >
+            Educational services and exam pin purchases will be available here soon.
+          </AppText>
+
+          <View style={[styles.featureList, { marginTop: tokens.spacing.xl }]}>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={24} color={tokens.colors.success.main} />
+              <AppText variant="body2" style={{ marginLeft: tokens.spacing.sm, flex: 1 }}>
+                WAEC Result Checker
+              </AppText>
+            </View>
+            
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={24} color={tokens.colors.success.main} />
+              <AppText variant="body2" style={{ marginLeft: tokens.spacing.sm, flex: 1 }}>
+                NECO Exam Pins
+              </AppText>
+            </View>
+            
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={24} color={tokens.colors.success.main} />
+              <AppText variant="body2" style={{ marginLeft: tokens.spacing.sm, flex: 1 }}>
+                JAMB Registration & E-Pins
+              </AppText>
+            </View>
+            
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={24} color={tokens.colors.success.main} />
+              <AppText variant="body2" style={{ marginLeft: tokens.spacing.sm, flex: 1 }}>
+                GCE & NABTEB Pins
+              </AppText>
+            </View>
+          </View>
+
+          <AppButton
+            onPress={() => navigation.goBack()}
+            variant="primary"
+            size="lg"
+            fullWidth
+            style={{ marginTop: tokens.spacing.xl }}
+          >
+            Go Back to Home
+          </AppButton>
+        </View>
       </ScrollView>
     </View>
   );
@@ -37,7 +103,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   header: {
-    backgroundColor: '#E17055',
     elevation: 4,
   },
   headerTitle: {
@@ -48,32 +113,34 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  card: {
-    margin: 20,
+  contentContainer: {
+    padding: 20,
+  },
+  comingSoonCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    elevation: 3,
-  },
-  cardContent: {
+    padding: 24,
     alignItems: 'center',
-    padding: 30,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 16,
-    color: '#1A1A1A',
+  iconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#E17055',
-    marginTop: 8,
-    fontWeight: '600',
+  featureList: {
+    width: '100%',
+    gap: 16,
   },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 22,
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
   },
 });
