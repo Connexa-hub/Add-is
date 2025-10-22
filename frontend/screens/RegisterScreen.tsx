@@ -115,17 +115,17 @@ export default function RegisterScreen({ navigation }) {
             showsVerticalScrollIndicator={true}
           >
             <View style={{ padding: tokens.spacing.lg }}>
-              <View style={{ marginBottom: tokens.spacing.xl, marginTop: tokens.spacing['2xl'] }}>
+              <View style={{ marginBottom: tokens.spacing.lg, marginTop: tokens.spacing.md }}>
                 <View style={[styles.iconContainer, { 
-                  marginBottom: tokens.spacing.lg,
-                  width: 100,
-                  height: 100,
+                  marginBottom: tokens.spacing.md,
+                  width: 60,
+                  height: 60,
                   alignItems: 'center',
                   justifyContent: 'center'
                 }]}>
                   <Image
                     source={require('../assets/images/splash-icon.png')}
-                    style={{ width: 100, height: 100 }}
+                    style={{ width: 60, height: 60 }}
                     resizeMode="contain"
                   />
                 </View>
