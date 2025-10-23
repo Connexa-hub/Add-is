@@ -1,35 +1,37 @@
-FROM node:20-alpine AS base
+# Stage 1: Build admin panel
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-FROM base AS backend-deps
-COPY backend/package*.json ./backend/
-WORKDIR /app/backend
+# Copy only admin panel files to reduce build context
+COPY backend/admin-web/package*.json ./admin-web/
+RUN cd admin-web && npm ci
+
+# Copy source code and build admin panel
+COPY backend/admin-web ./admin-web
+RUN cd admin-web && npm run build
+
+# Stage 2: Build backend image
+FROM node:20-alpine AS backend
+
+WORKDIR /app
+
+# Install backend dependencies (production only)
+COPY backend/package*.json ./
 RUN npm ci --only=production
 
-FROM base AS admin-build
-COPY backend/admin-web/package*.json ./backend/admin-web/
-WORKDIR /app/backend/admin-web
-RUN npm ci
-COPY backend/admin-web/ ./
-RUN npm run build
+# Copy backend source
+COPY backend ./
 
-FROM base AS production
-WORKDIR /app/backend
+# Copy built admin panel from builder stage
+COPY --from=builder /app/admin-web/dist ./admin-web/dist
 
-COPY --from=backend-deps /app/backend/node_modules ./node_modules
-COPY backend/ ./
-
-COPY --from=admin-build /app/backend/admin-web/dist ./admin-web/dist
-
-RUN mkdir -p uploads
-
+# Set environment variables
 ENV NODE_ENV=production
-ENV PORT=8000
+ENV PORT=5000
 
-EXPOSE 8000
+# Expose port
+EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "const http = require('http'); const options = { host: 'localhost', port: 8000, path: '/api/health', timeout: 5000 }; const req = http.get(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1));"
-
+# Start backend
 CMD ["node", "server.js"]
