@@ -15,8 +15,7 @@ COPY backend .
 # Build admin panel inside backend/admin-web
 WORKDIR /app/admin-web
 COPY backend/admin-web/package*.json ./
-RUN npm install && npm run build
-
+RUN npm install --legacy-peer-deps && npm run build
 # =========================
 # 2. Final stage
 # =========================
