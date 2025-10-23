@@ -26,6 +26,8 @@ services:
       MONNIFY_CONTRACT_CODE: YOUR_MONNIFY_CONTRACT_CODE
       EMAIL_USER: YOUR_EMAIL_USER
       EMAIL_PASS: YOUR_EMAIL_PASS
+      FRONTEND_URL: https://YOUR_FRONTEND_URL
+      ADMIN_URL: https://YOUR_ADMIN_URL
     build_command: ""
     start_command: "node backend/server.js"
     ports:
