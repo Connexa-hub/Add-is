@@ -1,17 +1,17 @@
-# Stage 1: Build admin panel
+# Stage 1: Build Admin Panel
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy only admin panel files to reduce build context
+# Copy only admin panel package files and install dependencies
 COPY backend/admin-web/package*.json ./admin-web/
 RUN cd admin-web && npm ci
 
-# Copy source code and build admin panel
+# Copy admin panel source and build
 COPY backend/admin-web ./admin-web
 RUN cd admin-web && npm run build
 
-# Stage 2: Build backend image
+# Stage 2: Build Backend Image
 FROM node:20-alpine AS backend
 
 WORKDIR /app
@@ -30,7 +30,7 @@ COPY --from=builder /app/admin-web/dist ./admin-web/dist
 ENV NODE_ENV=production
 ENV PORT=5000
 
-# Expose port
+# Expose backend port
 EXPOSE 5000
 
 # Start backend
