@@ -1,33 +1,32 @@
-app:
-  name: connexa-vtu-platform
-  
+name: addis-backend
 services:
-  - name: backend-api
+  - name: backend-service
     type: web
-    instance_type: nano
-    regions:
-      - fra
-    autoscaling:
-      min: 1
-      max: 1
-    ports:
-      - port: 8000
-        protocol: http
-    routes:
-      - path: /
-        port: 8000
-    health_checks:
-      - http:
-          path: /api/health
-          port: 8000
-        grace_period: 30
+    region: frc
+    plan: starter
+    source:
+      type: git
+      repo_url: https://github.com/YOUR_USERNAME/YOUR_REPO.git
+      branch: main
+      root_dir: .
+      dockerfile_path: Dockerfile
     env:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: "8000"
-    docker:
-      dockerfile: Dockerfile
-      target: production
-    domains:
-      - name: connexa-vtu.koyeb.app
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: YOUR_MONGO_URI
+      JWT_SECRET: YOUR_JWT_SECRET
+      VTPASS_API_KEY: YOUR_VTPASS_API_KEY
+      VTPASS_PUBLIC_KEY: YOUR_VTPASS_PUBLIC_KEY
+      VTPASS_BASE_URL: YOUR_VTPASS_BASE_URL
+      VTPASS_USERNAME: YOUR_VTPASS_USERNAME
+      VTPASS_SECRET_KEY: YOUR_VTPASS_SECRET_KEY
+      MONNIFY_API_KEY: YOUR_MONNIFY_API_KEY
+      MONNIFY_SECRET_KEY: YOUR_MONNIFY_SECRET_KEY
+      MONNIFY_BASE_URL: YOUR_MONNIFY_BASE_URL
+      MONNIFY_CONTRACT_CODE: YOUR_MONNIFY_CONTRACT_CODE
+      EMAIL_USER: YOUR_EMAIL_USER
+      EMAIL_PASS: YOUR_EMAIL_PASS
+    build_command: ""
+    start_command: "node backend/server.js"
+    ports:
+      - 5000
