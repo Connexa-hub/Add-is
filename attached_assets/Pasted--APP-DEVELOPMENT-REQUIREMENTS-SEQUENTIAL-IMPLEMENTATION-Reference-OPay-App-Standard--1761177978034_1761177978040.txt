@@ -1,0 +1,1990 @@
+# APP DEVELOPMENT REQUIREMENTS - SEQUENTIAL IMPLEMENTATION
+## Reference: OPay App Standard
+
+---
+
+## 🔐 LOGIN CREDENTIALS
+
+**Frontend Access:**
+- Email: akinadeisrael5@gmail.com
+- Password: OLAJUMOKE###
+
+**Backend Admin Panel:**
+- Email: admin@example.com
+- Password: Admin123!
+
+---
+
+## 📱 REFERENCE STANDARD: OPay App
+
+All features and UI/UX patterns should replicate the **OPay mobile app** standard.
+
+**To understand the target:**
+- Download OPay app from Play Store/App Store
+- Study: Bills Payment → TV → Electricity → Data → Airtime sections
+- Website: https://www.opayweb.com/
+
+---
+
+## ⚠️ IMPORTANT INSTRUCTIONS
+
+**BEFORE YOU START CODING:**
+
+1. **LOGIN AND AUDIT:**
+   - Login to both frontend and backend with credentials above
+   - Test ALL existing features thoroughly
+   - Navigate through EVERY screen
+   - Click EVERY button and link
+   - Try EVERY service (TV, Data, Electricity, Airtime, Betting, etc.)
+
+2. **CREATE AUDIT CHECKLIST:**
+   - Go through each task below (Task 1 to Task 10)
+   - Mark which features are **ALREADY WORKING** ✅
+   - Mark which features are **BROKEN/NOT WORKING** ❌
+   - Mark which features are **NOT YET IMPLEMENTED** 🔴
+
+3. **RESPOND WITH YOUR AUDIT:**
+   - Before writing any code, send me your audit report
+   - List what's working and what needs to be done
+   - I will confirm priorities
+
+4. **WORK SEQUENTIALLY:**
+   - **DO NOT JUMP TASKS**
+   - Complete Task 1 fully before moving to Task 2
+   - Complete Task 2 fully before moving to Task 3
+   - Continue in order through Task 10
+   - After completing each task, **INFORM ME** before proceeding to next
+
+5. **TESTING AFTER EACH TASK:**
+   - After completing each task, test it thoroughly
+   - Confirm it works as expected
+   - Get my approval before moving to next task
+
+---
+
+## 📋 TASKS IN SEQUENTIAL ORDER
+
+---
+
+## **TASK 1: AUTHENTICATION FLOW FIX**
+
+### **Test First:**
+1. Login to the app with the provided credentials
+2. Close the app completely
+3. Open the app again
+4. **Check:** Does it show login screen or go directly to home?
+
+### **Expected Behavior:**
+- If user is logged in → Go directly to home (smooth transition)
+- If user is NOT logged in → Show login screen
+- Session should persist properly
+
+### **Status Check:**
+- [ ] **WORKING** - Auth flow is correct
+- [ ] **NOT WORKING** - App skips login or behaves incorrectly
+- [ ] **NOT IMPLEMENTED** - Auth system doesn't exist
+
+### **If Broken/Not Implemented:**
+
+**Fix Required:**
+1. Implement proper auth state management
+2. Store auth token securely (encrypted storage, not localStorage)
+3. On app launch:
+   ```
+   Check if auth token exists and is valid
+   → YES: Navigate to home screen
+   → NO: Navigate to login screen
+   ```
+4. Implement token refresh mechanism
+5. Implement logout functionality that clears auth state
+
+**Test After Fix:**
+- Login → Close app → Reopen → Should go to home (not login)
+- Logout → Close app → Reopen → Should show login
+- Invalid token → Should redirect to login
+
+**⚠️ DO NOT PROCEED TO TASK 2 UNTIL THIS IS CONFIRMED WORKING**
+
+---
+
+## **TASK 2: HOME SCREEN RESTRUCTURING**
+
+### **Test First:**
+1. Open the home screen
+2. **Check:**
+   - Are services organized in categories?
+   - Is there a carousel/banner?
+   - Are services in grid layout?
+   - Does each service tile have notification badge capability?
+
+### **Status Check:**
+- [ ] **Carousel/Banner** - Working ✅ / Not Working ❌ / Not Implemented 🔴
+- [ ] **Service Grid Layout** - Working ✅ / Not Working ❌ / Not Implemented 🔴
+- [ ] **Service Categories** - Working ✅ / Not Working ❌ / Not Implemented 🔴
+- [ ] **Notification Badges on Services** - Working ✅ / Not Working ❌ / Not Implemented 🔴
+
+### **If Missing/Broken:**
+
+**What to Implement:**
+
+**A. Keep (if already good):**
+- Carousel implementation
+- Banner implementation
+
+**B. Implement Service Grid:**
+```
+Home Screen Layout:
+┌─────────────────────────────────────┐
+│  [Carousel/Banner - Keep if good]   │
+├─────────────────────────────────────┤
+│  📱 Bills Payment              [🔔2]│
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐│
+│  │  TV  │ │Elect.│ │ Data │ │Airtm │ │
+│  │  🔔  │ │      │ │  🔔  │ │      │ │
+│  └──────┘ └──────┘ └──────┘ └──────┘│
+│                                     │
+│  💰 Financial Services              │
+│  ┌──────┐ ┌──────┐ ┌──────┐        │
+│  │Betting│ │ Loan │ │ Save │        │
+│  └──────┘ └──────┘ └──────┘        │
+└─────────────────────────────────────┘
+```
+
+**C. Implement Notification Badge System:**
+1. Each service tile needs notification badge capability
+2. Backend API endpoint: `GET /api/services/notifications`
+   - Returns: `{ "tv": 1, "data": 2, "electricity": 0 }`
+3. Frontend displays badge with count on service tile
+4. Badge styles: Small dot (if count=1) or number badge (if count>1)
+
+**D. Categories to Create:**
+- Bills Payment (TV, Electricity, Data, Airtime, Internet)
+- Financial Services (Betting, Loans, Savings)
+- Education (WAEC, JAMB, NECO)
+- Entertainment (Gaming, Streaming)
+- Others (as per VTPass services)
+
+**Test After Implementation:**
+- Home screen shows organized categories
+- All services visible in grid
+- Notification badges appear when backend sends notification
+- Tapping service navigates to service screen
+
+**⚠️ DO NOT PROCEED TO TASK 3 UNTIL THIS IS CONFIRMED WORKING**
+
+---
+
+## **TASK 3: DYNAMIC PROVIDER SYSTEM - TV SERVICE ONLY**
+
+**⚠️ IMPORTANT: Start with TV service ONLY. Once TV is working perfectly, we'll replicate the pattern to other services.**
+
+### **Test First:**
+1. Open the app
+2. Navigate to TV service
+3. **Check:**
+   - Are TV providers (DStv, GOtv, StarTimes, etc.) hardcoded in the frontend code?
+   - Does it open a bottom sheet with provider selection?
+   - After selecting provider, does another bottom sheet open with the form?
+
+### **Status Check:**
+- [ ] **TV Providers are HARDCODED** (in frontend code)
+- [ ] **TV Providers are DYNAMIC** (fetched from backend)
+- [ ] **Bottom Sheet Pattern Working** ✅ / Not Working ❌ / Not Implemented 🔴
+- [ ] **Provider-Specific Forms Working** ✅ / Not Working ❌ / Not Implemented 🔴
+
+### **If Hardcoded or Not Implemented:**
+
+**STEP-BY-STEP IMPLEMENTATION:**
+
+**Step 1: Backend API - Create TV Provider Endpoint**
+
+Create endpoint:
+```
+GET /api/v1/services/tv/providers
+
+Response:
+{
+  "success": true,
+  "providers": [
+    {
+      "id": "dstv",
+      "name": "DStv",
+      "logo": "https://example.com/logos/dstv.png",
+      "description": "Enjoy premium entertainment"
+    },
+    {
+      "id": "gotv",
+      "name": "GOtv",
+      "logo": "https://example.com/logos/gotv.png",
+      "description": "Affordable entertainment"
+    },
+    {
+      "id": "startimes",
+      "name": "StarTimes",
+      "logo": "https://example.com/logos/startimes.png",
+      "description": "Quality television service"
+    }
+    // ... all other TV providers from VTPass
+  ]
+}
+```
+
+**Step 2: Backend API - Create TV Packages Endpoint**
+
+Create endpoint per provider:
+```
+GET /api/v1/services/tv/providers/{provider_id}/packages
+
+Example: GET /api/v1/services/tv/providers/dstv/packages
+
+Response:
+{
+  "success": true,
+  "provider": "DStv",
+  "packages": [
+    {
+      "id": "dstv-compact",
+      "name": "DStv Compact",
+      "price": 10500,
+      "description": "Over 120 channels"
+    },
+    {
+      "id": "dstv-premium",
+      "name": "DStv Premium",
+      "price": 24500,
+      "description": "All channels including sports"
+    }
+    // ... all DStv packages
+  ]
+}
+```
+
+**Step 3: Frontend - Remove Hardcoded Data**
+
+Search frontend code for:
+- Any array containing ["DStv", "GOtv", "StarTimes", etc.]
+- Any hardcoded provider objects
+- Delete ALL of them
+
+**Step 4: Frontend - Implement Bottom Sheet Pattern**
+
+**User Flow:**
+```
+User taps "TV" from home
+↓
+Bottom Sheet 1 opens (Provider Selection)
+- Fetch from: GET /api/v1/services/tv/providers
+- Display providers in grid
+- Show provider logo and name
+↓
+User taps "DStv"
+↓
+Bottom Sheet 2 opens (DStv Form)
+- Fetch from: GET /api/v1/services/tv/providers/dstv/packages
+- Show form:
+  * Input: Smartcard Number
+  * Dropdown: Package Selection (from API)
+  * Display: Selected package price
+  * Button: Subscribe Now
+↓
+User fills form and taps Subscribe
+↓
+Navigate to payment
+```
+
+**Frontend Code Structure:**
+```javascript
+// TV Service Screen Component
+
+function TVService() {
+  const [providers, setProviders] = useState([]);
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [bottomSheet1Open, setBottomSheet1Open] = useState(false);
+  const [bottomSheet2Open, setBottomSheet2Open] = useState(false);
+
+  // On component mount, fetch providers
+  useEffect(() => {
+    fetchTVProviders();
+  }, []);
+
+  async function fetchTVProviders() {
+    const response = await fetch('/api/v1/services/tv/providers');
+    const data = await response.json();
+    setProviders(data.providers);
+    setBottomSheet1Open(true); // Open provider selection
+  }
+
+  async function handleProviderSelect(provider) {
+    setSelectedProvider(provider);
+    // Fetch packages for selected provider
+    const response = await fetch(`/api/v1/services/tv/providers/${provider.id}/packages`);
+    const data = await response.json();
+    setPackages(data.packages);
+    setBottomSheet1Open(false);
+    setBottomSheet2Open(true); // Open provider form
+  }
+
+  return (
+    <>
+      {/* Bottom Sheet 1: Provider Selection */}
+      <BottomSheet open={bottomSheet1Open} onClose={() => setBottomSheet1Open(false)}>
+        <h2>Select TV Provider</h2>
+        <div className="provider-grid">
+          {providers.map(provider => (
+            <ProviderCard 
+              key={provider.id}
+              provider={provider}
+              onClick={() => handleProviderSelect(provider)}
+            />
+          ))}
+        </div>
+      </BottomSheet>
+
+      {/* Bottom Sheet 2: Provider Form */}
+      <BottomSheet open={bottomSheet2Open} onClose={() => setBottomSheet2Open(false)}>
+        <h2>{selectedProvider?.name} Subscription</h2>
+        <TVSubscriptionForm 
+          provider={selectedProvider}
+          packages={packages}
+        />
+      </BottomSheet>
+    </>
+  );
+}
+```
+
+**Step 5: Test TV Service Thoroughly**
+
+- [ ] Providers load dynamically from backend
+- [ ] Bottom Sheet 1 shows all TV providers in grid
+- [ ] Tapping a provider opens Bottom Sheet 2
+- [ ] Bottom Sheet 2 shows provider-specific form
+- [ ] Packages load for selected provider
+- [ ] Form submission works
+- [ ] Navigation back works correctly
+- [ ] Error handling works (no internet, API error, etc.)
+
+**⚠️ STOP HERE. DO NOT MOVE TO OTHER SERVICES YET.**
+
+**After TV is working:**
+1. Test it thoroughly
+2. Report back that TV service is complete
+3. Wait for my approval
+4. Only then replicate the same pattern to Electricity, Data, etc.
+
+**⚠️ DO NOT PROCEED TO TASK 4 UNTIL TV SERVICE IS CONFIRMED WORKING**
+
+---
+
+## **TASK 4: DYNAMIC AMOUNT GRID SYSTEM - SINGLE SERVICE FIRST**
+
+**⚠️ IMPORTANT: Implement this for ONE service first (recommend: Electricity). Once working, replicate to others.**
+
+### **Test First:**
+1. Go to Electricity service (or any service with amount selection)
+2. Select a provider
+3. **Check:** Are the amount buttons (₦1,000, ₦2,000, etc.) hardcoded in frontend?
+
+### **Status Check:**
+- [ ] **Amount grids are HARDCODED** (in frontend code)
+- [ ] **Amount grids are DYNAMIC** (from backend)
+
+### **If Hardcoded:**
+
+**STEP-BY-STEP IMPLEMENTATION:**
+
+**Step 1: Create Database Table**
+
+```sql
+CREATE TABLE provider_quick_amounts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    provider_id INT NOT NULL,
+    service_type VARCHAR(50) NOT NULL,
+    amounts JSON NOT NULL,
+    grid_columns INT DEFAULT 3,
+    allow_custom BOOLEAN DEFAULT TRUE,
+    min_amount INT DEFAULT 0,
+    max_amount INT DEFAULT 1000000,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (provider_id) REFERENCES providers(id)
+);
+```
+
+**Step 2: Seed Initial Data (Example for IBEDC)**
+
+```sql
+INSERT INTO provider_quick_amounts (provider_id, service_type, amounts, grid_columns) 
+VALUES 
+(1, 'electricity', '[1000, 2000, 3000, 5000, 10000, 20000]', 3);
+```
+
+**Step 3: Backend API - Quick Amounts Endpoint**
+
+Create endpoint:
+```
+GET /api/v1/providers/{provider_slug}/quick-amounts
+
+Example: GET /api/v1/providers/ibedc-electricity/quick-amounts
+
+Response:
+{
+  "success": true,
+  "provider": "ibedc-electricity",
+  "amounts": [1000, 2000, 3000, 5000, 10000, 20000],
+  "layout": {
+    "columns": 3,
+    "rows": 2
+  },
+  "allow_custom": true,
+  "min_amount": 500,
+  "max_amount": 100000
+}
+```
+
+**Step 4: Backend Admin Panel - Quick Amount Manager UI**
+
+Create admin page:
+```
+URL: /admin/quick-amounts
+
+UI Components:
+1. Service Type Dropdown (Electricity, TV, Data, etc.)
+2. Provider Dropdown (filtered by service type)
+3. Current Amounts Display (with Remove buttons)
+4. Add Amount Input Field
+5. Grid Layout Config (columns selector)
+6. Save Button
+7. Preview Button
+```
+
+**Admin Page Structure:**
+```html
+┌─────────────────────────────────────────────┐
+│  Quick Amount Grid Configuration            │
+├─────────────────────────────────────────────┤
+│                                             │
+│  Service Type: [Electricity ▼]              │
+│  Provider: [Ibadan Electricity (IBEDC) ▼]  │
+│                                             │
+│  Current Quick Amounts:                     │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐    │
+│  │ ₦1,000  │  │ ₦2,000  │  │ ₦3,000  │    │
+│  │   [X]   │  │   [X]   │  │   [X]   │    │
+│  └─────────┘  └─────────┘  └─────────┘    │
+│                                             │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐    │
+│  │ ₦5,000  │  │₦10,000  │  │₦20,000  │    │
+│  │   [X]   │  │   [X]   │  │   [X]   │    │
+│  └─────────┘  └─────────┘  └─────────┘    │
+│                                             │
+│  Add New Amount: [______] [+ Add]          │
+│                                             │
+│  Grid Layout: [3 columns ▼]                │
+│                                             │
+│  Allow Custom Amount: [✓] Yes  [ ] No      │
+│  Min Amount: [₦500]   Max: [₦100,000]     │
+│                                             │
+│  [Save Changes]  [Preview Grid]             │
+└─────────────────────────────────────────────┘
+```
+
+**Admin Panel Backend Logic:**
+```javascript
+// Get current amounts for a provider
+GET /admin/api/providers/{id}/quick-amounts
+Response: {amounts: [1000, 2000, ...], layout: {...}}
+
+// Update amounts for a provider
+PUT /admin/api/providers/{id}/quick-amounts
+Body: {
+  amounts: [1000, 2000, 3000, 5000, 10000, 20000],
+  grid_columns: 3,
+  allow_custom: true,
+  min_amount: 500,
+  max_amount: 100000
+}
+```
+
+**Step 5: Frontend - Remove Hardcoded Amount Grids**
+
+Search frontend code for:
+- Any array containing [100, 200, 500, 1000, etc.]
+- Hardcoded amount buttons
+- Delete ALL of them from Electricity service
+
+**Step 6: Frontend - Implement Dynamic Amount Grid**
+
+```javascript
+// Electricity Service Component (Amount Selection Section)
+
+function AmountSelection({ provider }) {
+  const [amounts, setAmounts] = useState([]);
+  const [customAmount, setCustomAmount] = useState('');
+  const [selectedAmount, setSelectedAmount] = useState(null);
+
+  useEffect(() => {
+    if (provider) {
+      fetchQuickAmounts(provider.slug);
+    }
+  }, [provider]);
+
+  async function fetchQuickAmounts(providerSlug) {
+    try {
+      const response = await fetch(`/api/v1/providers/${providerSlug}/quick-amounts`);
+      const data = await response.json();
+      if (data.success) {
+        setAmounts(data.amounts);
+      }
+    } catch (error) {
+      console.error('Error fetching amounts:', error);
+      // Fallback: Allow only custom input if API fails
+    }
+  }
+
+  function handleAmountSelect(amount) {
+    setSelectedAmount(amount);
+    setCustomAmount(''); // Clear custom input
+  }
+
+  function handleCustomAmountChange(value) {
+    setCustomAmount(value);
+    setSelectedAmount(null); // Clear grid selection
+  }
+
+  return (
+    <div className="amount-selection">
+      <h3>Select Amount</h3>
+      
+      {/* Dynamic Amount Grid */}
+      <div className="amount-grid">
+        {amounts.map(amount => (
+          <button
+            key={amount}
+            className={`amount-btn ${selectedAmount === amount ? 'selected' : ''}`}
+            onClick={() => handleAmountSelect(amount)}
+          >
+            ₦{amount.toLocaleString()}
+          </button>
+        ))}
+      </div>
+
+      {/* Custom Amount Input */}
+      <div className="custom-amount">
+        <label>Or enter custom amount:</label>
+        <input
+          type="number"
+          placeholder="Enter amount"
+          value={customAmount}
+          onChange={(e) => handleCustomAmountChange(e.target.value)}
+        />
+      </div>
+
+      {/* Display selected amount */}
+      <div className="selected-display">
+        Amount to pay: ₦{(selectedAmount || customAmount || 0).toLocaleString()}
+      </div>
+    </div>
+  );
+}
+```
+
+**Step 7: Test Electricity Service Amount Grid**
+
+**Testing in Admin Panel:**
+- [ ] Can select Electricity service type
+- [ ] Can select IBEDC provider
+- [ ] Current amounts display correctly
+- [ ] Can add new amount (e.g., ₦15,000)
+- [ ] Can remove amount
+- [ ] Can change grid columns
+- [ ] Save works correctly
+- [ ] Changes persist after page refresh
+
+**Testing in Frontend:**
+- [ ] Select IBEDC from provider list
+- [ ] Amount grid loads dynamically from backend
+- [ ] Grid displays amounts in correct layout (3 columns)
+- [ ] Clicking amount button selects it
+- [ ] Can enter custom amount in input field
+- [ ] Selecting grid amount clears custom input
+- [ ] Entering custom amount deselects grid buttons
+- [ ] Selected amount displays correctly
+
+**Testing Admin Changes Reflect in Frontend:**
+- [ ] In admin: Add ₦15,000 to IBEDC amounts
+- [ ] Save changes
+- [ ] In frontend: Refresh → New ₦15,000 button appears
+- [ ] In admin: Remove ₦20,000
+- [ ] In frontend: Refresh → ₦20,000 button disappears
+
+**⚠️ STOP HERE. Test this thoroughly for Electricity ONLY.**
+
+**After Electricity amount grid is working:**
+1. Test it extensively
+2. Report back that Electricity amount grid is complete
+3. Wait for approval
+4. Only then replicate to other services (Airtime, Data, Betting, etc.)
+
+**⚠️ DO NOT PROCEED TO TASK 5 UNTIL THIS IS CONFIRMED WORKING**
+
+---
+
+## **TASK 5: SETTINGS SCREEN CRASH FIX**
+
+### **Test First:**
+1. Navigate to Settings screen
+2. **Check:** Does it crash or load properly?
+3. If it crashes, check console/logs for error message
+
+### **Status Check:**
+- [ ] **WORKING** - Settings loads fine
+- [ ] **CRASHES** - App crashes when opening Settings
+- [ ] **NOT IMPLEMENTED** - Settings doesn't exist
+
+### **If Crashes:**
+
+**Debug Steps:**
+
+1. **Check Console/Logs:**
+   - Open browser console (F12)
+   - Navigate to Settings
+   - Look for error messages
+   - Note the exact error
+
+2. **Common Crash Causes:**
+   - Undefined variable/state
+   - Missing data from API
+   - Incorrect import statement
+   - Missing component prop
+   - Broken navigation link
+
+3. **Fix Process:**
+   - Identify the exact line causing crash
+   - Fix the issue (add null checks, default values, etc.)
+   - Add error boundaries if needed
+   - Test thoroughly
+
+4. **Implement Error Handling:**
+```javascript
+function SettingsScreen() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    fetchUserSettings();
+  }, []);
+
+  async function fetchUserSettings() {
+    try {
+      const response = await fetch('/api/user/settings');
+      if (!response.ok) throw new Error('Failed to fetch settings');
+      const data = await response.json();
+      setUserData(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
+  if (!userData) return <div>No data available</div>;
+
+  return (
+    <div className="settings-screen">
+      {/* Settings content */}
+    </div>
+  );
+}
+```
+
+**Test After Fix:**
+- [ ] Settings screen opens without crash
+- [ ] All settings options visible
+- [ ] Can navigate to sub-sections
+- [ ] Can navigate back
+- [ ] Changes save properly
+
+**⚠️ DO NOT PROCEED TO TASK 6 UNTIL SETTINGS WORKS PROPERLY**
+
+---
+
+## **TASK 6: HOME HEADER FUNCTIONALITY**
+
+### **Test First:**
+1. Look at home screen header
+2. **Check:**
+   - Is there a search icon? Does it work?
+   - Is there a notification icon? Does it work?
+   - Is there a profile icon/action? Does it work?
+
+### **Status Check:**
+
+**A. Search Icon:**
+- [ ] **WORKING** - Opens search, can search globally
+- [ ] **PARTIALLY WORKING** - Opens but search doesn't work
+- [ ] **NOT WORKING** - Nothing happens on click
+- [ ] **NOT IMPLEMENTED** - Icon doesn't exist
+
+**B. Notification Icon:**
+- [ ] **WORKING** - Opens notifications list
+- [ ] **PARTIALLY WORKING** - Opens but empty/no data
+- [ ] **NOT WORKING** - Nothing happens on click
+- [ ] **NOT IMPLEMENTED** - Icon doesn't exist
+
+**C. Profile Action:**
+- [ ] **WORKING** - Navigates to profile
+- [ ] **NOT WORKING** - Nothing happens on click
+- [ ] **NOT IMPLEMENTED** - Icon/button doesn't exist
+
+### **Implementation Priority Order:**
+
+**FIRST: Profile Action** (Easiest)
+
+If not working:
+```javascript
+function HomeHeader() {
+  const navigate = useNavigate();
+
+  function handleProfileClick() {
+    navigate('/profile'); // or '/account' or wherever profile is
+  }
+
+  return (
+    <header className="home-header">
+      <button onClick={handleProfileClick}>
+        <UserIcon /> {/* or profile image */}
+      </button>
+    </header>
+  );
+}
+```
+
+Test:
+- [ ] Click profile → navigates to profile screen
+- [ ] Profile screen loads user data
+- [ ] Can navigate back
+
+**⚠️ Once profile works, report back before proceeding**
+
+---
+
+**SECOND: Notification Icon**
+
+If not working:
+
+**Backend - Create Notification Endpoints:**
+```
+GET /api/v1/notifications
+Response:
+{
+  "success": true,
+  "notifications": [
+    {
+      "id": 1,
+      "title": "Transaction Successful",
+      "message": "Your DStv subscription was successful",
+      "type": "success",
+      "read": false,
+      "created_at": "2025-10-22T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "title": "New Offer",
+      "message": "Get 10% cashback on data purchases",
+      "type": "promo",
+      "read": true,
+      "created_at": "2025-10-21T15:00:00Z"
+    }
+  ],
+  "unread_count": 1
+}
+
+POST /api/v1/notifications/{id}/mark-read
+Response: {"success": true}
+```
+
+**Frontend Implementation:**
+```javascript
+function NotificationButton() {
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function fetchNotifications() {
+    const response = await fetch('/api/v1/notifications');
+    const data = await response.json();
+    setNotifications(data.notifications);
+    setUnreadCount(data.unread_count);
+  }
+
+  async function markAsRead(notificationId) {
+    await fetch(`/api/v1/notifications/${notificationId}/mark-read`, {
+      method: 'POST'
+    });
+    fetchNotifications(); // Refresh
+  }
+
+  return (
+    <>
+      <button onClick={() => setShowNotifications(true)}>
+        <BellIcon />
+        {unreadCount > 0 && <Badge count={unreadCount} />}
+      </button>
+
+      {/* Notification List Bottom Sheet */}
+      <BottomSheet open={showNotifications} onClose={() => setShowNotifications(false)}>
+        <h2>Notifications</h2>
+        {notifications.length === 0 ? (
+          <p>No notifications</p>
+        ) : (
+          <div className="notification-list">
+            {notifications.map(notif => (
+              <NotificationItem 
+                key={notif.id}
+                notification={notif}
+                onRead={() => markAsRead(notif.id)}
+              />
+            ))}
+          </div>
+        )}
+      </BottomSheet>
+    </>
+  );
+}
+```
+
+Test:
+- [ ] Notification icon shows unread count badge
+- [ ] Click notification → opens notification list
+- [ ] Can mark notification as read
+- [ ] Badge count updates correctly
+- [ ] Empty state works if no notifications
+
+**⚠️ Once notifications work, report back before proceeding**
+
+---
+
+**THIRD: Global Search**
+
+If not working:
+
+**Backend - Create Search Endpoint:**
+```
+GET /api/v1/search?query={search_term}
+
+Example: GET /api/v1/search?query=dstv
+
+Response:
+{
+  "success": true,
+  "results": [
+    {
+      "type": "service",
+      "category": "TV",
+      "title": "DStv Subscription",
+      "description": "Subscribe to DStv packages",
+      "action": "/services/tv/dstv"
+    },
+    {
+      "type": "provider",
+      "category": "TV",
+      "title": "DStv Compact Package",
+      "description": "₦10,500 - Over 120 channels",
+      "action": "/services/tv/dstv/compact"
+    }
+  ]
+}
+```
+
+**Frontend Implementation:**
+```javascript
+function GlobalSearch() {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const navigate = useNavigate();
+
+  // Debounce search
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  async function performSearch(query) {
+    setSearching(true);
+    try {
+      const response = await fetch(`/api/v1/search?query=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      setSearchResults(data.results);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function handleResultClick(result) {
+    navigate(result.action);
+    setSearchOpen(false);
+    setSearchQuery('');
+  }
+
+  return (
+    <>
+      <button onClick={() => setSearchOpen(true)}>
+        <SearchIcon />
+      </button>
+
+      {/* Search Modal/Bottom Sheet */}
+      <Modal open={searchOpen} onClose={() => setSearchOpen(false)}>
+        <div className="search-container">
+          <input
+            type="text"
+            placeholder="Search for services, providers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+
+          {searching && <LoadingSpinner />}
+
+          <div className="search-results">
+            {searchResults.length === 0 && searchQuery.length >= 2 && !searching && (
+              <p>No results found for "{searchQuery}"</p>
+            )}
+            
+            {searchResults.map((result, index) => (
+              <div 
+                key={index}
+                className="search-result-item"
+                onClick={() => handleResultClick(result)}
+              >
+                <div className="result-category">{result.category}</div>
+                <div className="result-title">{result.title}</div>
+                <div className="result-description">{result.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}
+```
+
+**What Backend Should Search:**
+- All services (TV, Data, Electricity, Airtime, etc.)
+- All providers (DStv, MTN, IBEDC, etc.)
+- All packages/products
+- Transaction history (optional)
+
+Test:
+- [ ] Click search icon → opens search modal
+- [ ] Can type in search box
+- [ ] Results appear as you type (after 2+ characters)
+- [ ] Results are relevant to search query
+- [ ] Can click result → navigates to correct screen
+- [ ] Search across all services works
+- [ ] Empty state shows if no results
+
+**⚠️ DO NOT PROCEED TO TASK 7 UNTIL ALL THREE (PROFILE, NOTIFICATIONS, SEARCH) ARE WORKING**
+
+---
+
+## **TASK 7: DASHBOARD/TRANSACTIONS FIX**
+
+### **Test First:**
+1. Navigate to Dashboard/Transactions screen
+2. **Check:**
+   - Does transaction history load?
+   - Can you click on a transaction row?
+   - Do filters work?
+   - Does download/export work?
+
+### **Status Check:**
+
+**A. Transaction History Display:**
+- [ ] **WORKING** - Shows list of transactions
+- [ ] **PARTIALLY WORKING** - Shows but data incomplete
+- [ ] **NOT WORKING** - Empty or crashes
+- [ ] **NOT IMPLEMENTED** - Screen doesn't exist
+
+**B. Transaction Row Click:**
+- [ ] **WORKING** - Opens transaction details
+- [ ] **NOT WORKING** - Nothing happens
+- [ ] **NOT IMPLEMENTED** - Not clickable
+
+**C. Filters (See/Unseen, Status, Date):**
+- [ ] **WORKING** - All filters work
+- [ ] **PARTIALLY WORKING** - Some filters work
+- [ ] **NOT WORKING** - Filters don't work
+- [ ] **NOT IMPLEMENTED** - No filters
+
+**D. Download/Export:**
+- [ ] **WORKING** - Can download transactions
+- [ ] **NOT WORKING** - Button doesn't work
+- [ ] **NOT IMPLEMENTED** - No download button
+
+### **Implementation:**
+
+**FIRST: Transaction History Display**
+
+If not working:
+
+**Backend - Transactions Endpoint:**
+```
+GET /api/v1/transactions?page=1&limit=20
+
+Response:
+{
+  "success": true,
+  "transactions": [
+    {
+      "id": "TXN123456",
+      "service": "Airtime",
+      "provider": "MTN",
+      "amount": 200.00,
+      "recipient": "08012345678",
+      "status": "successful",
+      "date": "2025-10-22T09:49:57Z",
+      "reference": "REF123456"
+    },
+    {
+      "id": "TXN123457",
+      "service": "Electricity",
+      "provider": "IBEDC",
+      "amount": 5000.00,
+      "recipient": "Meter: 45678901234",
+      "status": "successful",
+      "date": "2025-09-30T08:32:12Z",
+      "reference": "REF123457"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 5,
+    "total_records": 100
+  }
+}
+```
+
+**Frontend Implementation:**
+```javascript
+function TransactionsScreen() {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    fetchTransactions(page);
+  }, [page]);
+
+  async function fetchTransactions(pageNum) {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/v1/transactions?page=${pageNum}&limit=20`);
+      const data = await response.json();
+      setTransactions(data.transactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="transactions-screen">
+      <h1>Transactions</h1>
+      
+      {loading ? (
+        <LoadingSpinner />
+      ) : (
+        <div className="transaction-list">
+          {transactions.map(txn => (
+            <TransactionRow 
+              key={txn.id}
+              transaction={txn}
+              onClick={() => handleTransactionClick(txn)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TransactionRow({ transaction, onClick }) {
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'successful': return 'green';
+      case 'failed': return 'red';
+      case 'pending': return 'orange';
+      default: return 'gray';
+    }
+  };
+
+  return (
+    <div className="transaction-row" onClick={onClick}>
+      <div className="txn-icon">
+        <ServiceIcon type={transaction.service} />
+      </div>
+      <div className="txn-details">
+        <div className="txn-service">{transaction.service}</div>
+        <div className="txn-date">{formatDate(transaction.date)}</div>
+      </div>
+      <div className="txn-amount">
+        -₦{transaction.amount.toLocaleString()}
+      </div>
+      <div className={`txn-status ${getStatusColor(transaction.status)}`}>
+        {transaction.status}
+      </div>
+    </div>
+  );
+}
+```
+
+Test:
+- [ ] Transaction list loads
+- [ ] Shows all transaction details (service, amount, date, status)
+- [ ] Correct icons for each service
+- [ ] Status colors correct (green=success, red=failed, orange=pending)
+- [ ] Pagination works (if implemented)
+
+**⚠️ Once transaction list works, report back before proceeding**
+
+---
+
+**SECOND: Transaction Details (Click to View)**
+
+If not working:
+
+**Backend - Transaction Detail Endpoint:**
+```
+GET /api/v1/transactions/{transaction_id}
+
+Example: GET /api/v1/transactions/TXN123456
+
+Response:
+{
+  "success": true,
+  "transaction": {
+    "id": "TXN123456",
+    "service": "Airtime",
+    "provider": "MTN",
+    "amount": 200.00,
+    "fee": 0.00,
+    "total": 200.00,
+    "recipient": "08012345678",
+    "status": "successful",
+    "date": "2025-10-22T09:49:57Z",
+    "reference": "REF123456",
+    "payment_method": "Wallet",
+    "description": "MTN Airtime Purchase",
+    "receipt_url": "/receipts/TXN123456.pdf"
+  }
+}
+```
+
+**Frontend Implementation:**
+```javascript
+function TransactionDetails({ transactionId, onClose }) {
+  const [transaction, setTransaction] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTransactionDetails(transactionId);
+  }, [transactionId]);
+
+  async function fetchTransactionDetails(id) {
+    try {
+      const response = await fetch(`/api/v1/transactions/${id}`);
+      const data = await response.json();
+      setTransaction(data.transaction);
+    } catch (error) {
+      console.error('Error fetching transaction details:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <LoadingSpinner />;
+  if (!transaction) return <div>Transaction not found</div>;
+
+  return (
+    <BottomSheet open={true} onClose={onClose}>
+      <div className="transaction-details">
+        <h2>Transaction Details</h2>
+        
+        <div className="detail-row">
+          <span className="label">Transaction ID:</span>
+          <span className="value">{transaction.id}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Service:</span>
+          <span className="value">{transaction.service}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Provider:</span>
+          <span className="value">{transaction.provider}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Recipient:</span>
+          <span className="value">{transaction.recipient}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Amount:</span>
+          <span className="value">₦{transaction.amount.toLocaleString()}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Fee:</span>
+          <span className="value">₦{transaction.fee.toLocaleString()}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Total:</span>
+          <span className="value bold">₦{transaction.total.toLocaleString()}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Status:</span>
+          <span className={`value status-${transaction.status}`}>
+            {transaction.status.toUpperCase()}
+          </span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Date:</span>
+          <span className="value">{formatDateTime(transaction.date)}</span>
+        </div>
+        
+        <div className="detail-row">
+          <span className="label">Reference:</span>
+          <span className="value">{transaction.reference}</span>
+        </div>
+        
+        {transaction.receipt_url && (
+          <button 
+            className="download-receipt-btn"
+            onClick={() => window.open(transaction.receipt_url)}
+          >
+            Download Receipt
+          </button>
+        )}
+      </div>
+    </BottomSheet>
+  );
+}
+```
+
+**Update TransactionsScreen to handle click:**
+```javascript
+function TransactionsScreen() {
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+  function handleTransactionClick(txn) {
+    setSelectedTransaction(txn.id);
+  }
+
+  return (
+    <>
+      {/* Transaction list */}
+      
+      {selectedTransaction && (
+        <TransactionDetails 
+          transactionId={selectedTransaction}
+          onClose={() => setSelectedTransaction(null)}
+        />
+      )}
+    </>
+  );
+}
+```
+
+Test:
+- [ ] Click transaction row → opens detail view
+- [ ] All details displayed correctly
+- [ ] Status shows correct color
+- [ ] Date/time formatted correctly
+- [ ] Receipt download works (if available)
+- [ ] Can close detail view
+- [ ] Can open multiple transactions sequentially
+
+**⚠️ Once transaction details work, report back before proceeding**
+
+---
+
+**THIRD: Filters**
+
+If not working:
+
+**Backend - Add Filter Parameters:**
+```
+GET /api/v1/transactions?page=1&limit=20&status=successful&date_from=2025-09-01&date_to=2025-10-22&service=Airtime
+
+Query Parameters:
+- status: successful | failed | pending | all
+- date_from: YYYY-MM-DD
+- date_to: YYYY-MM-DD
+- service: Airtime | Data | Electricity | TV | etc.
+- min_amount: number
+- max_amount: number
+```
+
+**Frontend Implementation:**
+```javascript
+function TransactionsScreen() {
+  const [filters, setFilters] = useState({
+    status: 'all',
+    dateFrom: null,
+    dateTo: null,
+    service: 'all'
+  });
+  const [showFilters, setShowFilters] = useState(false);
+
+  async function fetchTransactions(pageNum) {
+    const params = new URLSearchParams({
+      page: pageNum,
+      limit: 20,
+      ...(filters.status !== 'all' && { status: filters.status }),
+      ...(filters.dateFrom && { date_from: filters.dateFrom }),
+      ...(filters.dateTo && { date_to: filters.dateTo }),
+      ...(filters.service !== 'all' && { service: filters.service })
+    });
+
+    const response = await fetch(`/api/v1/transactions?${params}`);
+    // ... rest of fetch logic
+  }
+
+  function applyFilters(newFilters) {
+    setFilters(newFilters);
+    setPage(1); // Reset to first page
+    fetchTransactions(1); // Fetch with new filters
+  }
+
+  return (
+    <div className="transactions-screen">
+      <div className="transactions-header">
+        <h1>Transactions</h1>
+        <button onClick={() => setShowFilters(true)}>
+          <FilterIcon /> Filters
+        </button>
+      </div>
+
+      {/* Transaction list */}
+
+      {/* Filter Modal */}
+      {showFilters && (
+        <FilterModal 
+          currentFilters={filters}
+          onApply={applyFilters}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function FilterModal({ currentFilters, onApply, onClose }) {
+  const [localFilters, setLocalFilters] = useState(currentFilters);
+
+  function handleApply() {
+    onApply(localFilters);
+    onClose();
+  }
+
+  return (
+    <BottomSheet open={true} onClose={onClose}>
+      <h2>Filter Transactions</h2>
+
+      <div className="filter-group">
+        <label>Status</label>
+        <select 
+          value={localFilters.status}
+          onChange={(e) => setLocalFilters({...localFilters, status: e.target.value})}
+        >
+          <option value="all">All Status</option>
+          <option value="successful">Successful</option>
+          <option value="failed">Failed</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+
+      <div className="filter-group">
+        <label>Service Type</label>
+        <select 
+          value={localFilters.service}
+          onChange={(e) => setLocalFilters({...localFilters, service: e.target.value})}
+        >
+          <option value="all">All Services</option>
+          <option value="Airtime">Airtime</option>
+          <option value="Data">Data</option>
+          <option value="Electricity">Electricity</option>
+          <option value="TV">TV</option>
+          <option value="Betting">Betting</option>
+        </select>
+      </div>
+
+      <div className="filter-group">
+        <label>Date From</label>
+        <input 
+          type="date"
+          value={localFilters.dateFrom || ''}
+          onChange={(e) => setLocalFilters({...localFilters, dateFrom: e.target.value})}
+        />
+      </div>
+
+      <div className="filter-group">
+        <label>Date To</label>
+        <input 
+          type="date"
+          value={localFilters.dateTo || ''}
+          onChange={(e) => setLocalFilters({...localFilters, dateTo: e.target.value})}
+        />
+      </div>
+
+      <div className="filter-actions">
+        <button onClick={() => setLocalFilters({ status: 'all', dateFrom: null, dateTo: null, service: 'all' })}>
+          Clear All
+        </button>
+        <button onClick={handleApply} className="primary">
+          Apply Filters
+        </button>
+      </div>
+    </BottomSheet>
+  );
+}
+```
+
+Test:
+- [ ] Filter button opens filter modal
+- [ ] Can select status filter
+- [ ] Can select service filter
+- [ ] Can select date range
+- [ ] Apply filters → transaction list updates
+- [ ] Clear all filters → shows all transactions
+- [ ] Filter results are correct
+
+**⚠️ Once filters work, report back before proceeding**
+
+---
+
+**FOURTH: Download/Export**
+
+If not working:
+
+**Backend - Export Endpoint:**
+```
+GET /api/v1/transactions/export?format=csv&status=all&date_from=2025-09-01
+
+Query Parameters:
+- format: csv | pdf
+- (All filter parameters same as transaction list)
+
+Response:
+- For CSV: Returns CSV file download
+- For PDF: Returns PDF file download
+```
+
+**Frontend Implementation:**
+```javascript
+function TransactionsScreen() {
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport(format) {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({
+        format: format,
+        ...(filters.status !== 'all' && { status: filters.status }),
+        ...(filters.dateFrom && { date_from: filters.dateFrom }),
+        ...(filters.dateTo && { date_to: filters.dateTo }),
+        ...(filters.service !== 'all' && { service: filters.service })
+      });
+
+      const response = await fetch(`/api/v1/transactions/export?${params}`);
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transactions-${Date.now()}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export transactions');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <div className="transactions-screen">
+      <div className="transactions-header">
+        <h1>Transactions</h1>
+        <div className="header-actions">
+          <button onClick={() => setShowFilters(true)}>
+            <FilterIcon /> Filters
+          </button>
+          <button onClick={() => setShowExportMenu(true)} disabled={exporting}>
+            <DownloadIcon /> {exporting ? 'Exporting...' : 'Download'}
+          </button>
+        </div>
+      </div>
+
+      {/* Export menu */}
+      {showExportMenu && (
+        <Menu onClose={() => setShowExportMenu(false)}>
+          <MenuItem onClick={() => handleExport('csv')}>
+            Export as CSV
+          </MenuItem>
+          <MenuItem onClick={() => handleExport('pdf')}>
+            Export as PDF
+          </MenuItem>
+        </Menu>
+      )}
+    </div>
+  );
+}
+```
+
+Test:
+- [ ] Click download button → shows format options
+- [ ] Select CSV → downloads CSV file
+- [ ] Select PDF → downloads PDF file
+- [ ] Downloaded file contains correct data
+- [ ] Downloaded file respects current filters
+- [ ] Loading state shows during export
+
+**⚠️ DO NOT PROCEED TO TASK 8 UNTIL ALL TRANSACTION FEATURES ARE WORKING**
+
+---
+
+## **TASK 8: REPLICATE DYNAMIC PATTERNS TO ALL SERVICES**
+
+**⚠️ ONLY START THIS AFTER TASKS 1-7 ARE COMPLETE**
+
+By now, you should have:
+- ✅ TV service working with dynamic providers
+- ✅ Electricity service working with dynamic amount grids
+- ✅ Bottom sheet pattern working
+
+**Now replicate these patterns to remaining services:**
+
+### **Services to Update (In Order):**
+
+1. **Data Service** ✅ After TV pattern is proven
+2. **Airtime Service** ✅ After Data is done
+3. **Betting Service** ✅ After Airtime is done
+4. **Internet/Broadband** ✅ After Betting is done
+5. **Education (WAEC, JAMB, etc.)** ✅ After Internet is done
+6. **Insurance** ✅ After Education is done
+7. **Any other VTPass services** ✅ After all above are done
+
+### **For EACH Service:**
+
+**Step 1: Backend API**
+- Create provider endpoint: `GET /api/v1/services/{service_type}/providers`
+- Create service options endpoint: `GET /api/v1/services/{service_type}/providers/{provider_id}/options`
+- Create quick amounts endpoint: `GET /api/v1/providers/{provider_slug}/quick-amounts`
+
+**Step 2: Remove Hardcoded Data**
+- Search frontend code for hardcoded provider arrays
+- Delete all hardcoded data
+- Remove static amount grids
+
+**Step 3: Implement Bottom Sheet Pattern**
+- Bottom Sheet 1: Provider selection (grid of providers from API)
+- Bottom Sheet 2: Provider-specific form (data from API)
+
+**Step 4: Implement Dynamic Amount Grid**
+- Fetch amounts from backend
+- Render grid dynamically
+- Include custom amount input
+
+**Step 5: Admin Panel Configuration**
+- Add service to quick amount grid manager
+- Add providers for this service
+- Configure default amounts
+
+**Step 6: Test Thoroughly**
+- Test provider loading
+- Test form submission
+- Test amount selection
+- Test error states
+- Test navigation
+
+**⚠️ COMPLETE ONE SERVICE AT A TIME. REPORT AFTER EACH IS DONE.**
+
+---
+
+## **TASK 9: BACKEND ADMIN PANEL - COMPLETE BUILD**
+
+**⚠️ ONLY START AFTER TASK 8 IS COMPLETE**
+
+This is a LARGE task. Break it into sub-tasks:
+
+### **Sub-Task 9.1: Screen/Route Manager**
+
+**What to Build:**
+Admin page where admin can:
+- Select target screen (Home, TV, Data, etc.)
+- Select content type (Banner, Text Notice, etc.)
+- Upload/create content
+- Set visibility rules
+- Preview
+- Publish
+
+**Backend API Needed:**
+```
+GET /admin/api/screens - List all app screens
+GET /admin/api/content/{screen_id} - Get content for a screen
+POST /admin/api/content - Create new content
+PUT /admin/api/content/{id} - Update content
+DELETE /admin/api/content/{id} - Delete content
+```
+
+**Admin UI Structure:**
+```
+1. Screen Selector (dropdown)
+2. Content Type Selector (dropdown)
+3. Content Editor (form - varies by content type)
+4. Visibility Settings (date range, user segment)
+5. Preview Button
+6. Publish Button
+```
+
+Test:
+- [ ] Can select screen
+- [ ] Can select content type
+- [ ] Can upload banner image
+- [ ] Can enter text notice
+- [ ] Can set visibility dates
+- [ ] Preview shows correct content
+- [ ] Publish makes content appear in app
+- [ ] Can edit existing content
+- [ ] Can delete content
+
+**⚠️ Report when Sub-Task 9.1 is complete before proceeding**
+
+---
+
+### **Sub-Task 9.2: Banner & Carousel Manager**
+
+**What to Build:**
+Admin page for managing banners and carousels
+
+**Features:**
+- Upload multiple images
+- Set display order
+- Assign to screens (global or specific)
+- Set auto-rotate interval for carousels
+- Link to actions (navigate to service, open URL)
+- Schedule (start/end dates)
+- Analytics (impressions, clicks)
+
+**Backend API:**
+```
+GET /admin/api/banners - List all banners
+POST /admin/api/banners - Create banner
+PUT /admin/api/banners/{id} - Update banner
+DELETE /admin/api/banners/{id} - Delete banner
+POST /admin/api/banners/{id}/upload - Upload image
+GET /admin/api/banners/analytics - Get banner analytics
+```
+
+Test:
+- [ ] Can upload banner image
+- [ ] Can set banner properties
+- [ ] Can assign to multiple screens
+- [ ] Can set display order
+- [ ] Can schedule banner
+- [ ] Banner appears on assigned screens
+- [ ] Can view analytics
+- [ ] Can deactivate banner
+
+**⚠️ Report when Sub-Task 9.2 is complete before proceeding**
+
+---
+
+### **Sub-Task 9.3: Provider & Service Manager**
+
+**What to Build:**
+Admin page for managing providers and services
+
+**Features:**
+- List all VTPass services (372+)
+- Enable/disable services
+- Add custom service metadata
+- Manage providers (from VTPass)
+- Set provider branding (logo, colors)
+- Configure commission per service/provider
+
+**Backend API:**
+```
+GET /admin/api/vtpass/services - Fetch all VTPass services
+GET /admin/api/providers - List all providers
+POST /admin/api/providers - Add custom provider
+PUT /admin/api/providers/{id} - Update provider
+POST /admin/api/providers/{id}/logo - Upload logo
+PUT /admin/api/providers/{id}/commission - Set commission
+```
+
+Test:
+- [ ] Shows all 372+ VTPass services
+- [ ] Can enable/disable services
+- [ ] Can add provider details
+- [ ] Can upload provider logo
+- [ ] Can set commission rates
+- [ ] Changes reflect in frontend immediately
+
+**⚠️ Report when Sub-Task 9.3 is complete before proceeding**
+
+---
+
+### **Sub-Task 9.4: Notification Manager**
+
+**What to Build:**
+Admin page for sending notifications
+
+**Features:**
+- Create notification (title, message, type)
+- Select recipients (all users, specific user, segment)
+- Select service (for service-specific notifications)
+- Schedule send time
+- View notification history
+- View delivery analytics
+
+**Backend API:**
+```
+POST /admin/api/notifications - Create notification
+GET /admin/api/notifications - List all notifications
+GET /admin/api/notifications/{id}/analytics - Get delivery stats
+POST /admin/api/notifications/{id}/send - Send notification
+```
+
+Test:
+- [ ] Can create notification
+- [ ] Can select recipients
+- [ ] Can schedule notification
+- [ ] Notification appears in user's app
+- [ ] Service-specific notifications show badge
+- [ ] Can view notification history
+- [ ] Analytics show delivery rate
+
+**⚠️ Report when Sub-Task 9.4 is complete before proceeding**
+
+---
+
+### **Sub-Task 9.5: User Management**
+
+**What to Build:**
+Admin page for managing users
+
+**Features:**
+- User list with search/filter
+- View user profile
+- View user transactions
+- Suspend/activate user
+- View user analytics
+- Manual balance adjustment (if applicable)
+
+**Backend API:**
+```
+GET /admin/api/users - List users with pagination/filters
+GET /admin/api/users/{id} - Get user details
+GET /admin/api/users/{id}/transactions - Get user transactions
+PUT /admin/api/users/{id}/status - Update user status
+PUT /admin/api/users/{id}/balance - Adjust balance
+```
+
+Test:
+- [ ] User list loads
+- [ ] Search works
+- [ ] Filters work
+- [ ] Can view user profile
+- [ ] Can view user transactions
+- [ ] Can suspend user
+- [ ] Suspended user cannot transact
+
+**⚠️ Report when Sub-Task 9.5 is complete before proceeding**
+
+---
+
+### **Sub-Task 9.6: Transaction Management**
+
+**What to Build:**
+Admin page for managing all transactions
+
+**Features:**
+- View all system transactions
+- Advanced filters
+- Transaction detail view
+- Refund capability
+- Reversal capability
+- Export transactions
+- Analytics dashboard
+
+**Backend API:**
+```
+GET /admin/api/transactions - List all transactions
+GET /admin/api/transactions/{id} - Get transaction details
+POST /admin/api/transactions/{id}/refund - Refund transaction
+POST /admin/api/transactions/{id}/reverse - Reverse transaction
+GET /admin/api/transactions/export - Export transactions
+GET /admin/api/transactions/analytics - Get analytics
+```
+
+Test:
+- [ ] Transaction list loads
+- [ ] Filters work
+- [ ] Can view details
+- [ ] Refund works
+- [ ] Reversal works
+- [ ] Export works
+- [ ] Analytics display correctly
+
+**⚠️ Report when Sub-Task 9.6 is complete before proceeding**
+
+---
+
+### **Sub-Task 9.7: Reports & Analytics**
+
+**What to Build:**
+Admin dashboard with analytics and reports
+
+**Features:**
+- Transaction metrics (total, success rate, revenue)
+- User metrics (active users, new registrations)
+- Service performance (most used, peak times)
+- Financial reports (revenue, commissions)
+- Charts and graphs
+- Date range selector
+- Export reports
+
+**Backend API:**
+```
+GET /admin/api/analytics/overview - Dashboard overview
+GET /admin/api/analytics/transactions - Transaction analytics
+GET /admin/api/analytics/users - User analytics
+GET /admin/api/analytics/services - Service performance
+GET /admin/api/analytics/financial - Financial reports
+```
+
+Test:
+- [ ] Dashboard loads with metrics
+- [ ] Charts display correctly
+- [ ] Date range selector works
+- [ ] All metrics are accurate
+- [ ] Export reports work
+
+**⚠️ Report when Sub-Task 9.7 is complete**
+
+---
+
+## **TASK 10: VTPASS SERVICE AUDIT & IMPLEMENTATION**
+
+**⚠️ ONLY START AFTER ALL OTHER TASKS ARE COMPLETE**
+
+### **Step 1: Audit VTPass Services**
+
+1. Login to backend admin panel
+2. Access VTPass integration settings
+3. Make API call to VTPass to list all available services
+4. Export the complete list (should be 372+ services)
+5. Create a spreadsheet with columns:
+   - Service Category
+   - Service Name
+   - Service Code
+   - Implemented in Frontend? (Yes/No)
+   - Notes
+
+### **Step 2: Compare with Frontend**
+
+1. Check which services are already implemented
+2. Identify missing services
+3. Prioritize by category:
+   - Essential (Airtime, Data, Electricity, TV)
+   - Important (Internet, Education, Betting)
+   - Additional (Insurance, others)
+
+### **Step 3: Implement Missing Services**
+
+For EACH missing service:
+1. Add to backend service list
+2. Create API endpoints (provider, options, amounts)
+3. Add to frontend service categories
+4. Implement bottom sheet pattern
+5. Add to admin panel configuration
+6. Test end-to-end
+7. Document
+
+### **Step 4: Verification**
+
+Create a checklist:
+- [ ] All VTPass airtime networks available
+- [ ] All VTPass data providers available
+- [ ] All electricity discos available
+- [ ] All TV providers available
+- [ ] All internet/broadband services available
+- [ ] All education services available (WAEC, JAMB, NECO, etc.)
+- [ ] All betting platforms available
+- [ ] All insurance services available
+- [ ] Any other VTPass categories
+
+### **Step 5: Documentation**
+
+Create document listing:
+- All implemented services (with screenshots)
+- Any VTPass services NOT implemented (with reason)
+- Instructions for adding new services in future
+
+**⚠️ Report when VTPass audit is complete with full list of implemented vs missing services**
+
+---
+
+## 📊 FINAL CHECKLIST BEFORE GOING LIVE
+
+Before publishing app for public use, ensure:
+
+### **Authentication & Security:**
+- [ ] Auth flow works correctly
+- [ ] Session management secure
+- [ ] Password encryption working
+- [ ] API endpoints secured
+- [ ] Input validation on all forms
+
+### **Core Features:**
+- [ ] All services loading dynamically
+- [ ] Bottom sheet pattern consistent
+- [ ] Amount grids dynamic everywhere
+- [ ] Search works
