@@ -27,19 +27,22 @@ const uploadFile = async (req, res) => {
     const fileBuffer = Buffer.from(base64Data, 'base64');
     
     const ext = path.extname(req.body.filename);
-    const allowedExts = ['.jpg', '.jpeg', '.png', '.pdf', '.gif'];
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.pdf', '.gif', '.mp4', '.webm', '.mov'];
     
     if (!allowedExts.includes(ext.toLowerCase())) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid file type. Allowed: jpg, jpeg, png, pdf, gif'
+        message: 'Invalid file type. Allowed: jpg, jpeg, png, pdf, gif, mp4, webm, mov'
       });
     }
 
-    if (fileBuffer.length > 5 * 1024 * 1024) {
+    // 10MB for videos, 5MB for images
+    const maxSize = ['.mp4', '.webm', '.mov'].includes(ext.toLowerCase()) ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    
+    if (fileBuffer.length > maxSize) {
       return res.status(400).json({
         success: false,
-        message: 'File size must be less than 5MB'
+        message: `File size must be less than ${maxSize / (1024 * 1024)}MB`
       });
     }
 
