@@ -22,11 +22,21 @@ if (!isProduction) {
 
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
+const { securityEventLogger } = require('./middleware/securityLogger');
+const mongoSanitize = require('express-mongo-sanitize');
 
 app.use(helmet({
   contentSecurityPolicy: isProduction ? undefined : false,
   crossOriginEmbedderPolicy: isProduction ? undefined : false
 }));
+
+// Sanitize inputs to prevent NoSQL injection
+app.use(mongoSanitize({
+  replaceWith: '_'
+}));
+
+// Security event logging
+app.use(securityEventLogger);
 
 const allowedOrigins = isProduction 
   ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)
