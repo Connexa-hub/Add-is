@@ -68,8 +68,11 @@ export default function SupportScreen() {
       if (response.data.success) {
         setTickets(response.data.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch tickets:', error);
+      if (!refreshing) {
+        Alert.alert('Error', 'Failed to load support tickets. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

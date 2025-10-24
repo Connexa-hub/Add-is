@@ -48,8 +48,11 @@ export default function NotificationsScreen() {
       if (response.data.success) {
         setNotifications(response.data.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch notifications:', error);
+      if (!refreshing) {
+        Alert.alert('Error', 'Failed to load notifications. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -75,8 +78,9 @@ export default function NotificationsScreen() {
           notif._id === notificationId ? { ...notif, isRead: true } : notif
         )
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to mark as read:', error);
+      Alert.alert('Error', 'Failed to update notification status.');
     }
   };
 
@@ -90,8 +94,9 @@ export default function NotificationsScreen() {
       );
       
       setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to mark all as read:', error);
+      Alert.alert('Error', 'Failed to mark all notifications as read.');
     }
   };
 
@@ -104,8 +109,9 @@ export default function NotificationsScreen() {
       );
       
       setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete notification:', error);
+      Alert.alert('Error', 'Failed to delete notification. Please try again.');
     }
   };
 
