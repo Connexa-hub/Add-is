@@ -39,11 +39,11 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       ]}
       accessibilityLabel={accessibilityLabel || `${label}: ${currency}${balance}`}
     >
-      <AppText variant="subtitle2" style={{ color: tokens.colors.text.inverse, marginBottom: tokens.spacing.xs }}>
+      <AppText variant="subtitle2" style={{ color: tokens.colors.white, marginBottom: tokens.spacing.xs }}>
         {label}
       </AppText>
       <View style={styles.balanceRow}>
-        <AppText variant="h1" weight="bold" style={{ color: tokens.colors.text.inverse }}>
+        <AppText variant="h1" weight="bold" style={{ color: tokens.colors.white }}>
           {currency}{typeof balance === 'number' ? balance.toLocaleString() : balance}
         </AppText>
       </View>
