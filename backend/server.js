@@ -144,17 +144,15 @@ app.use('/api/admin/security', adminSecurityRoutes);
 
 // Serve admin dashboard SPA in production
 if (isProduction) {
-  const adminPath = path.join(__dirname, 'admin-web/dist');
-  app.use(express.static(adminPath));
-  app.get('/*', (req, res, next) => {
+  app.get('*', (req, res, next) => {
+    // Only serve the admin SPA for non-API routes
     if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(adminPath, 'index.html'));
+      res.sendFile(path.join(__dirname, 'admin-web/dist/index.html'));
     } else {
       next();
     }
   });
 }
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
