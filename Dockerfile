@@ -1,56 +1,52 @@
-# =========================
-# Base image
-# =========================
-FROM node:20-alpine AS base
+# ----------------------
+# Stage 1: Build Admin Web
+# ----------------------
+FROM node:20-alpine AS admin-build
 
-# =========================
+WORKDIR /app/admin-web
+
+# Copy only package files first for caching
+COPY backend/admin-web/package*.json ./
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy admin source files
+COPY backend/admin-web .
+
+# Build admin for production
+RUN npm run build
+
+# ----------------------
+# Stage 2: Build Backend
+# ----------------------
+FROM node:20-alpine
+
+WORKDIR /app
+
 # Install system dependencies
-# =========================
-RUN apk add --no-cache \
-    bash \
-    curl \
-    clamav \
-    clamav-libunrar \
+RUN apk add --no-cache bash curl clamav clamav-libunrar \
     && freshclam \
     && mkdir -p /run/clamav \
     && chown clamav:clamav /run/clamav
 
-# =========================
-# Set working directory
-# =========================
-WORKDIR /app
-
-# =========================
-# Copy backend package files and install dependencies
-# =========================
+# Copy backend package files
 COPY backend/package*.json ./
+
+# Install backend dependencies
 RUN npm install
 
-# =========================
 # Copy backend source
-# =========================
 COPY backend .
 
-# =========================
-# Build admin panel
-# =========================
-WORKDIR /app/admin-web
-COPY backend/admin-web/package*.json ./
-RUN npm install --legacy-peer-deps
-COPY backend/admin-web .
-RUN npm run build
-
-# =========================
-# Set environment variables
-# =========================
-ENV NODE_ENV=production
-ENV PORT=5000
+# Copy built admin dashboard from previous stage
+COPY --from=admin-build /app/admin-web/dist ./admin-web/dist
 
 # Expose port
 EXPOSE 5000
 
-# =========================
-# Start server
-# =========================
-WORKDIR /app
+# Set environment variable for production
+ENV NODE_ENV=production
+
+# Start the server
 CMD ["node", "server.js"]
