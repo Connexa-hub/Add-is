@@ -14,7 +14,7 @@ const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Middlewar
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const { securityEventLogger } = require('./middleware/securityLogger');
