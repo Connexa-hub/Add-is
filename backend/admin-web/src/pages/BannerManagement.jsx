@@ -12,6 +12,7 @@ const BannerManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sectionFilter, setSectionFilter] = useState('all');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Banner form data
   const [bannerFormData, setBannerFormData] = useState({
@@ -257,6 +258,61 @@ const BannerManagement = () => {
       setOnboardingFormData({ ...onboardingFormData, mediaUrl: url });
     }
     setPreviewUrl(url);
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'];
+    if (!validTypes.includes(file.type)) {
+      alert('Invalid file type. Please upload JPG, PNG, GIF, MP4, or WEBM files.');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = async () => {
+        try {
+          const response = await api.post('/upload', {
+            file: reader.result,
+            filename: file.name
+          });
+
+          if (response.data.success) {
+            const uploadedUrl = `${window.location.origin}${response.data.data.url}`;
+            handleMediaUrlChange(uploadedUrl);
+            alert('File uploaded successfully!');
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          alert('Failed to upload file: ' + (error.response?.data?.message || error.message));
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      reader.onerror = () => {
+        alert('Failed to read file');
+        setUploading(false);
+      };
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert('Failed to upload file');
+      setUploading(false);
+    }
   };
 
   const onDragEnd = async (result) => {
@@ -655,6 +711,32 @@ const BannerManagement = () => {
                       placeholder="https://example.com/image.jpg"
                       required
                     />
+                    <div className="mt-2">
+                      <label className="block text-sm text-gray-600 mb-2">Or upload a file:</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,video/mp4,video/webm"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          id="file-upload"
+                          disabled={uploading}
+                        />
+                        <label
+                          htmlFor="file-upload"
+                          className={`flex-1 border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors ${
+                            uploading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {uploading ? (
+                            <span className="text-gray-600">📤 Uploading...</span>
+                          ) : (
+                            <span className="text-gray-600">📁 Choose File (JPG, PNG, GIF, MP4, WEBM - Max 5MB)</span>
+                          )}
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Uploaded files will be stored on the server and URL will be auto-filled above</p>
+                    </div>
                   </div>
 
                   {activeTab === 'banners' ? (

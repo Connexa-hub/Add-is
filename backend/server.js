@@ -22,11 +22,21 @@ if (!isProduction) {
 
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
+const { securityEventLogger } = require('./middleware/securityLogger');
+const mongoSanitize = require('express-mongo-sanitize');
 
 app.use(helmet({
   contentSecurityPolicy: isProduction ? undefined : false,
   crossOriginEmbedderPolicy: isProduction ? undefined : false
 }));
+
+// Sanitize inputs to prevent NoSQL injection
+app.use(mongoSanitize({
+  replaceWith: '_'
+}));
+
+// Security event logging
+app.use(securityEventLogger);
 
 const allowedOrigins = isProduction 
   ? [process.env.FRONTEND_URL, process.env.ADMIN_URL].filter(Boolean)
@@ -116,6 +126,7 @@ const walletFundingRoutes = require('./routes/walletFundingRoutes');
 const adminVtuRoutes = require('./routes/admin/vtuRoutes');
 const onboardingRoutes = require('./routes/onboardingRoutes');
 const adminOnboardingRoutes = require('./routes/admin/onboardingRoutes');
+const adminSecurityRoutes = require('./routes/admin/securityRoutes');
 
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -144,6 +155,7 @@ app.use('/api/cards', cardRoutes);
 app.use('/api/wallet/funding', walletFundingRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin/onboarding', adminOnboardingRoutes);
+app.use('/api/admin/security', adminSecurityRoutes);
 
 // Serve admin dashboard SPA in production
 if (isProduction) {

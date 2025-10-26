@@ -7,11 +7,6 @@ const UserSchema = new mongoose.Schema({
   phoneNumber: String,
   profilePicture: String,
   biometricToken: String,
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
-  },
   isActive: {
     type: Boolean,
     default: true
@@ -37,7 +32,12 @@ const UserSchema = new mongoose.Schema({
   }],
   resetPasswordOTP: String,
   resetPasswordExpires: Date,
-
+  tokenVersion: { type: Number, default: 0 },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
   kyc: {
     status: {
       type: String,

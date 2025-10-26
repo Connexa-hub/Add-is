@@ -21,6 +21,7 @@ const Banners = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -119,6 +120,56 @@ const Banners = () => {
         ? prev.targetSection.filter(s => s !== section)
         : [...prev.targetSection, section]
     }));
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'video/mp4', 'video/webm'];
+    if (!validTypes.includes(file.type)) {
+      alert('Invalid file type. Please upload JPG, PNG, GIF, MP4, or WEBM files.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = async () => {
+        try {
+          const response = await api.post('/upload', {
+            file: reader.result,
+            filename: file.name
+          });
+
+          if (response.data.success) {
+            const uploadedUrl = `${window.location.origin}${response.data.data.url}`;
+            setFormData({ ...formData, mediaUrl: uploadedUrl });
+            alert('File uploaded successfully!');
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          alert('Failed to upload file: ' + (error.response?.data?.message || error.message));
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      reader.onerror = () => {
+        alert('Failed to read file');
+        setUploading(false);
+      };
+    } catch (error) {
+      alert('Failed to upload file');
+      setUploading(false);
+    }
   };
 
   const sections = ['home', 'airtime', 'data', 'electricity', 'cable', 'wallet'];
@@ -234,6 +285,34 @@ const Banners = () => {
               <div style={{ marginBottom: '1rem' }}>
                 <label className="label">Media URL *</label>
                 <input className="input" type="url" value={formData.mediaUrl} onChange={(e) => setFormData({ ...formData, mediaUrl: e.target.value })} required />
+                <div style={{ marginTop: '0.5rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--gray-600)', display: 'block', marginBottom: '0.5rem' }}>Or upload a file:</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,video/mp4,video/webm"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    style={{ display: 'none' }}
+                    id="banner-file-upload"
+                  />
+                  <label
+                    htmlFor="banner-file-upload"
+                    className="input"
+                    style={{
+                      display: 'block',
+                      textAlign: 'center',
+                      cursor: uploading ? 'not-allowed' : 'pointer',
+                      backgroundColor: uploading ? 'var(--gray-100)' : 'var(--gray-50)',
+                      border: '2px dashed var(--gray-300)',
+                      opacity: uploading ? 0.6 : 1
+                    }}
+                  >
+                    {uploading ? '📤 Uploading...' : '📁 Choose File (JPG, PNG, GIF, MP4, WEBM - Max 5MB)'}
+                  </label>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '0.25rem' }}>
+                    Uploaded files will be stored on the server and URL will be auto-filled above
+                  </p>
+                </div>
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label className="label">Target URL</label>

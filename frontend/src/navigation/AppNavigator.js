@@ -41,6 +41,9 @@ import EducationScreen from '../../screens/EducationScreen';
 import BettingScreen from '../../screens/BettingScreen';
 import InsuranceScreen from '../../screens/InsuranceScreen';
 
+import SupportScreen from '../../screens/SupportScreen';
+import NotificationsScreen from '../../screens/NotificationsScreen';
+
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -190,6 +193,10 @@ export default function AppNavigator() {
         {/* Admin Screens */}
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+
+        {/* Support & Notifications */}
+        <Stack.Screen name="Support" component={SupportScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

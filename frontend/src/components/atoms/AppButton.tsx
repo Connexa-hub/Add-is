@@ -53,13 +53,13 @@ export const AppButton: React.FC<AppButtonProps> = ({
     switch (variant) {
       case 'primary':
       case 'secondary':
-        return tokens.colors.text.inverse;
+        return tokens.colors.white;
       case 'outline':
         return tokens.colors.primary.main;
       case 'ghost':
         return tokens.colors.text.primary;
       default:
-        return tokens.colors.text.inverse;
+        return tokens.colors.white;
     }
   };
 
@@ -86,12 +86,17 @@ export const AppButton: React.FC<AppButtonProps> = ({
     return {};
   };
 
+  const getAccessibilityLabel = () => {
+    if (accessibilityLabel) return accessibilityLabel;
+    return typeof children === 'string' ? children : 'Button';
+  };
+
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel || children}
+      accessibilityLabel={getAccessibilityLabel()}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
       style={[

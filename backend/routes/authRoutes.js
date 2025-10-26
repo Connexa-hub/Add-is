@@ -2,29 +2,27 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const verifyToken = require('../middleware/verifyToken');
-const { 
-  registerValidation, 
-  loginValidation, 
-  profileUpdateValidation,
-  walletFundValidation,
-  transactionQueryValidation
-} = require('../middleware/validation');
+const emailService = require('../utils/emailService');
+const { registerValidation, loginValidation, profileUpdateValidation, walletFundValidation, transactionQueryValidation } = require('../middleware/validation');
 const {
   getWalletBalance,
   fundWallet,
   getWalletTransactions
 } = require('../controllers/walletController');
+const { trackLoginAttempt, recordFailedLogin, resetLoginAttempts } = require('../middleware/accountLockout');
+const { logSecurityEvent } = require('../middleware/securityLogger');
 
 router.get('/profile', verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select('-password');
 
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'User not found' 
+        message: 'User not found'
       });
     }
 
@@ -59,7 +57,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
       }
     }
 
-    res.json({ 
+    res.json({
       success: true,
       data: {
         id: user._id,
@@ -94,9 +92,9 @@ router.put('/profile', verifyToken, profileUpdateValidation, async (req, res, ne
 
     const user = await User.findById(req.userId);
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'User not found' 
+        message: 'User not found'
       });
     }
 
@@ -106,7 +104,7 @@ router.put('/profile', verifyToken, profileUpdateValidation, async (req, res, ne
 
     await user.save();
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
@@ -128,9 +126,9 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'User with this email already exists' 
+        message: 'User with this email already exists'
       });
     }
 
@@ -138,9 +136,9 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const user = await User.create({ 
-      name, 
-      email, 
+    const user = await User.create({
+      name,
+      email,
       password: hashed,
       verificationOTP: otp,
       verificationExpires: Date.now() + 3600000,
@@ -150,7 +148,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
     try {
       const monnifyClient = require('../utils/monnifyClient');
       const accountReference = `USER_${user._id}_${Date.now()}`;
-      
+
       const reservedAccountResult = await monnifyClient.createReservedAccount({
         accountReference,
         accountName: name,
@@ -176,7 +174,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
     const { sendVerificationEmail } = require('../utils/emailService');
     await sendVerificationEmail(user, otp);
 
-    res.status(201).json({ 
+    res.status(201).json({
       success: true,
       message: 'Registration successful. Please check your email for verification code.',
       data: {
@@ -189,41 +187,43 @@ router.post('/register', registerValidation, async (req, res, next) => {
   }
 });
 
-router.post('/login', loginValidation, async (req, res, next) => {
+router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const user = await User.findOne({ email }).select('+password');
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid email or password' 
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      recordFailedLogin(email);
+      logSecurityEvent('FAILED_LOGIN_ATTEMPT', {
+        email,
+        ip: req.ip || req.connection.remoteAddress,
+        reason: !user ? 'user_not_found' : 'invalid_password'
       });
-    }
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid email or password' 
-      });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     if (!user.emailVerified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: 'Please verify your email address before logging in',
-        requiresVerification: true,
-        email: user.email
+        message: 'Please verify your email before logging in'
       });
     }
 
-    user.lastLogin = new Date();
-    await user.save();
+    resetLoginAttempts(email);
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    res.json({ 
+    logSecurityEvent('SUCCESSFUL_LOGIN', {
+      userId: user._id,
+      email,
+      ip: req.ip || req.connection.remoteAddress
+    });
+
+    res.json({
       success: true,
       message: 'Login successful',
       data: {
@@ -234,12 +234,7 @@ router.post('/login', loginValidation, async (req, res, next) => {
           email: user.email,
           role: user.role,
           walletBalance: user.walletBalance,
-          virtualAccountNumber: user.virtualAccountNumber,
-          emailVerified: user.emailVerified,
-          phoneNumber: user.phoneNumber,
-          profilePicture: user.profilePicture,
-          monnifyAccounts: user.monnifyAccounts,
-          monnifyAccountReference: user.monnifyAccountReference
+          isEmailVerified: user.emailVerified
         }
       }
     });
@@ -253,22 +248,22 @@ router.post('/biometric-login', async (req, res, next) => {
     const { biometricToken } = req.body;
 
     if (!biometricToken) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Biometric token is required' 
+        message: 'Biometric token is required'
       });
     }
 
     const user = await User.findOne({ biometricToken });
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Biometric authentication failed' 
+        message: 'Biometric authentication failed'
       });
     }
 
     if (!user.emailVerified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
         message: 'Please verify your email address before logging in',
         requiresVerification: true,
@@ -281,7 +276,7 @@ router.post('/biometric-login', async (req, res, next) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Biometric login successful',
       data: {
@@ -306,17 +301,17 @@ router.post('/forgot-password', async (req, res, next) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Email is required' 
+        message: 'Email is required'
       });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'No account registered with this email address' 
+        message: 'No account registered with this email address'
       });
     }
 
@@ -332,7 +327,7 @@ router.post('/forgot-password', async (req, res, next) => {
     const { sendPasswordResetEmail } = require('../utils/emailService');
     await sendPasswordResetEmail(user, otp);
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Password reset code sent to your email'
     });
@@ -346,22 +341,22 @@ router.post('/reset-password', async (req, res, next) => {
     const { email, otp, newPassword } = req.body;
 
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Email, OTP, and new password are required' 
+        message: 'Email, OTP, and new password are required'
       });
     }
 
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       email,
       resetPasswordOTP: otp,
       resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Invalid or expired verification code' 
+        message: 'Invalid or expired verification code'
       });
     }
 
@@ -371,7 +366,7 @@ router.post('/reset-password', async (req, res, next) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Password reset successfully. Please login with your new password.'
     });
@@ -385,22 +380,22 @@ router.post('/verify-email', async (req, res, next) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Email and verification code are required' 
+        message: 'Email and verification code are required'
       });
     }
 
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       email,
       verificationOTP: otp,
       verificationExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Invalid or expired verification code' 
+        message: 'Invalid or expired verification code'
       });
     }
 
@@ -414,7 +409,7 @@ router.post('/verify-email', async (req, res, next) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Email verified successfully! Welcome aboard!',
       data: {
@@ -444,25 +439,25 @@ router.post('/resend-verification', async (req, res, next) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Email is required' 
+        message: 'Email is required'
       });
     }
 
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'No account found with this email address' 
+        message: 'No account found with this email address'
       });
     }
 
     if (user.emailVerified) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Email is already verified' 
+        message: 'Email is already verified'
       });
     }
 
@@ -475,7 +470,7 @@ router.post('/resend-verification', async (req, res, next) => {
     const { sendVerificationEmail } = require('../utils/emailService');
     await sendVerificationEmail(user, otp);
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Verification code resent to your email'
     });
