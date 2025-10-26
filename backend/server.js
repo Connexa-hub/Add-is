@@ -142,13 +142,11 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin/onboarding', adminOnboardingRoutes);
 app.use('/api/admin/security', adminSecurityRoutes);
 
-if (isProduction) {
-  app.get('/:catchAll(*)', (req, res, next) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(__dirname, 'admin-web/dist/index.html'));
-    } else {
-      next();
-    }
+// Only serve admin SPA in production
+if (process.env.NODE_ENV === 'production') {
+  // Use regex instead of named wildcard
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-web/dist/index.html'));
   });
 }
 // 404 handler
