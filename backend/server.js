@@ -142,10 +142,8 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin/onboarding', adminOnboardingRoutes);
 app.use('/api/admin/security', adminSecurityRoutes);
 
-// Serve admin dashboard SPA in production
 if (isProduction) {
-  app.get('*', (req, res, next) => {
-    // Only serve the admin SPA for non-API routes
+  app.get('/:catchAll(*)', (req, res, next) => {
     if (!req.path.startsWith('/api')) {
       res.sendFile(path.join(__dirname, 'admin-web/dist/index.html'));
     } else {
