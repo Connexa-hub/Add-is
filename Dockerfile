@@ -1,35 +1,59 @@
-FROM node:20-alpine AS base
+# =========================
+# 1. Build Stage
+# =========================
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-FROM base AS backend-deps
-COPY backend/package*.json ./backend/
-WORKDIR /app/backend
-RUN npm ci --only=production
+# Install required tools for building and ClamAV engine
+RUN apk add --no-cache \
+    git \
+    python3 \
+    make \
+    g++ \
+    clamav \
+    clamav-libunrar \
+    clamav-daemon
 
-FROM base AS admin-build
-COPY backend/admin-web/package*.json ./backend/admin-web/
-WORKDIR /app/backend/admin-web
-RUN npm ci
-COPY backend/admin-web/ ./
+# Copy backend dependencies and install
+COPY backend/package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Copy backend source
+COPY backend .
+
+# Build the admin panel inside backend/admin-web
+WORKDIR /app/admin-web
+COPY backend/admin-web/package*.json ./
+RUN npm install --legacy-peer-deps
+COPY backend/admin-web ./
 RUN npm run build
 
-FROM base AS production
-WORKDIR /app/backend
+# =========================
+# 2. Production Stage
+# =========================
+FROM node:20-alpine
 
-COPY --from=backend-deps /app/backend/node_modules ./node_modules
-COPY backend/ ./
+WORKDIR /app
 
-COPY --from=admin-build /app/backend/admin-web/dist ./admin-web/dist
+# Install ClamAV runtime dependencies
+RUN apk add --no-cache \
+    clamav \
+    clamav-libunrar \
+    clamav-daemon
 
-RUN mkdir -p uploads
+# Copy everything from builder
+COPY --from=builder /app /app
 
+# Update ClamAV database before startup
+RUN freshclam || true
+
+# Set environment variables
 ENV NODE_ENV=production
-ENV PORT=8000
+ENV PORT=5000
 
-EXPOSE 8000
+# Expose port
+EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "const http = require('http'); const options = { host: 'localhost', port: 8000, path: '/api/health', timeout: 5000 }; const req = http.get(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1));"
-
-CMD ["node", "server.js"]
+# Start ClamAV daemon before the app
+CMD freshclam && clamd & node server.js
