@@ -41,17 +41,30 @@ The platform features a modern UI with a focus on Opay-style aesthetics. This in
 - **Email Verification**: Mandatory for new accounts, involving OTP delivery via email for account activation.
 
 ## Admin Dashboard Access
-- **URL**: Running on port 5000 (accessible via webview)
-- **Note**: Admin credentials are configured via environment variables for security. Contact your system administrator for access.
+- **URL**: http://localhost:3000/ (running on Vite dev server)
+- **Login Credentials**:
+  - Email: admin@example.com
+  - Password: Admin123!
+- **API Backend**: http://localhost:3001
+
+## Frontend Mobile App Access
+- **URL**: Accessible via Replit webview on port 5000
+- **Test Login Credentials**:
+  - Email: akinadeisrael5@gmail.com
+  - Password: OLAJUMOKE###
+- **API Backend**: http://localhost:3001
 
 ## Deployment Configuration
 
 ### Replit Environment (Development)
-- **Backend API**: Running on port 5000 (`http://0.0.0.0:5000`)
-- **Admin Dashboard**: Served from backend at `/` (production build)
-- **Health Check**: `http://0.0.0.0:5000/api/health`
-- **Workflow**: `Backend + Admin Panel` (runs `cd backend && PORT=5000 NODE_ENV=production npm start`)
-- **Environment**: Production mode for stability
+- **Backend API**: Running on port 3001 (`http://0.0.0.0:3001`)
+- **Admin Dashboard**: Running on port 3000 (Vite dev server - `http://localhost:3000/`)
+- **Frontend**: Running on port 5000 (Expo web - accessible via webview)
+- **Health Check**: `http://0.0.0.0:3001/api/health`
+- **Workflows**: 
+  - `Backend + Admin`: Runs backend API (port 3001) and admin panel (port 3000)
+  - `Frontend`: Runs Expo web server on port 5000
+- **Environment**: Development mode
 - **Status**: ✅ RUNNING
 
 ### Koyeb Deployment (Production)
