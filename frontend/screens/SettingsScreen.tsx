@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert, Modal } from 'react-native';
 import { Switch, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,7 +30,8 @@ export default function SettingsScreen({ navigation }: any) {
   // Session Management States
   const [sessionTimeout, setSessionTimeout] = useState('15'); // Default 15 minutes
   const [autoLogoutEnabled, setAutoLogoutEnabled] = useState(true);
-
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const [tempTimeout, setTempTimeout] = useState('15');
 
   // Modal states
   const [modal, setModal] = useState<{
@@ -105,9 +106,21 @@ export default function SettingsScreen({ navigation }: any) {
 
   const handleSessionTimeoutChange = async (value: string) => {
     try {
+      const minutes = parseInt(value);
+      if (minutes < 1) {
+        Alert.alert('Invalid Value', 'Timeout must be at least 1 minute');
+        return;
+      }
       setSessionTimeout(value);
+      setTempTimeout(value);
       await AsyncStorage.setItem('sessionTimeout', value);
-      Alert.alert('Success', `Session timeout set to ${value} minutes`);
+      setShowTimeoutModal(false);
+      showModal({
+        visible: true,
+        type: 'success',
+        title: 'Success',
+        message: `Session timeout set to ${value} minute${value === '1' ? '' : 's'}`,
+      });
     } catch (error) {
       Alert.alert('Error', 'Failed to update session timeout');
     }
@@ -119,6 +132,15 @@ export default function SettingsScreen({ navigation }: any) {
       setAutoLogoutEnabled(newValue);
       await AsyncStorage.setItem('autoLogoutEnabled', newValue.toString());
       await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+      
+      if (newValue) {
+        showModal({
+          visible: true,
+          type: 'success',
+          title: 'Auto-Logout Enabled',
+          message: `Your session will automatically logout after ${sessionTimeout} minute${sessionTimeout === '1' ? '' : 's'} of inactivity`,
+        });
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to update auto-logout setting');
     }
@@ -354,72 +376,67 @@ export default function SettingsScreen({ navigation }: any) {
               title="Change PIN"
               subtitle="Update your transaction PIN"
               onPress={() => {
-                Alert.alert(
-                  'Change PIN',
-                  'Do you know your current PIN?',
-                  [
-                    {
-                      text: 'Forgot PIN',
-                      onPress: () => navigation.navigate('PINForgot')
+                showModal({
+                  visible: true,
+                  type: 'warning',
+                  title: 'Change Transaction PIN',
+                  message: 'Do you remember your current PIN?',
+                  primaryButton: {
+                    text: 'I Know My PIN',
+                    onPress: () => {
+                      hideModal();
+                      navigation.navigate('PINChange');
                     },
-                    {
-                      text: 'I Know My PIN',
-                      onPress: () => navigation.navigate('PINChange')
+                  },
+                  secondaryButton: {
+                    text: 'Forgot PIN',
+                    onPress: () => {
+                      hideModal();
+                      navigation.navigate('PINForgot');
                     },
-                    {
-                      text: 'Cancel',
-                      style: 'cancel'
-                    }
-                  ]
-                );
+                  },
+                });
               }}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
               showDivider={false}
             />
 
-             {/* Session Management Section */}
-             <SettingSection title="SESSION MANAGEMENT">
-              <SettingRow
-                icon="timer"
-                iconColor={tokens.colors.info.main}
-                iconBg={tokens.colors.info.light}
-                title="Session Timeout"
-                subtitle="Auto-logout after inactivity"
-                rightComponent={
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <AppText variant="body1" style={{ marginRight: tokens.spacing.sm }}>{sessionTimeout} min</AppText>
-                    <Switch
-                      value={autoLogoutEnabled}
-                      onValueChange={toggleAutoLogout}
-                      disabled={loading}
-                      color={tokens.colors.primary.main}
-                    />
-                  </View>
-                }
-              />
-              {autoLogoutEnabled && (
-                <SettingRow
-                  icon="alarm"
-                  iconColor={tokens.colors.primary.main}
-                  iconBg={tokens.colors.primary.light}
-                  title="Timeout Duration"
-                  subtitle="Set the duration for auto-logout"
-                  rightComponent={
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <AppText variant="body1" style={{ marginRight: tokens.spacing.sm }}>{sessionTimeout} min</AppText>
-                      <Switch
-                        value={autoLogoutEnabled}
-                        onValueChange={toggleAutoLogout}
-                        disabled={loading}
-                        color={tokens.colors.primary.main}
-                      />
-                    </View>
-                  }
-                  showDivider={false}
-                />
-              )}
-            </SettingSection>
+             
 
+          </SettingSection>
+
+          {/* Session Management Section */}
+          <SettingSection title="SESSION MANAGEMENT">
+            <SettingRow
+              icon="timer"
+              iconColor={tokens.colors.info.main}
+              iconBg={tokens.colors.info.light}
+              title="Auto-Logout"
+              subtitle={`Logout after ${sessionTimeout} min of inactivity`}
+              rightComponent={
+                <Switch
+                  value={autoLogoutEnabled}
+                  onValueChange={toggleAutoLogout}
+                  disabled={loading}
+                  color={tokens.colors.primary.main}
+                />
+              }
+            />
+            {autoLogoutEnabled && (
+              <SettingRow
+                icon="alarm"
+                iconColor={tokens.colors.primary.main}
+                iconBg={tokens.colors.primary.light}
+                title="Timeout Duration"
+                subtitle={`Current: ${sessionTimeout} minute${sessionTimeout === '1' ? '' : 's'}`}
+                onPress={() => {
+                  setTempTimeout(sessionTimeout);
+                  setShowTimeoutModal(true);
+                }}
+                rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+                showDivider={false}
+              />
+            )}
           </SettingSection>
 
           {/* Appearance Section */}
@@ -549,6 +566,111 @@ export default function SettingsScreen({ navigation }: any) {
           )}
         </View>
       </ScrollView>
+
+      {/* Session Timeout Modal */}
+      <Modal
+        visible={showTimeoutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTimeoutModal(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          activeOpacity={1}
+          onPress={() => setShowTimeoutModal(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: tokens.colors.background.paper,
+              borderRadius: tokens.radius.xl,
+              padding: tokens.spacing.xl,
+              width: '85%',
+              maxWidth: 400,
+              ...tokens.shadows.lg,
+            }}
+          >
+            <View style={{ alignItems: 'center', marginBottom: tokens.spacing.lg }}>
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  backgroundColor: tokens.colors.primary.light,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: tokens.spacing.base,
+                }}
+              >
+                <Ionicons name="timer" size={32} color={tokens.colors.primary.main} />
+              </View>
+              <AppText variant="h3" weight="bold" style={{ marginBottom: tokens.spacing.xs }}>
+                Set Timeout Duration
+              </AppText>
+              <AppText variant="body2" color={tokens.colors.text.secondary} align="center">
+                Choose how long before automatic logout
+              </AppText>
+            </View>
+
+            <View style={{ marginBottom: tokens.spacing.lg }}>
+              <AppInput
+                label="Minutes"
+                placeholder="Enter minutes (minimum 1)"
+                value={tempTimeout}
+                onChangeText={setTempTimeout}
+                keyboardType="numeric"
+                leftIcon={<Ionicons name="time-outline" size={20} color={tokens.colors.text.secondary} />}
+              />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: tokens.spacing.sm, marginTop: tokens.spacing.base }}>
+                {['1', '5', '10', '15', '30', '60'].map((min) => (
+                  <TouchableOpacity
+                    key={min}
+                    onPress={() => setTempTimeout(min)}
+                    style={{
+                      paddingHorizontal: tokens.spacing.base,
+                      paddingVertical: tokens.spacing.sm,
+                      borderRadius: tokens.radius.md,
+                      borderWidth: 1,
+                      borderColor: tempTimeout === min ? tokens.colors.primary.main : tokens.colors.border.default,
+                      backgroundColor: tempTimeout === min ? tokens.colors.primary.light : 'transparent',
+                    }}
+                  >
+                    <AppText
+                      variant="body2"
+                      weight="semibold"
+                      color={tempTimeout === min ? tokens.colors.primary.main : tokens.colors.text.secondary}
+                    >
+                      {min} min
+                    </AppText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: tokens.spacing.sm }}>
+              <AppButton
+                variant="outline"
+                onPress={() => setShowTimeoutModal(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </AppButton>
+              <AppButton
+                onPress={() => handleSessionTimeoutChange(tempTimeout)}
+                style={{ flex: 1 }}
+              >
+                Save
+              </AppButton>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Modern Modal */}
       <AppModal

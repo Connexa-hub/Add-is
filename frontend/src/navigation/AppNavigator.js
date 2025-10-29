@@ -152,17 +152,9 @@ export default function AppNavigator() {
           const isTimedOut = await checkSessionTimeout(token);
           
           if (isTimedOut) {
-            // Session expired, check if biometric is enabled
-            const biometricEnabled = await AsyncStorage.getItem('biometricEnabled');
-            
-            if (biometricEnabled === 'true') {
-              // User can use biometric to re-authenticate
-              setInitialRoute('Login');
-            } else {
-              // Require full login
-              await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
-              setInitialRoute('Login');
-            }
+            // Session expired, require login
+            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
+            setInitialRoute('Login');
           } else {
             // Update last activity time
             await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
