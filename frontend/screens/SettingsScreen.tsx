@@ -250,7 +250,21 @@ export default function SettingsScreen({ navigation }: any) {
         text: 'Logout',
         onPress: async () => {
           try {
-            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'savedEmail', 'biometricEnabled', 'biometricToken']);
+            // Clear ALL authentication data including biometric on explicit logout
+            await AsyncStorage.multiRemove([
+              'token', 
+              'userId', 
+              'userEmail', 
+              'userName', 
+              'savedEmail', 
+              'biometricEnabled', 
+              'biometricToken',
+              'biometric_user_id'
+            ]);
+            
+            // Also clear biometric credentials from SecureStore
+            await disableBiometric();
+            
             if (navigation?.reset) {
               navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
             }

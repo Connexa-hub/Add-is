@@ -123,7 +123,7 @@ export default function AppNavigator() {
 
       const lastActivityTime = await AsyncStorage.getItem('lastActivityTime');
       const sessionTimeout = await AsyncStorage.getItem('sessionTimeout') || '15';
-      
+
       if (!lastActivityTime) {
         await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
         return false;
@@ -131,7 +131,7 @@ export default function AppNavigator() {
 
       const timeoutMs = parseInt(sessionTimeout) * 60 * 1000;
       const elapsed = Date.now() - parseInt(lastActivityTime);
-      
+
       return elapsed > timeoutMs;
     } catch (error) {
       console.error('Error checking session timeout:', error);
@@ -150,9 +150,11 @@ export default function AppNavigator() {
         if (isValid) {
           // Check if session timed out
           const isTimedOut = await checkSessionTimeout(token);
-          
+
           if (isTimedOut) {
             // Session expired, require login
+            // Session has expired - clear only session tokens, keep biometric settings
+            // This allows user to re-authenticate with biometric
             await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
             setInitialRoute('Login');
           } else {

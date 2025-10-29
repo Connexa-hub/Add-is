@@ -43,52 +43,31 @@ export default function LoginScreen({ navigation }) {
   const checkSessionReauth = async () => {
     // Check if user has valid token but session timed out
     const token = await AsyncStorage.getItem('token');
-    const autoLogoutEnabled = await AsyncStorage.getItem('autoLogoutEnabled');
+    const biometricEnabled = await isBiometricEnabled();
     
-    if (token && autoLogoutEnabled === 'true') {
-      const biometricEnabled = await isBiometricEnabled();
-      
-      if (biometricEnabled && savedEmail) {
-        // Prompt for biometric re-authentication
-        setTimeout(() => {
-          Alert.alert(
-            'Session Expired',
-            'Your session has expired. Please authenticate to continue.',
-            [
-              { text: 'Use Biometric', onPress: handleBiometricLogin },
-              { text: 'Use Password', onPress: () => setShowPasswordLogin(true) },
-            ]
-          );
-        }, 500);
-      }
-    } else {
-      verifySession();
-    }
-  };
-
-  const verifySession = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        // Verify token is still valid
+    if (token) {
+      // User has a token, verify if it's still valid
+      try {
         const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        if (!response.data.success) {
-          // Token invalid, clear session
-          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
-          setEmail('');
-          setSavedEmail(null);
-          setBiometricConfigured(false);
+        if (response.data.success) {
+          // Token is valid, navigate to main
+          navigation.replace('Main');
+          return;
         }
+      } catch (error) {
+        // Token expired, but keep biometric enabled for re-authentication
+        // Only clear the session tokens, NOT the biometric settings
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
       }
-    } catch (error) {
-      // Session expired or invalid, clear it
-      await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
-      setEmail('');
-      setSavedEmail(null);
-      setBiometricConfigured(false);
+    }
+    
+    // If biometric is enabled and we have saved credentials, show biometric login
+    if (biometricEnabled && savedEmail) {
+      // Don't clear biometric settings, keep them for re-authentication
+      setBiometricConfigured(true);
     }
   };
 
@@ -131,52 +110,46 @@ export default function LoginScreen({ navigation }) {
       if (!result.success) {
         Alert.alert(
           'Authentication Failed',
-          result.error || 'Please login with your email and password'
+          result.error || 'Biometric authentication failed'
         );
         setLoading(false);
         return;
       }
 
-      // Get token and verify it's still valid
-      const token = await AsyncStorage.getItem('token');
-      const userId = await AsyncStorage.getItem('userId');
-      
-      if (!token || !userId) {
-        // No valid session, clear biometric and show password login
-        await AsyncStorage.multiRemove(['biometricEnabled', 'savedEmail']);
-        setEmail(savedEmail || '');
-        setSavedEmail(null);
-        setBiometricConfigured(false);
-        setShowPasswordLogin(true);
-        Alert.alert(
-          'Session Expired',
-          'Your session has expired. Please login with your email and password.'
-        );
-        setLoading(false);
-        return;
-      }
-
+      // After successful biometric auth, re-login with saved credentials
+      // This will create a new session
       try {
-        // Verify token is still valid with backend
-        const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const response = await axios.post(`${API_BASE_URL}/api/auth/login`, { 
+          email: savedEmail, 
+          biometricAuth: true // Flag to indicate biometric re-authentication
         });
-        
-        if (response.data.success) {
-          // Update last activity time and navigate to main
-          await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+
+        if (response.data.success && response.data.data.token) {
+          const userId = response.data.data.user?.id || '';
+          const userEmail = response.data.data.user?.email || '';
+          const userName = response.data.data.user?.name || '';
+
+          // Save new session
+          await AsyncStorage.multiSet([
+            ['token', response.data.data.token],
+            ['userId', userId],
+            ['userEmail', userEmail],
+            ['userName', userName],
+            ['lastActivityTime', Date.now().toString()]
+          ]);
+
+          // Navigate to main app
           navigation.replace('Main');
         } else {
-          throw new Error('Token invalid');
+          throw new Error('Login failed');
         }
-      } catch (verifyError) {
-        // Token is invalid, clear session and show password login
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
-        setEmail(savedEmail || '');
+      } catch (loginError) {
+        // If biometric re-authentication fails, show password login option
+        console.error('Biometric re-authentication error:', loginError);
         setShowPasswordLogin(true);
         Alert.alert(
-          'Session Expired',
-          'Your session has expired. Please login with your email and password.'
+          'Re-authentication Required',
+          'Please login with your email and password to continue.'
         );
       }
     } catch (error) {
