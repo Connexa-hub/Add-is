@@ -23,11 +23,13 @@ const requirePin = async (req, res, next) => {
       });
     }
 
+    // Allow first-time transactions to prompt PIN setup
     if (!user.transactionPin || !user.transactionPin.isSet) {
-      return res.status(400).json({
+      return res.status(428).json({
         success: false,
-        message: 'Please set up a transaction PIN first',
-        requirePinSetup: true
+        message: 'Transaction PIN required. Please set up your PIN to continue.',
+        requiresPinSetup: true,
+        isFirstTime: true
       });
     }
 

@@ -1,9 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Modal, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Modal, Animated, Easing, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText, AppButton } from '../atoms';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import axios from 'axios'; // Assuming axios is used for API calls
+import { useNavigation } from '@react-navigation/native'; // Assuming navigation is used
 
 export type PaymentStatus = 'processing' | 'success' | 'pending' | 'failed';
 
@@ -18,6 +19,12 @@ export interface PaymentProcessingScreenProps {
   onRetry?: () => void;
   walletBalanceBefore?: number;
   walletBalanceAfter?: number;
+  token: string; // Assuming token is passed for authentication
+  endpoint: string; // Assuming endpoint is passed for API call
+  payload: any; // Assuming payload is passed for API call
+  onCancel: () => void; // Callback for when user cancels PIN setup
+  processPayment: () => void; // Function to retry payment after PIN setup
+  navigation: any; // Assuming navigation object is passed
 }
 
 export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = ({
@@ -31,6 +38,12 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
   onRetry,
   walletBalanceBefore,
   walletBalanceAfter,
+  token,
+  endpoint,
+  payload,
+  onCancel,
+  processPayment,
+  navigation,
 }) => {
   const { tokens } = useAppTheme();
   const [spinValue] = useState(new Animated.Value(0));
@@ -126,6 +139,44 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
   };
 
   const config = getStatusConfig();
+
+  const handlePaymentRequest = async () => {
+    try {
+      const response = await axios.post(endpoint, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(async (error) => {
+        // Check if PIN setup is required (HTTP 428)
+        if (error.response?.status === 428 && error.response?.data?.requiresPinSetup) {
+          Alert.alert(
+            'PIN Setup Required',
+            'You need to set up a transaction PIN before making your first transaction.',
+            [
+              {
+                text: 'Set PIN Now',
+                onPress: () => {
+                  navigation.navigate('PINSetup', {
+                    onSuccess: () => {
+                      // Retry transaction after PIN setup
+                      processPayment();
+                    },
+                  });
+                },
+              },
+              { text: 'Cancel', style: 'cancel', onPress: onCancel },
+            ]
+          );
+          throw error;
+        }
+        throw error;
+      });
+      // Handle successful payment response here if needed
+      return response;
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      // The error is already handled by the catch block above or by the caller
+      throw error; // Re-throw to be caught by the caller if necessary
+    }
+  };
 
   return (
     <Modal
@@ -330,7 +381,7 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
             <View style={styles.actions}>
               {status === 'failed' && onRetry && (
                 <AppButton
-                  onPress={onRetry}
+                  onPress={handlePaymentRequest} // Call the new handler
                   variant="primary"
                   size="lg"
                   fullWidth

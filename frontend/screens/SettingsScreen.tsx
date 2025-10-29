@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { Switch, ActivityIndicator } from 'react-native-paper';
@@ -27,7 +26,12 @@ export default function SettingsScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  
+
+  // Session Management States
+  const [sessionTimeout, setSessionTimeout] = useState('15'); // Default 15 minutes
+  const [autoLogoutEnabled, setAutoLogoutEnabled] = useState(true);
+
+
   // Modal states
   const [modal, setModal] = useState<{
     visible: boolean;
@@ -46,13 +50,14 @@ export default function SettingsScreen({ navigation }: any) {
   useEffect(() => {
     if (!isBiometricLoading) {
       loadSettings();
+      loadSessionPreferences();
     }
   }, [isBiometricLoading]);
 
   const loadSettings = async () => {
     try {
       setLoading(true);
-      
+
       let bio = false;
       try {
         bio = await isBiometricEnabled();
@@ -83,6 +88,39 @@ export default function SettingsScreen({ navigation }: any) {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSessionPreferences = async () => {
+    try {
+      const timeout = await AsyncStorage.getItem('sessionTimeout');
+      const autoLogout = await AsyncStorage.getItem('autoLogoutEnabled');
+
+      if (timeout) setSessionTimeout(timeout);
+      if (autoLogout !== null) setAutoLogoutEnabled(autoLogout === 'true');
+    } catch (error) {
+      console.error('Error loading session preferences:', error);
+    }
+  };
+
+  const handleSessionTimeoutChange = async (value: string) => {
+    try {
+      setSessionTimeout(value);
+      await AsyncStorage.setItem('sessionTimeout', value);
+      Alert.alert('Success', `Session timeout set to ${value} minutes`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update session timeout');
+    }
+  };
+
+  const toggleAutoLogout = async () => {
+    try {
+      const newValue = !autoLogoutEnabled;
+      setAutoLogoutEnabled(newValue);
+      await AsyncStorage.setItem('autoLogoutEnabled', newValue.toString());
+      await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update auto-logout setting');
     }
   };
 
@@ -319,6 +357,50 @@ export default function SettingsScreen({ navigation }: any) {
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
               showDivider={false}
             />
+
+             {/* Session Management Section */}
+             <SettingSection title="SESSION MANAGEMENT">
+              <SettingRow
+                icon="timer"
+                iconColor={tokens.colors.info.main}
+                iconBg={tokens.colors.info.light}
+                title="Session Timeout"
+                subtitle="Auto-logout after inactivity"
+                rightComponent={
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <AppText variant="body1" style={{ marginRight: tokens.spacing.sm }}>{sessionTimeout} min</AppText>
+                    <Switch
+                      value={autoLogoutEnabled}
+                      onValueChange={toggleAutoLogout}
+                      disabled={loading}
+                      color={tokens.colors.primary.main}
+                    />
+                  </View>
+                }
+              />
+              {autoLogoutEnabled && (
+                <SettingRow
+                  icon="alarm"
+                  iconColor={tokens.colors.primary.main}
+                  iconBg={tokens.colors.primary.light}
+                  title="Timeout Duration"
+                  subtitle="Set the duration for auto-logout"
+                  rightComponent={
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <AppText variant="body1" style={{ marginRight: tokens.spacing.sm }}>{sessionTimeout} min</AppText>
+                      <Switch
+                        value={autoLogoutEnabled}
+                        onValueChange={toggleAutoLogout}
+                        disabled={loading}
+                        color={tokens.colors.primary.main}
+                      />
+                    </View>
+                  }
+                  showDivider={false}
+                />
+              )}
+            </SettingSection>
+
           </SettingSection>
 
           {/* Appearance Section */}

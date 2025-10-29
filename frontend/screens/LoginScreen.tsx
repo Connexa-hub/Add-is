@@ -37,9 +37,34 @@ export default function LoginScreen({ navigation }) {
   useEffect(() => {
     checkBiometricStatus();
     checkSavedCredentials();
-    // Verify session is still valid on mount
-    verifySession();
+    checkSessionReauth();
   }, [capabilities, isBiometricLoading]);
+
+  const checkSessionReauth = async () => {
+    // Check if user has valid token but session timed out
+    const token = await AsyncStorage.getItem('token');
+    const autoLogoutEnabled = await AsyncStorage.getItem('autoLogoutEnabled');
+    
+    if (token && autoLogoutEnabled === 'true') {
+      const biometricEnabled = await isBiometricEnabled();
+      
+      if (biometricEnabled && savedEmail) {
+        // Prompt for biometric re-authentication
+        setTimeout(() => {
+          Alert.alert(
+            'Session Expired',
+            'Your session has expired. Please authenticate to continue.',
+            [
+              { text: 'Use Biometric', onPress: handleBiometricLogin },
+              { text: 'Use Password', onPress: () => setShowPasswordLogin(true) },
+            ]
+          );
+        }, 500);
+      }
+    } else {
+      verifySession();
+    }
+  };
 
   const verifySession = async () => {
     try {
@@ -124,6 +149,8 @@ export default function LoginScreen({ navigation }) {
           });
           
           if (response.data.success) {
+            // Update last activity time
+            await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
             navigation.replace('Main');
           } else {
             throw new Error('Token invalid');

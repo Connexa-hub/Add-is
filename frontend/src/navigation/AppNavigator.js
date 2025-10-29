@@ -113,6 +113,31 @@ export default function AppNavigator() {
     }
   };
 
+  const checkSessionTimeout = async (token) => {
+    try {
+      const autoLogoutEnabled = await AsyncStorage.getItem('autoLogoutEnabled');
+      if (autoLogoutEnabled !== 'true') {
+        return false; // Session timeout disabled
+      }
+
+      const lastActivityTime = await AsyncStorage.getItem('lastActivityTime');
+      const sessionTimeout = await AsyncStorage.getItem('sessionTimeout') || '15';
+      
+      if (!lastActivityTime) {
+        await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+        return false;
+      }
+
+      const timeoutMs = parseInt(sessionTimeout) * 60 * 1000;
+      const elapsed = Date.now() - parseInt(lastActivityTime);
+      
+      return elapsed > timeoutMs;
+    } catch (error) {
+      console.error('Error checking session timeout:', error);
+      return false;
+    }
+  };
+
   const checkOnboardingStatus = async () => {
     try {
       const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
@@ -122,7 +147,26 @@ export default function AppNavigator() {
         const isValid = await validateToken(token);
 
         if (isValid) {
-          setInitialRoute('Main');
+          // Check if session timed out
+          const isTimedOut = await checkSessionTimeout(token);
+          
+          if (isTimedOut) {
+            // Session expired, check if biometric is enabled
+            const biometricEnabled = await AsyncStorage.getItem('biometricEnabled');
+            
+            if (biometricEnabled === 'true') {
+              // User can use biometric to re-authenticate
+              setInitialRoute('Login');
+            } else {
+              // Require full login
+              await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
+              setInitialRoute('Login');
+            }
+          } else {
+            // Update last activity time
+            await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+            setInitialRoute('Main');
+          }
         } else {
           await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
           if (onboardingCompleted === 'true') {
