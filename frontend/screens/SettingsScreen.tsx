@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert, Mo
 import { Switch, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppText, AppButton, AppDivider } from '../src/components/atoms';
+import { AppText, AppButton, AppDivider, AppInput } from '../src/components/atoms';
 import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';

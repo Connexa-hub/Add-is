@@ -137,56 +137,46 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // Get fresh token after biometric auth
+      // Get token and verify it's still valid
       const token = await AsyncStorage.getItem('token');
       const userId = await AsyncStorage.getItem('userId');
       
-      if (token && userId) {
-        // Verify token is still valid
-        try {
-          const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (response.data.success) {
-            // Update last activity time
-            await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
-            navigation.replace('Main');
-          } else {
-            throw new Error('Token invalid');
-          }
-        } catch (verifyError) {
-          Alert.alert(
-            'Session Expired',
-            'Please login with your email and password',
-            [
-              {
-                text: 'OK',
-                onPress: async () => {
-                  await AsyncStorage.multiRemove(['biometricEnabled', 'savedEmail', 'token', 'userId']);
-                  setEmail('');
-                  setSavedEmail(null);
-                  setBiometricConfigured(false);
-                },
-              },
-            ]
-          );
-        }
-      } else {
+      if (!token || !userId) {
+        // No valid session, clear biometric and show password login
+        await AsyncStorage.multiRemove(['biometricEnabled', 'savedEmail']);
+        setEmail(savedEmail || '');
+        setSavedEmail(null);
+        setBiometricConfigured(false);
+        setShowPasswordLogin(true);
         Alert.alert(
           'Session Expired',
-          'Please login with your email and password',
-          [
-            {
-              text: 'OK',
-              onPress: async () => {
-                await AsyncStorage.multiRemove(['biometricEnabled', 'savedEmail', 'token', 'userId']);
-                setEmail('');
-                setSavedEmail(null);
-                setBiometricConfigured(false);
-              },
-            },
-          ]
+          'Your session has expired. Please login with your email and password.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Verify token is still valid with backend
+        const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (response.data.success) {
+          // Update last activity time and navigate to main
+          await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+          navigation.replace('Main');
+        } else {
+          throw new Error('Token invalid');
+        }
+      } catch (verifyError) {
+        // Token is invalid, clear session and show password login
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        setEmail(savedEmail || '');
+        setShowPasswordLogin(true);
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please login with your email and password.'
         );
       }
     } catch (error) {
@@ -258,14 +248,19 @@ export default function LoginScreen({ navigation }) {
           ['userId', userId],
           ['userEmail', userEmail],
           ['userName', userName],
-          ['savedEmail', email]
+          ['savedEmail', email],
+          ['lastActivityTime', Date.now().toString()]
         ]);
 
         const savedToken = await AsyncStorage.getItem('token');
         if (savedToken) {
           const biometricEnabled = await isBiometricEnabled();
 
-          if (!biometricEnabled && capabilities.isAvailable) {
+          // Only show biometric modal if not previously shown for this email
+          const biometricPromptShown = await AsyncStorage.getItem(`biometric_prompt_shown_${email}`);
+          
+          if (!biometricEnabled && capabilities.isAvailable && !biometricPromptShown) {
+            await AsyncStorage.setItem(`biometric_prompt_shown_${email}`, 'true');
             setPendingBiometricData({ userId, userEmail });
             setShowBiometricModal(true);
           } else {
