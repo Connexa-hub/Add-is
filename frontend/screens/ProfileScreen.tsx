@@ -46,19 +46,45 @@ export default function ProfileScreen({ navigation }) {
 
   const loadUserStats = async (token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/transactions/stats`, {
+      // Fetch user's transactions to calculate stats
+      const response = await fetch(`${API_BASE_URL}/api/transactions/mine?limit=1000`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to fetch transactions');
+      }
+
       const data = await response.json();
       
-      if (data.success) {
-        setStats(data.stats);
+      if (data.success && data.data?.transactions) {
+        const transactions = data.data.transactions;
+        
+        // Calculate stats from transactions
+        const totalTransactions = transactions.length;
+        const totalSpent = transactions
+          .filter(t => t.type === 'debit' && t.status === 'completed')
+          .reduce((sum, t) => sum + (t.amount || 0), 0);
+        const totalCashback = transactions
+          .filter(t => t.type === 'cashback')
+          .reduce((sum, t) => sum + (t.amount || 0), 0);
+        
+        setStats({
+          totalTransactions,
+          totalSpent,
+          totalCashback
+        });
       }
     } catch (error) {
       console.error('Error loading stats:', error);
+      // Set default stats on error
+      setStats({
+        totalTransactions: 0,
+        totalSpent: 0,
+        totalCashback: 0
+      });
     }
   };
 
