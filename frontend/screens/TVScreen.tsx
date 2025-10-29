@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -307,7 +306,8 @@ export default function TVScreen() {
                 </Pressable>
               ))}
             </View>
-          )}
+           </>
+         )}
         </View>
 
         <View style={{ marginBottom: tokens.spacing.lg }}>
