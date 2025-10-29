@@ -3,8 +3,8 @@ const User = require('../models/User');
 
 const loginAttempts = new Map();
 
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+const MAX_ATTEMPTS = 10;
+const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes
 
 const trackLoginAttempt = async (req, res, next) => {
   const { email } = req.body;

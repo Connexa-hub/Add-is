@@ -55,16 +55,25 @@ export default function HomeScreen({ navigation }) {
 
   const loadRecentTransactions = async (token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/transactions?limit=5`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await fetch(`${API_BASE_URL}/api/transactions/mine?limit=5`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Transaction parse error:', responseText);
+        data = { success: false, data: [] };
+      }
 
       if (data.success) {
-        setRecentTransactions(data.transactions || []);
+        setRecentTransactions(data.data || []);
       }
     } catch (error) {
       console.error('Error loading transactions:', error);

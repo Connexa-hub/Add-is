@@ -89,21 +89,21 @@ export default function AppNavigator() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (response.status === 200) {
         const data = await response.json();
         return data.success && data.data ? true : false;
       }
-      
+
       console.log('Token validation failed - Status:', response.status);
       return false;
     } catch (error) {
@@ -116,10 +116,10 @@ export default function AppNavigator() {
     try {
       const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
       const token = await AsyncStorage.getItem('token');
-      
+
       if (token) {
         const isValid = await validateToken(token);
-        
+
         if (isValid) {
           setInitialRoute('Main');
         } else {
@@ -156,7 +156,7 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
         {/* Onboarding */}
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        
+
         {/* Auth flow */}
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
@@ -197,6 +197,9 @@ export default function AppNavigator() {
         {/* Support & Notifications */}
         <Stack.Screen name="Support" component={SupportScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
+
+        <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="WalletFunding" component={WalletFundingScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

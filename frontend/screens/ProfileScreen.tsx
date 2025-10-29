@@ -30,9 +30,12 @@ export default function ProfileScreen({ navigation }) {
 
       const data = await response.json();
       
-      if (data.success) {
+      if (data.success && data.data) {
         setUser(data.data);
         loadUserStats(token);
+      } else {
+        console.error('No user data received');
+        Alert.alert('Error', 'Failed to load profile data');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -124,17 +127,22 @@ export default function ProfileScreen({ navigation }) {
               left={props => <List.Icon {...props} icon="wallet" />}
             />
             
-            {user?.virtualAccountNumber && (
+            {user?.monnifyAccounts && user.monnifyAccounts.length > 0 && (
               <>
                 <List.Item
-                  title="Virtual Account"
-                  description={user.virtualAccountNumber}
+                  title="Virtual Account Number"
+                  description={user.monnifyAccounts[0].accountNumber}
                   left={props => <List.Icon {...props} icon="bank" />}
                 />
                 <List.Item
                   title="Bank Name"
-                  description={user.virtualBankName}
+                  description={user.monnifyAccounts[0].bankName}
                   left={props => <List.Icon {...props} icon="office-building" />}
+                />
+                <List.Item
+                  title="Account Name"
+                  description={user.monnifyAccounts[0].accountName}
+                  left={props => <List.Icon {...props} icon="account" />}
                 />
               </>
             )}

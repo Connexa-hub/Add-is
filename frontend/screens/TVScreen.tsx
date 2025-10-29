@@ -133,6 +133,11 @@ export default function TVScreen() {
   };
 
   const fetchTVPackages = async () => {
+    if (!selectedProvider) {
+      setTvPackages([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axios.get(
@@ -140,18 +145,24 @@ export default function TVScreen() {
       );
 
       if (response.data.success && response.data.data.products) {
-        const packages = response.data.data.products.map((product: any) => ({
-          id: product.variationCode,
-          name: product.displayName || product.title,
-          price: product.sellingPrice || product.faceValue,
-          validity: product.validity || '30 days',
-          provider: selectedProvider,
-        }));
+        const packages = response.data.data.products
+          .filter((product: any) => product.serviceID === selectedProvider)
+          .map((product: any) => ({
+            id: product.variationCode,
+            name: product.displayName || product.title,
+            price: product.sellingPrice || product.faceValue,
+            validity: product.validity || '30 days',
+            provider: selectedProvider,
+          }));
+        console.log(`Loaded ${packages.length} packages for ${selectedProvider}`);
         setTvPackages(packages);
+      } else {
+        setTvPackages([]);
       }
     } catch (error) {
       console.error('Failed to fetch TV packages:', error);
       Alert.alert('Error', 'Failed to load TV packages. Please try again.');
+      setTvPackages([]);
     } finally {
       setLoading(false);
     }
@@ -260,7 +271,11 @@ export default function TVScreen() {
               </AppText>
             </View>
           ) : (
-            <View style={styles.providerGrid}>
+            <>
+              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginBottom: tokens.spacing.sm }}>
+                Selected: {providers.find(p => p.id === selectedProvider)?.name || 'None'}
+              </AppText>
+              <View style={styles.providerGrid}>
               {providers.map((provider) => (
                 <Pressable
                   key={provider.id}

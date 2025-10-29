@@ -143,11 +143,16 @@ export default function DataScreen() {
           network: selectedNetwork,
           dataAmount: extractDataAmount(product.displayName || product.title),
         }));
+        console.log('Loaded data plans:', plans.length);
         setDataPlans(plans);
+      } else {
+        console.log('No products in response');
+        setDataPlans([]);
       }
     } catch (error) {
       console.error('Failed to fetch data plans:', error);
       Alert.alert('Error', 'Failed to load data plans. Please try again.');
+      setDataPlans([]);
     } finally {
       setLoading(false);
     }

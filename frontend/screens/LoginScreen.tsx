@@ -80,12 +80,43 @@ export default function LoginScreen({ navigation }) {
           'Authentication Failed',
           result.error || 'Please login with your email and password'
         );
+        setLoading(false);
         return;
       }
 
+      // Get fresh token after biometric auth
       const token = await AsyncStorage.getItem('token');
-      if (token && result.userId) {
-        navigation.replace('Main');
+      const userId = await AsyncStorage.getItem('userId');
+      
+      if (token && userId) {
+        // Verify token is still valid
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (response.data.success) {
+            navigation.replace('Main');
+          } else {
+            throw new Error('Token invalid');
+          }
+        } catch (verifyError) {
+          Alert.alert(
+            'Session Expired',
+            'Please login with your email and password',
+            [
+              {
+                text: 'OK',
+                onPress: async () => {
+                  await AsyncStorage.multiRemove(['biometricEnabled', 'savedEmail', 'token', 'userId']);
+                  setEmail('');
+                  setSavedEmail(null);
+                  setBiometricConfigured(false);
+                },
+              },
+            ]
+          );
+        }
       } else {
         Alert.alert(
           'Session Expired',
@@ -94,10 +125,10 @@ export default function LoginScreen({ navigation }) {
             {
               text: 'OK',
               onPress: async () => {
-                await AsyncStorage.removeItem('biometricEnabled');
-                await AsyncStorage.removeItem('savedEmail');
+                await AsyncStorage.multiRemove(['biometricEnabled', 'savedEmail', 'token', 'userId']);
                 setEmail('');
                 setSavedEmail(null);
+                setBiometricConfigured(false);
               },
             },
           ]

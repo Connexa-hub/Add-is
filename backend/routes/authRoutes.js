@@ -2,18 +2,18 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const User = require('../models/User');
 const verifyToken = require('../middleware/verifyToken');
+const { trackLoginAttempt, recordFailedLogin, resetLoginAttempts } = require('../middleware/accountLockout');
+const crypto = require('crypto');
 const emailService = require('../utils/emailService');
-const { registerValidation, loginValidation, profileUpdateValidation, walletFundValidation, transactionQueryValidation } = require('../middleware/validation');
+const monnifyClient = require('../utils/monnifyClient');
 const {
   getWalletBalance,
   fundWallet,
   getWalletTransactions
 } = require('../controllers/walletController');
-const { trackLoginAttempt, recordFailedLogin, resetLoginAttempts } = require('../middleware/accountLockout');
-const { logSecurityEvent } = require('../middleware/securityLogger');
+const { registerValidation, loginValidation, profileUpdateValidation, walletFundValidation, transactionQueryValidation } = require('../middleware/validation');
 
 router.get('/profile', verifyToken, async (req, res, next) => {
   try {
@@ -30,7 +30,6 @@ router.get('/profile', verifyToken, async (req, res, next) => {
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
       if (user.kyc && user.kyc.status === 'approved' && user.kyc.personal && (user.kyc.personal.bvn || user.kyc.personal.nin)) {
         try {
-          const monnifyClient = require('../utils/monnifyClient');
           const accountReference = `USER_${user._id}_${Date.now()}`;
           const result = await monnifyClient.createReservedAccount({
             accountReference,
@@ -145,21 +144,22 @@ router.post('/register', registerValidation, async (req, res, next) => {
       emailVerified: false
     });
 
-    try {
-      const monnifyClient = require('../utils/monnifyClient');
-      const accountReference = `USER_${user._id}_${Date.now()}`;
+    await user.save();
+    await emailService.sendVerificationEmail(user.email, otp);
 
-      const reservedAccountResult = await monnifyClient.createReservedAccount({
+    // Create Monnify virtual account in background
+    try {
+      const accountReference = `USER_${user._id}`;
+      const monnifyResult = await monnifyClient.createReservedAccount({
         accountReference,
-        accountName: name,
-        customerEmail: email,
-        customerName: name
+        accountName: user.name,
+        customerEmail: user.email,
+        customerName: user.name
       });
 
-      if (reservedAccountResult.success && reservedAccountResult.data) {
-        const accounts = reservedAccountResult.data.accounts || [];
+      if (monnifyResult.success && monnifyResult.data.accounts) {
         user.monnifyAccountReference = accountReference;
-        user.monnifyAccounts = accounts.map(acc => ({
+        user.monnifyAccounts = monnifyResult.data.accounts.map(acc => ({
           accountNumber: acc.accountNumber,
           accountName: acc.accountName,
           bankName: acc.bankName,
@@ -168,19 +168,14 @@ router.post('/register', registerValidation, async (req, res, next) => {
         await user.save();
       }
     } catch (monnifyError) {
-      console.error('Monnify account creation failed:', monnifyError.message);
+      console.error('Monnify account creation failed:', monnifyError);
+      // Don't fail registration if Monnify fails
     }
-
-    const { sendVerificationEmail } = require('../utils/emailService');
-    await sendVerificationEmail(user, otp);
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful. Please check your email for verification code.',
-      data: {
-        email: user.email,
-        requiresVerification: true
-      }
+      message: 'Registration successful! Please verify your email.',
+      data: { email: user.email }
     });
   } catch (error) {
     next(error);
