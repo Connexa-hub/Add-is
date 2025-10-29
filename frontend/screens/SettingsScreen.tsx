@@ -190,7 +190,7 @@ export default function SettingsScreen({ navigation }: any) {
         text: 'Logout',
         onPress: async () => {
           try {
-            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'savedEmail', 'biometricEnabled', 'biometricToken']);
             if (navigation?.reset) {
               navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
             }
