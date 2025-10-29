@@ -91,6 +91,24 @@ const sendVerificationEmail = (user, otp) => {
   return sendEmail(user.email, 'Verify Your Email Address', html);
 };
 
+const sendPinResetEmail = (user, otp) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Transaction PIN Reset Request</h2>
+      <p>Hi ${user.name},</p>
+      <p>You requested to reset your transaction PIN. Use the verification code below to proceed:</p>
+      <div style="background-color: #f0f0f0; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+        <h1 style="font-size: 36px; letter-spacing: 8px; margin: 0; color: #333;">${otp}</h1>
+      </div>
+      <p style="color: #666;">This code expires in 1 hour.</p>
+      <p style="color: #666;">If you didn't request this, please secure your account immediately.</p>
+      <br>
+      <p>Best regards,<br><strong>Addis Team</strong></p>
+    </div>
+  `;
+  return sendEmail(user.email, 'Transaction PIN Reset Request', html);
+};
+
 const sendAccountDeletionEmail = async (user) => {
   const mailOptions = {
     from: process.env.EMAIL_FROM || 'noreply@addis.com',
@@ -172,5 +190,6 @@ module.exports = {
   sendTransactionReceipt,
   sendPasswordResetEmail,
   sendVerificationEmail,
-  sendAccountDeletionEmail
+  sendAccountDeletionEmail,
+  sendPinResetEmail
 };

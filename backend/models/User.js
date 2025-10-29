@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema({
   }],
   resetPasswordOTP: String,
   resetPasswordExpires: Date,
+  resetPinOTP: String,
+  resetPinExpires: Date,
+  pinResetToken: String,
+  pinResetTokenExpires: Date,
   tokenVersion: { type: Number, default: 0 },
   role: {
     type: String,

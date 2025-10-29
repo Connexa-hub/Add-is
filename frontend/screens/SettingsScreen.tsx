@@ -353,7 +353,26 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.warning.light}
               title="Change PIN"
               subtitle="Update your transaction PIN"
-              onPress={() => navigation.navigate('PINChange')}
+              onPress={() => {
+                Alert.alert(
+                  'Change PIN',
+                  'Do you know your current PIN?',
+                  [
+                    {
+                      text: 'Forgot PIN',
+                      onPress: () => navigation.navigate('PINForgot')
+                    },
+                    {
+                      text: 'I Know My PIN',
+                      onPress: () => navigation.navigate('PINChange')
+                    },
+                    {
+                      text: 'Cancel',
+                      style: 'cancel'
+                    }
+                  ]
+                );
+              }}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
               showDivider={false}
             />

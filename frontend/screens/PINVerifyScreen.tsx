@@ -258,7 +258,7 @@ export default function PINVerifyScreen({ navigation, route }) {
 
         <TouchableOpacity
           style={{ marginTop: tokens.spacing.lg, alignItems: 'center' }}
-          onPress={() => navigation.navigate('PINChange')}
+          onPress={() => navigation.navigate('PINForgot')}
         >
           <AppText variant="body2" color={tokens.colors.primary.main}>
             Forgot PIN?

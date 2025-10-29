@@ -283,10 +283,211 @@ const toggleBiometric = async (req, res) => {
   }
 };
 
+const requestPinReset = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.transactionPin || !user.transactionPin.isSet) {
+      return res.status(400).json({
+        success: false,
+        message: 'No transaction PIN is set for this account'
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    user.resetPinOTP = otp;
+    user.resetPinExpires = new Date(Date.now() + 3600000); // 1 hour
+    await user.save();
+
+    // Send email
+    const emailService = require('../utils/emailService');
+    await emailService.sendPinResetEmail(user, otp);
+
+    res.json({
+      success: true,
+      message: 'PIN reset code sent to your email',
+      data: {
+        email: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Mask email
+      }
+    });
+  } catch (error) {
+    console.error('Request PIN reset error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to request PIN reset',
+      error: error.message
+    });
+  }
+};
+
+const verifyPinResetOTP = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { otp } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP is required'
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.resetPinOTP || !user.resetPinExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'No PIN reset request found. Please request a new code.'
+      });
+    }
+
+    if (user.resetPinExpires < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset code has expired. Please request a new one.'
+      });
+    }
+
+    if (user.resetPinOTP !== otp) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid reset code'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = Math.random().toString(36).substring(2, 15);
+    user.pinResetToken = resetToken;
+    user.pinResetTokenExpires = new Date(Date.now() + 600000); // 10 minutes
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'OTP verified successfully',
+      data: {
+        resetToken
+      }
+    });
+  } catch (error) {
+    console.error('Verify PIN reset OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify OTP',
+      error: error.message
+    });
+  }
+};
+
+const resetPin = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { resetToken, newPin, confirmNewPin } = req.body;
+
+    if (!resetToken || !newPin || !confirmNewPin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset token, new PIN, and confirmation are required'
+      });
+    }
+
+    if (newPin !== confirmNewPin) {
+      return res.status(400).json({
+        success: false,
+        message: 'New PINs do not match'
+      });
+    }
+
+    if (!/^\d{4,6}$/.test(newPin)) {
+      return res.status(400).json({
+        success: false,
+        message: 'PIN must be 4-6 digits'
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.pinResetToken || !user.pinResetTokenExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reset request. Please verify OTP first.'
+      });
+    }
+
+    if (user.pinResetTokenExpires < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset session expired. Please start over.'
+      });
+    }
+
+    if (user.pinResetToken !== resetToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid reset token'
+      });
+    }
+
+    const hash = await bcrypt.hash(newPin, 10);
+
+    user.transactionPin.hash = hash;
+    user.transactionPin.lastChanged = new Date();
+    user.transactionPin.failedAttempts = 0;
+    user.transactionPin.lockedUntil = null;
+    
+    // Clear reset fields
+    user.resetPinOTP = undefined;
+    user.resetPinExpires = undefined;
+    user.pinResetToken = undefined;
+    user.pinResetTokenExpires = undefined;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Transaction PIN reset successfully'
+    });
+  } catch (error) {
+    console.error('Reset PIN error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset PIN',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   setupPin,
   verifyPin,
   changePin,
   getPinStatus,
-  toggleBiometric
+  toggleBiometric,
+  requestPinReset,
+  verifyPinResetOTP,
+  resetPin
 };

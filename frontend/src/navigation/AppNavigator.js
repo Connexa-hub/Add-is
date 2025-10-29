@@ -35,6 +35,7 @@ import KYCReviewScreen from '../../screens/KYCReviewScreen';
 import PINSetupScreen from '../../screens/PINSetupScreen';
 import PINVerifyScreen from '../../screens/PINVerifyScreen';
 import PINChangeScreen from '../../screens/PINChangeScreen';
+import PINForgotScreen from '../../screens/PINForgotScreen';
 
 import InternetScreen from '../../screens/InternetScreen';
 import EducationScreen from '../../screens/EducationScreen';
@@ -231,6 +232,7 @@ export default function AppNavigator() {
         <Stack.Screen name="PINSetup" component={PINSetupScreen} options={{ headerShown: false }} />
         <Stack.Screen name="PINVerify" component={PINVerifyScreen} options={{ headerShown: false }} />
         <Stack.Screen name="PINChange" component={PINChangeScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="PINForgot" component={PINForgotScreen} options={{ headerShown: false }} />
 
         {/* Admin Screens */}
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
