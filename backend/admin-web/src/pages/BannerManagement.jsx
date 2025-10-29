@@ -281,7 +281,7 @@ const BannerManagement = () => {
 
       reader.onload = async () => {
         try {
-          const response = await api.post('/upload', {
+          const response = await api.post('/uploads', {
             file: reader.result,
             filename: file.name
           });
