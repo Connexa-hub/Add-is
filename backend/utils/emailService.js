@@ -1,4 +1,3 @@
-
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -92,10 +91,86 @@ const sendVerificationEmail = (user, otp) => {
   return sendEmail(user.email, 'Verify Your Email Address', html);
 };
 
+const sendAccountDeletionEmail = async (user) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || 'noreply@addis.com',
+    to: user.email,
+    subject: 'Account Deletion Confirmation - Addis',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+          .info-box { background: #fff; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Account Deleted</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.name},</p>
+
+            <p>This email confirms that your Addis account has been permanently deleted as per your request.</p>
+
+            <div class="info-box">
+              <h3>What has been deleted:</h3>
+              <ul>
+                <li>✓ Your account and personal information</li>
+                <li>✓ All transaction history</li>
+                <li>✓ Saved payment cards</li>
+                <li>✓ Notifications and preferences</li>
+                <li>✓ Support tickets</li>
+                <li>✓ Cashback records</li>
+              </ul>
+            </div>
+
+            ${user.monnifyAccountReference ? `
+            <div class="info-box">
+              <h3>Virtual Account Information:</h3>
+              <p>Your Monnify virtual account(s) will be automatically deactivated after 90 days of inactivity. Please do not send money to these accounts anymore:</p>
+              ${user.monnifyAccounts?.map(acc => `
+                <p><strong>${acc.bankName}:</strong> ${acc.accountNumber}</p>
+              `).join('') || ''}
+            </div>
+            ` : ''}
+
+            <p>We're sorry to see you go. If you change your mind, you can always create a new account.</p>
+
+            <p>If you did not request this deletion, please contact our support team immediately at support@addis.com</p>
+
+            <p>Thank you for using Addis.</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Addis. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Account deletion email sent to:', user.email);
+  } catch (error) {
+    console.error('Error sending account deletion email:', error);
+    throw error;
+  }
+};
+
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
   sendTransactionReceipt,
   sendPasswordResetEmail,
-  sendVerificationEmail
+  sendVerificationEmail,
+  sendAccountDeletionEmail
 };

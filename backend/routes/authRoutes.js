@@ -502,27 +502,68 @@ router.delete('/delete-account', verifyToken, async (req, res, next) => {
       });
     }
 
-    // Delete related data
+    // Log account deletion for security audit
+    logSecurityEvent('ACCOUNT_DELETION_INITIATED', {
+      userId: req.userId,
+      email: user.email,
+      ip: req.ip || req.connection.remoteAddress,
+      timestamp: new Date()
+    });
+
+    // Delete all related data
     const Transaction = require('../models/Transaction');
     const Card = require('../models/Card');
     const Notification = require('../models/Notification');
     const SupportTicket = require('../models/SupportTicket');
+    const Cashback = require('../models/Cashback');
 
+    // Delete all database records associated with the user
     await Promise.all([
       Transaction.deleteMany({ userId: req.userId }),
       Card.deleteMany({ userId: req.userId }),
       Notification.deleteMany({ userId: req.userId }),
-      SupportTicket.deleteMany({ userId: req.userId })
+      SupportTicket.deleteMany({ userId: req.userId }),
+      Cashback.deleteMany({ userId: req.userId })
     ]);
 
-    // Delete user account
+    // Note: Monnify virtual accounts cannot be deleted via API
+    // They are automatically deactivated when not used
+    // Log the account reference for manual deactivation if needed
+    if (user.monnifyAccountReference) {
+      console.log(`Monnify account reference for deleted user: ${user.monnifyAccountReference}`);
+      console.log(`User email: ${user.email}`);
+      console.log('Note: Monnify virtual accounts are automatically deactivated after 90 days of inactivity');
+    }
+
+    // Send account deletion confirmation email
+    try {
+      await emailService.sendAccountDeletionEmail(user);
+    } catch (emailError) {
+      console.error('Failed to send deletion confirmation email:', emailError);
+      // Don't fail the deletion if email fails
+    }
+
+    // Delete user account (final step)
     await User.findByIdAndDelete(req.userId);
+
+    // Log successful deletion
+    logSecurityEvent('ACCOUNT_DELETION_COMPLETED', {
+      userId: req.userId,
+      email: user.email,
+      monnifyAccountReference: user.monnifyAccountReference,
+      timestamp: new Date()
+    });
 
     res.json({
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Account and all associated data deleted successfully. Monnify virtual accounts will be automatically deactivated.'
     });
   } catch (error) {
+    logSecurityEvent('ACCOUNT_DELETION_FAILED', {
+      userId: req.userId,
+      error: error.message,
+      timestamp: new Date()
+    });
     next(error);
   }
 });
