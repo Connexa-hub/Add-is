@@ -58,14 +58,18 @@ The platform features a modern UI with a focus on Opay-style aesthetics. This in
 
 ### Replit Environment (Development)
 - **Backend API**: Running on port 3001 (`http://0.0.0.0:3001`)
-- **Admin Dashboard**: Running on port 3000 (Vite dev server - `http://localhost:3000/`)
-- **Frontend**: Running on port 5000 (Expo web - accessible via webview)
-- **Health Check**: `http://0.0.0.0:3001/api/health`
+- **Frontend Mobile App**: Running on port 5000 (Expo web - accessible via webview)
+- **Admin Dashboard**: Separate workflow needed (port 3000) - currently not running
+- **Health Check**: `http://localhost:3001/api/health`
 - **Workflows**: 
-  - `Backend + Admin`: Runs backend API (port 3001) and admin panel (port 3000)
+  - `Backend`: Runs backend API (port 3001) with NODE_ENV=development
   - `Frontend`: Runs Expo web server on port 5000
-- **Environment**: Development mode
-- **Status**: ✅ RUNNING
+- **Environment**: Development mode (CORS enabled for localhost:5000/3000/19006)
+- **Status**: ✅ RUNNING (Backend + Frontend)
+- **Important Notes**:
+  - Backend must run in development mode for CORS to work with frontend on different port
+  - Frontend API base URL configured to use localhost:3001 in Replit environment
+  - All environment secrets properly configured (MongoDB, JWT, VTPass, Monnify, Email)
 
 ### Koyeb Deployment (Production)
 - **Dockerfile**: Multi-stage build configured
@@ -87,9 +91,32 @@ The platform features a modern UI with a focus on Opay-style aesthetics. This in
 - **Expo**: For React Native mobile app development and testing.
 - **Lucide React**: Icon library used in the Admin Dashboard.
 
-## Recent Updates (October 24, 2025)
+## Recent Updates (October 29, 2025)
 
-### Latest - Missing Frontend Features Implemented (October 24, 2025)
+### Latest - Critical Authentication & Environment Fixes (October 29, 2025)
+- ✅ **Critical Authentication Bug Fixed**
+  - Fixed missing `logSecurityEvent` import in backend/routes/authRoutes.js
+  - This was causing "internal error" on login/registration attempts
+  - Security events now properly logged for all authentication actions
+  
+- ✅ **Biometric Login Persistence Fixed**
+  - Updated logout function in frontend/screens/SettingsScreen.tsx
+  - Now properly clears ALL biometric data (savedEmail, biometricEnabled, biometricToken)
+  - Prevents fingerprint login from persisting after user logs out
+  
+- ✅ **Replit Environment Configuration**
+  - Backend running on port 3001 in development mode
+  - Frontend running on port 5000 (Expo web)
+  - CORS properly configured for cross-origin requests
+  - API base URL updated to localhost:3001 in frontend/constants/api.ts
+  
+- ✅ **CORS Issue Resolved**
+  - Backend switched to development mode (NODE_ENV=development)
+  - Allows frontend on port 5000 to access backend API on port 3001
+  - Whitelisted origins: localhost:5000, localhost:3000, localhost:19006, exp://
+  - Production mode requires FRONTEND_URL and ADMIN_URL environment variables
+
+### Missing Frontend Features Implemented (October 24, 2025)
 - ✅ **Support System Complete**
   - Created SupportScreen.tsx with full ticket management
   - Users can create, view, and track support tickets
