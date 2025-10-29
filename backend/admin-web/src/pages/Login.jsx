@@ -37,21 +37,8 @@ export default function Login() {
     }}>
       <div style={{ width: '100%', maxWidth: '440px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '140px',
-            height: '140px',
-            marginBottom: '1.5rem'
-          }}>
-            <img 
-              src="/splash-icon.png" 
-              alt="Logo" 
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            />
-          </div>
-          <p style={{ color: '#667eea', fontWeight: '600', fontSize: '1.1rem' }}>Admin Portal</p>
+          <h1 style={{ color: '#667eea', fontWeight: 'bold', fontSize: '2rem', marginBottom: '0.5rem' }}>Admin Portal</h1>
+          <p style={{ color: '#667eea', fontWeight: '500', fontSize: '1rem' }}>Connexa Management</p>
         </div>
 
         <div className="card" style={{
