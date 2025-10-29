@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -53,34 +54,34 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? 'w-64' : 'w-20'
-        } bg-gray-900 text-white transition-all duration-300 flex flex-col`}
+        } bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white transition-all duration-300 flex flex-col fixed left-0 top-0 h-full z-40 shadow-2xl`}
       >
         {/* Logo */}
-        <div className="p-4 border-b border-gray-800">
+        <div className="p-4 border-b border-gray-700/50">
           <div className="flex items-center justify-between">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center shadow-lg">
                   <Building2 size={24} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-white font-semibold">Admin Portal</p>
-                  <p className="text-xs text-gray-400">Connexa</p>
+                  <p className="text-white font-bold text-lg">Admin Portal</p>
+                  <p className="text-xs text-cyan-400 font-medium">Connexa</p>
                 </div>
               </div>
             ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center mx-auto">
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center mx-auto shadow-lg">
                 <Building2 size={24} className="text-white" />
               </div>
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors lg:block hidden"
+              className="p-2 hover:bg-gray-700/50 rounded-lg transition-colors lg:flex hidden"
             >
               {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -88,20 +89,22 @@ export default function Layout({ children }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <ul className="space-y-2">
+        <nav className="flex-1 p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
                     location.pathname === item.path
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-cyan-400'
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg scale-105'
+                      : 'text-gray-300 hover:bg-gray-700/50 hover:text-cyan-400 hover:translate-x-1'
                   }`}
                 >
-                  <item.icon size={20} />
-                  {sidebarOpen && <span className="font-medium">{item.label}</span>}
+                  <item.icon size={20} className="flex-shrink-0" />
+                  {sidebarOpen && (
+                    <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>
+                  )}
                 </Link>
               </li>
             ))}
@@ -109,26 +112,26 @@ export default function Layout({ children }) {
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-gray-700/50">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 w-full transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-red-500/20 hover:text-red-400 w-full transition-all group"
           >
-            <LogOut size={20} />
+            <LogOut size={20} className="flex-shrink-0" />
             {sidebarOpen && <span className="font-medium">Logout</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <header className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"
+                className="p-2 hover:bg-gray-100 rounded-lg lg:hidden transition-colors"
               >
                 <Menu size={24} />
               </button>
@@ -138,7 +141,7 @@ export default function Layout({ children }) {
                 <input
                   type="text"
                   placeholder="Search users, transactions..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white transition-all text-sm"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       const searchTerm = e.currentTarget.value;
@@ -159,8 +162,8 @@ export default function Layout({ children }) {
                 onClick={() => navigate('/messages')}
                 title="Notifications"
               >
-                <Bell size={24} className="text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                <Bell size={22} className="text-gray-600" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               </button>
 
               <div className="relative">
@@ -168,7 +171,7 @@ export default function Layout({ children }) {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
+                  <div className="w-9 h-9 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">
                     A
                   </div>
                   <ChevronDown size={16} className="text-gray-600" />
@@ -179,8 +182,10 @@ export default function Layout({ children }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
-          {children}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
