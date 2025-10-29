@@ -114,7 +114,11 @@ export default function ElectricityScreen() {
           }
         });
 
-        const providerList = Array.from(uniqueProviders.values());
+        // Sort providers alphabetically A-Z by name
+        const providerList = Array.from(uniqueProviders.values()).sort((a, b) => 
+          a.name.localeCompare(b.name)
+        );
+        
         setProviders(providerList);
         
         if (providerList.length > 0 && !selectedProvider) {
@@ -128,7 +132,7 @@ export default function ElectricityScreen() {
         { id: 'eko-electric', name: 'Eko Electric', color: '#004E89', icon: 'flash' },
         { id: 'abuja-electric', name: 'Abuja Electric', color: '#00A878', icon: 'flash' },
         { id: 'portharcourt-electric', name: 'PH Electric', color: '#9B59B6', icon: 'flash' },
-      ];
+      ].sort((a, b) => a.name.localeCompare(b.name));
       setProviders(fallbackProviders);
       setSelectedProvider('ikeja-electric');
     } finally {

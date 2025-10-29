@@ -37,7 +37,35 @@ export default function LoginScreen({ navigation }) {
   useEffect(() => {
     checkBiometricStatus();
     checkSavedCredentials();
+    // Verify session is still valid on mount
+    verifySession();
   }, [capabilities, isBiometricLoading]);
+
+  const verifySession = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        // Verify token is still valid
+        const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!response.data.success) {
+          // Token invalid, clear session
+          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+          setEmail('');
+          setSavedEmail(null);
+          setBiometricConfigured(false);
+        }
+      }
+    } catch (error) {
+      // Session expired or invalid, clear it
+      await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+      setEmail('');
+      setSavedEmail(null);
+      setBiometricConfigured(false);
+    }
+  };
 
   const checkBiometricStatus = async () => {
     if (!isBiometricLoading) {

@@ -128,32 +128,41 @@ export default function DataScreen() {
   const fetchDataPlans = async () => {
     if (!selectedNetwork) {
       setDataPlans([]);
+      setFilteredPlans([]);
       return;
     }
 
     setLoading(true);
     try {
-      // Map frontend network ID to backend network name
-      const networkMap: { [key: string]: string } = {
-        'mtn': 'MTN',
-        'airtel': 'Airtel',
-        'glo': 'Glo',
-        '9mobile': '9mobile',
-        'smile': 'Smile'
-      };
+      // Get the selected network's serviceID
+      const network = networks.find(n => n.id === selectedNetwork);
+      if (!network) {
+        console.log('Network not found:', selectedNetwork);
+        setDataPlans([]);
+        setFilteredPlans([]);
+        setLoading(false);
+        return;
+      }
 
-      const networkName = networkMap[selectedNetwork] || selectedNetwork.toUpperCase();
-
-      console.log('Fetching data plans for network:', networkName);
+      console.log('Fetching data plans for network:', network.name, 'serviceID:', network.serviceID);
 
       const response = await axios.get(
-        `${API_BASE_URL}/api/vtu/products?category=data&network=${networkName}`
+        `${API_BASE_URL}/api/vtu/products?category=data&network=${network.name}`
       );
 
       console.log('Data plans response:', response.data);
 
       if (response.data.success && response.data.data.products) {
-        const plans = response.data.data.products.map((product: any) => ({
+        // Filter products to only show those matching the selected network
+        const networkProducts = response.data.data.products.filter((product: any) => {
+          const productNetwork = product.network?.toLowerCase();
+          const selectedNet = network.name.toLowerCase();
+          return productNetwork === selectedNet || 
+                 productNetwork?.includes(selectedNet) ||
+                 product.serviceID === network.serviceID;
+        });
+
+        const plans = networkProducts.map((product: any) => ({
           id: product.variationCode,
           name: product.displayName || product.title,
           price: product.sellingPrice || product.faceValue,
@@ -161,10 +170,11 @@ export default function DataScreen() {
           network: selectedNetwork,
           dataAmount: extractDataAmount(product.displayName || product.title),
         }));
-        console.log('Loaded data plans:', plans.length, 'for network:', networkName);
+        
+        console.log('Loaded data plans:', plans.length, 'for network:', network.name);
         setDataPlans(plans);
       } else {
-        console.log('No products in response for network:', networkName);
+        console.log('No products in response for network:', network.name);
         setDataPlans([]);
       }
     } catch (error) {
