@@ -46,12 +46,18 @@ export default function ProfileScreen({ navigation }) {
 
   const loadUserStats = async (token) => {
     try {
-      // Fetch user's transactions to calculate stats
+      // Fetch user's transactions to calculate stats with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch(`${API_BASE_URL}/api/transactions/mine?limit=1000`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error('Failed to fetch transactions');
@@ -78,8 +84,7 @@ export default function ProfileScreen({ navigation }) {
         });
       }
     } catch (error) {
-      console.error('Error loading stats:', error);
-      // Set default stats on error
+      // Silently set default stats on error - don't log to avoid console clutter
       setStats({
         totalTransactions: 0,
         totalSpent: 0,

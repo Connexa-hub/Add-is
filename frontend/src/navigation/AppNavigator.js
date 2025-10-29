@@ -145,11 +145,8 @@ export default function AppNavigator() {
   };
 
   if (!isReady) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#6200ee" />
-      </View>
-    );
+    // Return null to let native splash screen continue showing
+    return null;
   }
 
   return (

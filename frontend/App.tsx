@@ -18,8 +18,8 @@ export default function App() {
         await Font.loadAsync({
           'SpaceMono-Regular': require('./assets/fonts/LilitaOne-Regular.ttf'),
         });
-        // Give splash screen time to show (2 seconds minimum)
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Give splash screen time to show (3 seconds minimum for logo effect)
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         setAppIsReady(true);
         await SplashScreen.hideAsync();
       } catch (e) {
