@@ -474,4 +474,57 @@ router.post('/resend-verification', async (req, res, next) => {
   }
 });
 
+router.delete('/delete-account', verifyToken, async (req, res, next) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password is required to delete account'
+      });
+    }
+
+    const user = await User.findById(req.userId).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid password'
+      });
+    }
+
+    // Delete related data
+    const Transaction = require('../models/Transaction');
+    const Card = require('../models/Card');
+    const Notification = require('../models/Notification');
+    const SupportTicket = require('../models/SupportTicket');
+
+    await Promise.all([
+      Transaction.deleteMany({ userId: req.userId }),
+      Card.deleteMany({ userId: req.userId }),
+      Notification.deleteMany({ userId: req.userId }),
+      SupportTicket.deleteMany({ userId: req.userId })
+    ]);
+
+    // Delete user account
+    await User.findByIdAndDelete(req.userId);
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

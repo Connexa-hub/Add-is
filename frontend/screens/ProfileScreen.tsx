@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, SafeAreaView } from 'react-native';
 import { Appbar, Card, Text, List, Divider, Avatar, Button, ActivityIndicator } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/api';
@@ -71,12 +71,13 @@ export default function ProfileScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
-      <Appbar.Header>
-        <Appbar.Content title="Profile" />
-      </Appbar.Header>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Appbar.Header>
+          <Appbar.Content title="Profile" />
+        </Appbar.Header>
 
-      <ScrollView style={styles.scrollView}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Header */}
         <Card style={styles.profileCard}>
           <Card.Content style={styles.profileContent}>
@@ -208,11 +209,16 @@ export default function ProfileScreen({ navigation }) {
           </Card.Content>
         </Card>
       </ScrollView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',

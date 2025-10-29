@@ -43,6 +43,7 @@ import InsuranceScreen from '../../screens/InsuranceScreen';
 
 import SupportScreen from '../../screens/SupportScreen';
 import NotificationsScreen from '../../screens/NotificationsScreen';
+import DeleteAccountScreen from '../../screens/DeleteAccountScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -197,6 +198,7 @@ export default function AppNavigator() {
         {/* Support & Notifications */}
         <Stack.Screen name="Support" component={SupportScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} options={{ headerShown: false }} />
 
         <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
         <Stack.Screen name="WalletFunding" component={WalletFundingScreen} options={{ headerShown: false }} />

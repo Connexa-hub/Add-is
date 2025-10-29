@@ -389,7 +389,7 @@ export default function SettingsScreen({ navigation }: any) {
               iconBg={tokens.colors.info.light}
               title="Help & Support"
               subtitle="Get help with your account"
-              onPress={() => {}}
+              onPress={() => navigation.navigate('Support')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
             />
 
@@ -400,6 +400,16 @@ export default function SettingsScreen({ navigation }: any) {
               title="Terms & Conditions"
               subtitle="View our terms of service"
               onPress={() => {}}
+              rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
+            />
+
+            <SettingRow
+              icon="trash"
+              iconColor={tokens.colors.error.main}
+              iconBg={tokens.colors.error.light}
+              title="Delete Account"
+              subtitle="Permanently delete your account"
+              onPress={() => navigation.navigate('DeleteAccount')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
               showDivider={false}
             />
