@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const verifyToken = require('../middleware/verifyToken');
 const { trackLoginAttempt, recordFailedLogin, resetLoginAttempts } = require('../middleware/accountLockout');
+const { logSecurityEvent } = require('../middleware/securityLogger');
 const crypto = require('crypto');
 const emailService = require('../utils/emailService');
 const monnifyClient = require('../utils/monnifyClient');
