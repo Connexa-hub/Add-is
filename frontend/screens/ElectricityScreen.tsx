@@ -13,7 +13,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { PaymentPreviewSheet, PaymentProcessingScreen, BannerCarousel } from '../src/components/molecules';
+import { PaymentPreviewSheet, PaymentProcessingScreen, BannerCarousel, BottomSheet } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -54,6 +54,7 @@ export default function ElectricityScreen() {
   const [errors, setErrors] = useState({ meterNumber: '', amount: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [showProcessing, setShowProcessing] = useState(false);
+  const [showProviderSheet, setShowProviderSheet] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'pending' | 'failed'>('processing');
   const [transactionReference, setTransactionReference] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
@@ -287,47 +288,38 @@ export default function ElectricityScreen() {
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Select Provider
           </AppText>
-          {loadingProviders ? (
-            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color={tokens.colors.primary.main} />
-              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
-                Loading providers...
+          <Pressable
+            style={[
+              {
+                backgroundColor: tokens.colors.background.paper,
+                borderWidth: 2,
+                borderColor: selectedProvider ? tokens.colors.primary.main : tokens.colors.border.default,
+                borderRadius: tokens.radius.lg,
+                padding: tokens.spacing.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                ...tokens.shadows.sm,
+              }
+            ]}
+            onPress={() => setShowProviderSheet(true)}
+          >
+            {selectedProvider ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={[styles.providerIcon, { backgroundColor: providers.find(p => p.id === selectedProvider)?.color || '#6B7280' }]}>
+                  <Ionicons name="flash" size={20} color="#FFFFFF" />
+                </View>
+                <AppText variant="body1" weight="semibold" style={{ marginLeft: tokens.spacing.md }}>
+                  {providers.find(p => p.id === selectedProvider)?.name}
+                </AppText>
+              </View>
+            ) : (
+              <AppText variant="body1" color={tokens.colors.text.secondary}>
+                Choose electricity provider
               </AppText>
-            </View>
-          ) : (
-            <View style={styles.providerGrid}>
-              {providers.map((provider) => (
-                <Pressable
-                  key={provider.id}
-                  style={[
-                    styles.providerCard,
-                    {
-                      backgroundColor: tokens.colors.background.paper,
-                      borderWidth: 2,
-                      borderColor: selectedProvider === provider.id
-                        ? tokens.colors.primary.main
-                        : tokens.colors.border.default,
-                      borderRadius: tokens.radius.lg,
-                      ...tokens.shadows.sm,
-                    }
-                  ]}
-                  onPress={() => setSelectedProvider(provider.id)}
-                >
-                  <View style={[styles.providerIcon, { backgroundColor: provider.color }]}>
-                    <Ionicons name={provider.icon as any} size={24} color="#FFFFFF" />
-                  </View>
-                  <AppText variant="caption" weight="semibold" style={{ marginTop: tokens.spacing.xs, textAlign: 'center' }} numberOfLines={2}>
-                    {provider.name}
-                  </AppText>
-                  {selectedProvider === provider.id && (
-                    <View style={{ marginTop: 4 }}>
-                      <Ionicons name="checkmark-circle" size={16} color={tokens.colors.primary.main} />
-                    </View>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-          )}
+            )}
+            <Ionicons name="chevron-down" size={24} color={tokens.colors.text.secondary} />
+          </Pressable>
         </View>
 
         <View style={{ marginBottom: tokens.spacing.xl }}>
@@ -511,6 +503,59 @@ export default function ElectricityScreen() {
         onClose={handleProcessingClose}
         onRetry={handleRetry}
       />
+
+      <BottomSheet
+        visible={showProviderSheet}
+        onClose={() => setShowProviderSheet(false)}
+        title="Select Electricity Provider"
+        height="70%"
+      >
+        {loadingProviders ? (
+          <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={tokens.colors.primary.main} />
+            <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
+              Loading providers...
+            </AppText>
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {providers.map((provider) => (
+              <Pressable
+                key={provider.id}
+                style={[
+                  {
+                    backgroundColor: tokens.colors.background.paper,
+                    borderWidth: 2,
+                    borderColor: selectedProvider === provider.id
+                      ? tokens.colors.primary.main
+                      : tokens.colors.border.default,
+                    borderRadius: tokens.radius.lg,
+                    padding: tokens.spacing.md,
+                    marginBottom: tokens.spacing.sm,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    ...tokens.shadows.sm,
+                  }
+                ]}
+                onPress={() => {
+                  setSelectedProvider(provider.id);
+                  setShowProviderSheet(false);
+                }}
+              >
+                <View style={[styles.providerIcon, { backgroundColor: provider.color }]}>
+                  <Ionicons name={provider.icon as any} size={24} color="#FFFFFF" />
+                </View>
+                <AppText variant="body1" weight="semibold" style={{ marginLeft: tokens.spacing.md, flex: 1 }}>
+                  {provider.name}
+                </AppText>
+                {selectedProvider === provider.id && (
+                  <Ionicons name="checkmark-circle" size={24} color={tokens.colors.primary.main} />
+                )}
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+      </BottomSheet>
     </View>
   );
 }

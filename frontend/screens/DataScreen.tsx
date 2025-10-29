@@ -126,13 +126,31 @@ export default function DataScreen() {
   };
 
   const fetchDataPlans = async () => {
+    if (!selectedNetwork) {
+      setDataPlans([]);
+      return;
+    }
+
     setLoading(true);
     try {
-      const networkName = selectedNetwork === '9mobile' ? '9mobile' : selectedNetwork.toUpperCase();
+      // Map frontend network ID to backend network name
+      const networkMap: { [key: string]: string } = {
+        'mtn': 'MTN',
+        'airtel': 'Airtel',
+        'glo': 'Glo',
+        '9mobile': '9mobile',
+        'smile': 'Smile'
+      };
+
+      const networkName = networkMap[selectedNetwork] || selectedNetwork.toUpperCase();
+
+      console.log('Fetching data plans for network:', networkName);
 
       const response = await axios.get(
         `${API_BASE_URL}/api/vtu/products?category=data&network=${networkName}`
       );
+
+      console.log('Data plans response:', response.data);
 
       if (response.data.success && response.data.data.products) {
         const plans = response.data.data.products.map((product: any) => ({
@@ -143,10 +161,10 @@ export default function DataScreen() {
           network: selectedNetwork,
           dataAmount: extractDataAmount(product.displayName || product.title),
         }));
-        console.log('Loaded data plans:', plans.length);
+        console.log('Loaded data plans:', plans.length, 'for network:', networkName);
         setDataPlans(plans);
       } else {
-        console.log('No products in response');
+        console.log('No products in response for network:', networkName);
         setDataPlans([]);
       }
     } catch (error) {

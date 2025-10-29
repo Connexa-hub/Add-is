@@ -47,8 +47,9 @@ export default function WalletFundingScreen({ navigation }) {
       const data = await response.json();
 
       if (data.success) {
-        setUser(data.user);
-        setWalletBalance(data.user.walletBalance || 0);
+        const userData = data.data || data.user;
+        setUser(userData);
+        setWalletBalance(userData.walletBalance || 0);
 
         // Load Monnify virtual account
         await loadMonnifyAccount(token);
@@ -118,9 +119,12 @@ export default function WalletFundingScreen({ navigation }) {
 
       const data = await response.json();
 
-      if (data.success && data.user) {
-        setWalletBalance(data.user.walletBalance || 0);
-        Alert.alert('Success', 'Wallet balance updated!');
+      if (data.success) {
+        const userData = data.data || data.user;
+        if (userData) {
+          setWalletBalance(userData.walletBalance || 0);
+          Alert.alert('Success', 'Wallet balance updated!');
+        }
       }
     } catch (error) {
       console.error('Error checking payment:', error);
