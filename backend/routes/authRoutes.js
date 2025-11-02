@@ -155,25 +155,18 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     await user.save();
     
+    let emailSent = false;
     try {
       await emailService.sendVerificationEmail(user.email, otp);
+      emailSent = true;
     } catch (emailError) {
       console.error('Failed to send verification email during registration:', emailError);
-      await User.findByIdAndDelete(user._id);
       
+      // Don't delete user - allow them to proceed to verification screen
+      // They can resend the verification email from there
       if (emailError.isEmailConfigError) {
-        return res.status(503).json({
-          success: false,
-          message: 'Email service is not configured. Please contact support to complete registration.',
-          errorCode: 'EMAIL_SERVICE_UNAVAILABLE'
-        });
+        console.error('Email service not configured - user created but email not sent');
       }
-      
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send verification email. Please try again or contact support.',
-        errorCode: 'EMAIL_SEND_FAILED'
-      });
     }
 
     // Create Monnify virtual account in background

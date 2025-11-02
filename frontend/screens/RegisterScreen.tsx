@@ -85,14 +85,29 @@ export default function RegisterScreen({ navigation }) {
     if (hasErrors) return;
 
     setLoading(true);
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setErrors({
+        ...errors,
+        email: 'Request timeout. Please check your connection and try again.'
+      });
+    }, 30000); // 30 second timeout
+
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         name, 
         email, 
         password
+      }, {
+        timeout: 25000 // 25 second axios timeout
       });
+      
+      clearTimeout(timeoutId);
+      
+      // Navigate to verification screen regardless of email sending status
       navigation.navigate('EmailVerification', { email });
     } catch (err) {
+      clearTimeout(timeoutId);
       const errorData = err.response?.data;
       
       if (errorData?.requiresVerification && errorData?.email) {
@@ -100,10 +115,18 @@ export default function RegisterScreen({ navigation }) {
         return;
       }
       
-      setErrors({
-        ...errors,
-        email: errorData?.message || 'Registration failed. Please try again.'
-      });
+      // Handle timeout errors
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setErrors({
+          ...errors,
+          email: 'Request timeout. Please check your connection and try again.'
+        });
+      } else {
+        setErrors({
+          ...errors,
+          email: errorData?.message || 'Registration failed. Please try again.'
+        });
+      }
     } finally {
       setLoading(false);
     }
