@@ -9,13 +9,22 @@ import { useAppTheme } from '../src/hooks/useAppTheme';
 
 export default function EmailVerificationScreen({ route, navigation }: any) {
   const { tokens } = useAppTheme();
-  const { email } = route.params;
+  const { email, emailSent } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
+
+  // Show warning if initial email wasn't sent
+  useEffect(() => {
+    if (emailSent === false) {
+      setError('Email service is currently unavailable. Please use the resend button or contact support@vtu247.com for assistance.');
+      setCanResend(true);
+      setCountdown(0);
+    }
+  }, [emailSent]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -70,11 +79,26 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
     setResendLoading(true);
     setError('');
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/resend-verification`, { email });
-      setCountdown(60);
-      setCanResend(false);
-    } catch (err) {
-      setError('Could not resend code. Please try again.');
+      const response = await axios.post(`${API_BASE_URL}/api/auth/resend-verification`, { email });
+      
+      // Check if email was actually sent
+      if (response.data.success) {
+        setCountdown(60);
+        setCanResend(false);
+        // Show success message
+        setError('');
+      }
+    } catch (err: any) {
+      const errorData = err.response?.data;
+      
+      // Show specific error messages based on error code
+      if (errorData?.errorCode === 'EMAIL_SERVICE_UNAVAILABLE') {
+        setError(`Email service is currently unavailable. Please contact ${errorData.supportEmail || 'support@vtu247.com'} for manual verification.`);
+      } else if (errorData?.errorCode === 'EMAIL_SEND_FAILED') {
+        setError(`Failed to send verification email. Please contact ${errorData.supportEmail || 'support@vtu247.com'} for assistance.`);
+      } else {
+        setError(errorData?.message || 'Could not resend code. Please try again or contact support.');
+      }
     } finally {
       setResendLoading(false);
     }

@@ -196,8 +196,13 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Please verify your email.',
-      data: { email: user.email }
+      message: emailSent 
+        ? 'Registration successful! Please verify your email.' 
+        : 'Registration successful! Email service unavailable - please use resend or contact support.',
+      data: { 
+        email: user.email,
+        emailSent: emailSent
+      }
     });
   } catch (error) {
     next(error);

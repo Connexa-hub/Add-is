@@ -104,8 +104,11 @@ export default function RegisterScreen({ navigation }) {
       
       clearTimeout(timeoutId);
       
-      // Navigate to verification screen regardless of email sending status
-      navigation.navigate('EmailVerification', { email });
+      // Navigate to verification screen, passing email sending status
+      navigation.navigate('EmailVerification', { 
+        email,
+        emailSent: res.data.emailSent !== false // true if email was sent or status unknown
+      });
     } catch (err) {
       clearTimeout(timeoutId);
       const errorData = err.response?.data;
