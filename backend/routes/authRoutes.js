@@ -154,7 +154,27 @@ router.post('/register', registerValidation, async (req, res, next) => {
     });
 
     await user.save();
-    await emailService.sendVerificationEmail(user.email, otp);
+    
+    try {
+      await emailService.sendVerificationEmail(user.email, otp);
+    } catch (emailError) {
+      console.error('Failed to send verification email during registration:', emailError);
+      await User.findByIdAndDelete(user._id);
+      
+      if (emailError.isEmailConfigError) {
+        return res.status(503).json({
+          success: false,
+          message: 'Email service is not configured. Please contact support to complete registration.',
+          errorCode: 'EMAIL_SERVICE_UNAVAILABLE'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again or contact support.',
+        errorCode: 'EMAIL_SEND_FAILED'
+      });
+    }
 
     // Create Monnify virtual account in background
     try {
@@ -214,17 +234,30 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
       await user.save();
 
       // Send verification email
+      let emailSent = false;
+      let emailErrorMessage = null;
+      
       try {
         await emailService.sendVerificationEmail(user.email, otp);
+        emailSent = true;
       } catch (emailError) {
-        console.error('Failed to send verification email:', emailError);
+        console.error('Failed to send verification email during login:', emailError);
+        if (emailError.isEmailConfigError) {
+          emailErrorMessage = 'Email service is currently unavailable. Please contact support for manual verification.';
+        } else {
+          emailErrorMessage = 'Failed to send verification email. Please try the resend option or contact support.';
+        }
       }
 
       return res.status(403).json({
         success: false,
-        message: 'Please verify your email before logging in. A new verification code has been sent to your email.',
+        message: emailSent 
+          ? 'Please verify your email before logging in. A new verification code has been sent to your email.'
+          : `Email verification required. ${emailErrorMessage}`,
         requiresVerification: true,
-        email: user.email
+        email: user.email,
+        emailSent,
+        emailError: emailErrorMessage
       });
     }
 
@@ -391,13 +424,32 @@ router.post('/forgot-password', async (req, res, next) => {
     await user.save();
 
     // Send email with OTP
-    const { sendPasswordResetEmail } = require('../utils/emailService');
-    await sendPasswordResetEmail(user, otp);
+    try {
+      const { sendPasswordResetEmail } = require('../utils/emailService');
+      await sendPasswordResetEmail(user, otp);
 
-    res.json({
-      success: true,
-      message: 'Password reset code sent to your email'
-    });
+      res.json({
+        success: true,
+        message: 'Password reset code sent to your email'
+      });
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError);
+      
+      if (emailError.isEmailConfigError) {
+        return res.status(503).json({
+          success: false,
+          message: 'Email service is currently unavailable. Your reset code has been generated. Please contact support with your email address to receive it.',
+          errorCode: 'EMAIL_SERVICE_UNAVAILABLE',
+          supportEmail: 'support@vtu247.com'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send password reset email. Please try again or contact support.',
+        errorCode: 'EMAIL_SEND_FAILED'
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -471,8 +523,14 @@ router.post('/verify-email', async (req, res, next) => {
     user.verificationExpires = undefined;
     await user.save();
 
-    const { sendWelcomeEmail } = require('../utils/emailService');
-    await sendWelcomeEmail(user);
+    // Send welcome email (non-critical - don't fail verification if it fails)
+    try {
+      const { sendWelcomeEmail } = require('../utils/emailService');
+      await sendWelcomeEmail(user);
+    } catch (emailError) {
+      console.error('Failed to send welcome email (non-critical):', emailError);
+      // Don't fail the verification - user is already verified
+    }
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -534,13 +592,33 @@ router.post('/resend-verification', async (req, res, next) => {
     user.verificationExpires = Date.now() + 3600000;
     await user.save();
 
-    const { sendVerificationEmail } = require('../utils/emailService');
-    await sendVerificationEmail(user, otp);
+    try {
+      const { sendVerificationEmail } = require('../utils/emailService');
+      await sendVerificationEmail(user, otp);
 
-    res.json({
-      success: true,
-      message: 'Verification code resent to your email'
-    });
+      res.json({
+        success: true,
+        message: 'Verification code resent to your email'
+      });
+    } catch (emailError) {
+      console.error('Failed to resend verification email:', emailError);
+      
+      if (emailError.isEmailConfigError) {
+        return res.status(503).json({
+          success: false,
+          message: 'Email service is currently unavailable. Please contact support for manual verification.',
+          errorCode: 'EMAIL_SERVICE_UNAVAILABLE',
+          supportEmail: 'support@vtu247.com'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again later or contact support.',
+        errorCode: 'EMAIL_SEND_FAILED',
+        supportEmail: 'support@vtu247.com'
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -607,12 +685,13 @@ router.delete('/delete-account', verifyToken, async (req, res, next) => {
       console.log('Note: Monnify virtual accounts are automatically deactivated after 90 days of inactivity');
     }
 
-    // Send account deletion confirmation email
+    // Send account deletion confirmation email (non-critical - don't fail deletion if it fails)
     try {
       await emailService.sendAccountDeletionEmail(user);
+      console.log('Account deletion confirmation email sent successfully');
     } catch (emailError) {
-      console.error('Failed to send deletion confirmation email:', emailError);
-      // Don't fail the deletion if email fails
+      console.error('Failed to send deletion confirmation email (non-critical):', emailError);
+      // Don't fail the deletion if email fails - account is already being deleted
     }
 
     // Delete user account (final step)

@@ -1,20 +1,47 @@
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+let transporter = null;
+let emailConfigError = null;
+
+const initializeEmailService = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    emailConfigError = 'Email service not configured: EMAIL_USER and EMAIL_PASS environment variables are required';
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('⚠️  EMAIL SERVICE NOT CONFIGURED');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('   EMAIL_USER and EMAIL_PASS must be set for email functionality');
+    console.error('   Authentication features requiring email will fail');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    return false;
   }
-});
+
+  try {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+    console.log('✅ Email service initialized successfully');
+    return true;
+  } catch (error) {
+    emailConfigError = `Failed to initialize email service: ${error.message}`;
+    console.error('❌ Email service initialization failed:', error.message);
+    return false;
+  }
+};
+
+initializeEmailService();
 
 const sendEmail = async (to, subject, html) => {
-  try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.log('Email service not configured - skipping email');
-      return { success: false, message: 'Email not configured' };
-    }
+  if (emailConfigError || !transporter) {
+    const error = new Error(emailConfigError || 'Email service not initialized');
+    error.isEmailConfigError = true;
+    throw error;
+  }
 
+  try {
     const mailOptions = {
       from: `"VTU Bill Payment" <${process.env.EMAIL_USER}>`,
       to,
@@ -22,11 +49,15 @@ const sendEmail = async (to, subject, html) => {
       html
     };
 
-    await transporter.sendMail(mailOptions);
-    return { success: true };
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Email sending error:', error);
-    return { success: false, error: error.message };
+    console.error('❌ Email sending failed:', error);
+    const emailError = new Error(`Failed to send email: ${error.message}`);
+    emailError.originalError = error;
+    emailError.isEmailSendError = true;
+    throw emailError;
   }
 };
 

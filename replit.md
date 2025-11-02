@@ -12,17 +12,33 @@ The project aims to provide a robust, user-friendly, and secure platform for dig
 - RESTful API design
 
 ## Recent Changes
-**November 2, 2025 - Authentication & Biometric Login Fixes**
-- Fixed login failure issue: Updated biometric login to use `/api/auth/biometric-login` endpoint with proper token instead of password-based authentication
-- Fixed registration "email already exists" issue: Backend now detects unverified accounts and returns `requiresVerification` flag, frontend navigates to verification screen
-- Implemented proper biometric authentication flow (OPay-style):
-  - Added `/api/auth/enable-biometric` endpoint that generates secure biometric token
-  - Updated `useBiometric.ts` hook to request and store biometric token in SecureStore
-  - Modified `LoginScreen.tsx` to use biometric token for re-authentication
-  - Updated `RegisterScreen.tsx` to handle unverified email responses
-- Increased rate limits for development (100 auth requests, 1000 general requests per 15 min) to allow testing multiple accounts
-- Splash screen animation already implemented and working
-- Backend running on port 3001, configured for Replit environment
+**November 2, 2025 - CRITICAL: Complete Authentication & Email Service Overhaul**
+- **Email Service Hardening**: Completely rewrote email service to fail-fast with clear error messages instead of silent failures
+  - Added startup validation that checks for EMAIL_USER and EMAIL_PASS configuration
+  - Email sending now throws proper errors instead of returning success:false
+  - Clear error messages distinguish between configuration issues vs. send failures
+- **Authentication Route Improvements**: Updated all auth endpoints to properly handle and report email failures
+  - Registration: Deletes user account if verification email fails to send, provides clear error messages
+  - Login: Reports email sending status, distinguishes between config and send errors
+  - Resend Verification: Proper error handling with support contact information
+  - All routes now provide actionable error messages to users
+- **Database Cleanup System**: Created comprehensive cleanup tools for stuck unverified accounts
+  - New script: `backend/scripts/cleanupUnverifiedUsers.js` - Removes accounts older than 24 hours
+  - Admin endpoint: `POST /api/admin/security/cleanup-unverified` - On-demand cleanup
+  - Clears expired verification codes automatically
+- **Manual Verification Fallback**: Added admin endpoints for when email service fails
+  - `POST /api/admin/security/manual-verify-email` - Manually verify user emails
+  - `GET /api/admin/security/unverified-users` - List all unverified accounts with pagination
+  - All manual verifications logged for security audit trail
+- **Replit Environment Setup**: Configured for optimal Replit deployment
+  - Admin-web Vite dev server on port 5000 with `allowedHosts: true`
+  - Backend API on port 3001 with proper CORS and proxy configuration
+  - Workflow configured to run both servers concurrently
+  - Dependencies installed with legacy peer deps for React 19 compatibility
+- **Previous Fixes** (from earlier session):
+  - Fixed biometric login to use proper token authentication
+  - Fixed "email already exists" handling for unverified accounts
+  - Increased development rate limits for testing
 
 ## System Architecture
 
