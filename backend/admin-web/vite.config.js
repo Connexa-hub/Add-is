@@ -4,22 +4,21 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5000,
+    port: 3000,
     host: '0.0.0.0',
     strictPort: false,
-    allowedHosts: true,
     hmr: {
       clientPort: 443,
       host: process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost'
     },
     proxy: {
       '/api': {
-        target: process.env.BACKEND_URL || 'http://localhost:3001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false
       },
       '/uploads': {
-        target: process.env.BACKEND_URL || 'http://localhost:3001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false
       }
