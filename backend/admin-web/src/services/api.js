@@ -45,8 +45,9 @@ export const adminAPI = {
   getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
   updateUserWallet: (userId, data) => api.put(`/admin/users/${userId}/wallet`, data),
   updateUserStatus: (userId, status) => api.put(`/admin/users/${userId}/status`, { status }),
-  getTransactions: (params) => api.get('/admin/transactions', { params }),
-  broadcastNotification: (data) => api.post('/admin/notifications/broadcast', data),
+
+  cleanupUnverifiedUsers: (daysOld = 1) =>
+    api.post('/admin/security/cleanup-unverified', { daysOld }),
 };
 
 export const serviceAPI = {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
-import { Search, Edit, Ban, CheckCircle, DollarSign, Eye } from 'lucide-react';
+import { Search, Edit, Ban, CheckCircle, DollarSign, Eye, Trash2 } from 'lucide-react';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -11,6 +11,9 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletAction, setWalletAction] = useState({ action: 'credit', amount: '', reason: '' });
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [cleanupDays, setCleanupDays] = useState(1);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -50,13 +53,41 @@ const Users = () => {
     }
   };
 
+  const handleCleanupUnverified = async () => {
+    if (!window.confirm(`Are you sure you want to delete all unverified accounts older than ${cleanupDays} day(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setCleanupLoading(true);
+      const response = await adminAPI.cleanupUnverifiedUsers(cleanupDays);
+      alert(response.data.message || 'Cleanup completed successfully');
+      setShowCleanupModal(false);
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to cleanup unverified users');
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
   return (
     <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-          User Management
-        </h1>
-        <p style={{ color: 'var(--gray-600)' }}>Manage users, wallets, and account status</p>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+            User Management
+          </h1>
+          <p style={{ color: 'var(--gray-600)' }}>Manage users, wallets, and account status</p>
+        </div>
+        <button
+          className="btn btn-danger"
+          onClick={() => setShowCleanupModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <Trash2 size={16} />
+          Cleanup Unverified Users
+        </button>
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -211,6 +242,62 @@ const Users = () => {
                 Update Wallet
               </button>
               <button className="btn btn-secondary" onClick={() => setShowWalletModal(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCleanupModal && (
+        <div className="modal-overlay" onClick={() => setShowCleanupModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--danger)' }}>
+              Cleanup Unverified Users
+            </h2>
+
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'var(--danger-light)', borderRadius: '0.5rem' }}>
+              <p style={{ color: 'var(--danger)', fontWeight: '500', marginBottom: '0.5rem' }}>
+                ⚠️ Warning: This action is permanent!
+              </p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--gray-700)' }}>
+                This will permanently delete all user accounts that:
+              </p>
+              <ul style={{ fontSize: '0.875rem', color: 'var(--gray-700)', marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
+                <li>Have not verified their email address</li>
+                <li>Were created more than the specified number of days ago</li>
+              </ul>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="label">Delete accounts older than (days)</label>
+              <input
+                type="number"
+                className="input"
+                value={cleanupDays}
+                onChange={(e) => setCleanupDays(Math.max(1, parseInt(e.target.value) || 1))}
+                min="1"
+                placeholder="1"
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--gray-600)', marginTop: '0.25rem' }}>
+                Recommended: 1 day for regular cleanup, 7 days for bulk cleanup
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                className="btn btn-danger" 
+                onClick={handleCleanupUnverified}
+                disabled={cleanupLoading}
+                style={{ flex: 1 }}
+              >
+                {cleanupLoading ? 'Processing...' : 'Delete Unverified Accounts'}
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowCleanupModal(false)}
+                disabled={cleanupLoading}
+              >
                 Cancel
               </button>
             </div>
