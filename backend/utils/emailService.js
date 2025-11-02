@@ -53,7 +53,16 @@ const sendEmail = async (to, subject, html) => {
     console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Email sending failed:', error);
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ EMAIL SENDING FAILED');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('Error Code:', error.code);
+    console.error('Error Message:', error.message);
+    console.error('Response:', error.response);
+    console.error('Command:', error.command);
+    console.error('Full Error:', error);
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
     const emailError = new Error(`Failed to send email: ${error.message}`);
     emailError.originalError = error;
     emailError.isEmailSendError = true;
