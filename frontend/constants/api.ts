@@ -1,4 +1,4 @@
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://localhost:3001';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'https://add-is.onrender.com';
 
 export { API_BASE_URL };
