@@ -73,11 +73,15 @@ const sendPasswordResetEmail = (user, otp) => {
   return sendEmail(user.email, 'Password Reset Code', html);
 };
 
-const sendVerificationEmail = (user, otp) => {
+const sendVerificationEmail = (emailOrUser, otp) => {
+  // Support both email string and user object
+  const email = typeof emailOrUser === 'string' ? emailOrUser : emailOrUser.email;
+  const name = typeof emailOrUser === 'string' ? 'User' : emailOrUser.name;
+  
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #333;">Welcome to VTU Bill Payment!</h2>
-      <p>Hi ${user.name},</p>
+      <p>Hi ${name},</p>
       <p>Thank you for creating an account. To complete your registration, please verify your email address using the code below:</p>
       <div style="background-color: #f0f0f0; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
         <h1 style="font-size: 36px; letter-spacing: 8px; margin: 0; color: #333;">${otp}</h1>
@@ -88,7 +92,7 @@ const sendVerificationEmail = (user, otp) => {
       <p>Best regards,<br><strong>VTU Bill Payment Team</strong></p>
     </div>
   `;
-  return sendEmail(user.email, 'Verify Your Email Address', html);
+  return sendEmail(email, 'Verify Your Email Address', html);
 };
 
 const sendPinResetEmail = (user, otp) => {

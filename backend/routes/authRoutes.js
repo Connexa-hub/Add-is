@@ -207,9 +207,22 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
     }
 
     if (!user.emailVerified) {
+      // Generate new OTP and resend verification email
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.verificationOTP = otp;
+      user.verificationExpires = Date.now() + 3600000; // 1 hour
+      await user.save();
+
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(user.email, otp);
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+      }
+
       return res.status(403).json({
         success: false,
-        message: 'Please verify your email before logging in',
+        message: 'Please verify your email before logging in. A new verification code has been sent to your email.',
         requiresVerification: true,
         email: user.email
       });
