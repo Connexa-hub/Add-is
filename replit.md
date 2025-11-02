@@ -11,6 +11,19 @@ The project aims to provide a robust, user-friendly, and secure platform for dig
 - React best practices
 - RESTful API design
 
+## Recent Changes
+**November 2, 2025 - Authentication & Biometric Login Fixes**
+- Fixed login failure issue: Updated biometric login to use `/api/auth/biometric-login` endpoint with proper token instead of password-based authentication
+- Fixed registration "email already exists" issue: Backend now detects unverified accounts and returns `requiresVerification` flag, frontend navigates to verification screen
+- Implemented proper biometric authentication flow (OPay-style):
+  - Added `/api/auth/enable-biometric` endpoint that generates secure biometric token
+  - Updated `useBiometric.ts` hook to request and store biometric token in SecureStore
+  - Modified `LoginScreen.tsx` to use biometric token for re-authentication
+  - Updated `RegisterScreen.tsx` to handle unverified email responses
+- Increased rate limits for development (100 auth requests, 1000 general requests per 15 min) to allow testing multiple accounts
+- Splash screen animation already implemented and working
+- Backend running on port 3001, configured for Replit environment
+
 ## System Architecture
 
 ### UI/UX Decisions
