@@ -126,9 +126,17 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      if (!existingUser.emailVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Account exists but email not verified. Please verify your email.',
+          requiresVerification: true,
+          email: existingUser.email
+        });
+      }
       return res.status(400).json({
         success: false,
-        message: 'User with this email already exists'
+        message: 'User with this email already exists. Please login instead.'
       });
     }
 
@@ -201,7 +209,9 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
     if (!user.emailVerified) {
       return res.status(403).json({
         success: false,
-        message: 'Please verify your email before logging in'
+        message: 'Please verify your email before logging in',
+        requiresVerification: true,
+        email: user.email
       });
     }
 
@@ -232,6 +242,48 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
           walletBalance: user.walletBalance,
           isEmailVerified: user.emailVerified
         }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/enable-biometric', verifyToken, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before enabling biometric login'
+      });
+    }
+
+    const biometricToken = crypto.randomBytes(32).toString('hex');
+    
+    user.biometricToken = biometricToken;
+    user.biometricEnabled = true;
+    await user.save();
+
+    logSecurityEvent('BIOMETRIC_ENABLED', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip || req.connection.remoteAddress
+    });
+
+    res.json({
+      success: true,
+      message: 'Biometric authentication enabled successfully',
+      data: {
+        biometricToken
       }
     });
   } catch (error) {
@@ -271,6 +323,12 @@ router.post('/biometric-login', async (req, res, next) => {
     await user.save();
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    logSecurityEvent('BIOMETRIC_LOGIN', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip || req.connection.remoteAddress
+    });
 
     res.json({
       success: true,
