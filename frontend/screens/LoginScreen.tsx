@@ -116,12 +116,19 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // After successful biometric auth, re-login with saved credentials
-      // This will create a new session
+      if (!result.biometricToken) {
+        setShowPasswordLogin(true);
+        Alert.alert(
+          'Re-authentication Required',
+          'Please login with your email and password to continue.'
+        );
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await axios.post(`${API_BASE_URL}/api/auth/login`, { 
-          email: savedEmail, 
-          biometricAuth: true // Flag to indicate biometric re-authentication
+        const response = await axios.post(`${API_BASE_URL}/api/auth/biometric-login`, { 
+          biometricToken: result.biometricToken
         });
 
         if (response.data.success && response.data.data.token) {
@@ -129,7 +136,6 @@ export default function LoginScreen({ navigation }) {
           const userEmail = response.data.data.user?.email || '';
           const userName = response.data.data.user?.name || '';
 
-          // Save new session
           await AsyncStorage.multiSet([
             ['token', response.data.data.token],
             ['userId', userId],
@@ -138,14 +144,12 @@ export default function LoginScreen({ navigation }) {
             ['lastActivityTime', Date.now().toString()]
           ]);
 
-          // Navigate to main app
           navigation.replace('Main');
         } else {
           throw new Error('Login failed');
         }
       } catch (loginError) {
-        // If biometric re-authentication fails, show password login option
-        console.error('Biometric re-authentication error:', loginError);
+        console.error('Biometric login error:', loginError);
         setShowPasswordLogin(true);
         Alert.alert(
           'Re-authentication Required',
@@ -163,7 +167,7 @@ export default function LoginScreen({ navigation }) {
   const handleEnableBiometric = async () => {
     if (!pendingBiometricData) return;
     
-    const success = await enableBiometric(pendingBiometricData.userId);
+    const success = await enableBiometric(pendingBiometricData.userId, pendingBiometricData.token);
     if (success) {
       await saveCredentials(pendingBiometricData.userId, pendingBiometricData.userEmail);
       Alert.alert(
@@ -234,7 +238,7 @@ export default function LoginScreen({ navigation }) {
           
           if (!biometricEnabled && capabilities.isAvailable && !biometricPromptShown) {
             await AsyncStorage.setItem(`biometric_prompt_shown_${email}`, 'true');
-            setPendingBiometricData({ userId, userEmail });
+            setPendingBiometricData({ userId, userEmail, token: res.data.data.token });
             setShowBiometricModal(true);
           } else {
             navigation.replace('Main');

@@ -93,9 +93,16 @@ export default function RegisterScreen({ navigation }) {
       });
       navigation.navigate('EmailVerification', { email });
     } catch (err) {
+      const errorData = err.response?.data;
+      
+      if (errorData?.requiresVerification && errorData?.email) {
+        navigation.navigate('EmailVerification', { email: errorData.email });
+        return;
+      }
+      
       setErrors({
         ...errors,
-        email: err.response?.data?.message || 'Registration failed. Please try again.'
+        email: errorData?.message || 'Registration failed. Please try again.'
       });
     } finally {
       setLoading(false);

@@ -3,6 +3,8 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { API_BASE_URL } from '../constants/api';
 
 export interface BiometricCapabilities {
   isAvailable: boolean;
@@ -18,6 +20,28 @@ export interface BiometricAuthResult {
 
 const BIOMETRIC_ENABLED_KEY = 'biometricEnabled';
 const CREDENTIALS_KEY_PREFIX = 'biometric_credentials_';
+
+const requestBiometricToken = async (authToken: string): Promise<string | null> => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/api/auth/enable-biometric`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+    
+    if (response.data.success && response.data.data.biometricToken) {
+      return response.data.data.biometricToken;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error requesting biometric token:', error);
+    return null;
+  }
+};
 
 export const useBiometric = () => {
   const [capabilities, setCapabilities] = useState<BiometricCapabilities>({
@@ -127,7 +151,7 @@ export const useBiometric = () => {
     }
   };
 
-  const enableBiometric = async (userId: string): Promise<boolean> => {
+  const enableBiometric = async (userId: string, token: string): Promise<boolean> => {
     try {
       if (!capabilities.isAvailable) {
         Alert.alert(
@@ -151,6 +175,11 @@ export const useBiometric = () => {
 
       await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
       await AsyncStorage.setItem('biometric_user_id', userId);
+      
+      const biometricToken = await requestBiometricToken(token);
+      if (biometricToken) {
+        await SecureStore.setItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`, biometricToken);
+      }
 
       return true;
     } catch (error) {
@@ -180,25 +209,14 @@ export const useBiometric = () => {
 
   const saveCredentials = async (
     userId: string,
-    email: string,
-    encryptedData?: string
+    email: string
   ): Promise<boolean> => {
     try {
       if (!capabilities.isAvailable) {
         return false;
       }
 
-      const credentialsData = JSON.stringify({
-        userId,
-        email,
-        timestamp: Date.now(),
-        encryptedData: encryptedData || '',
-      });
-
-      await SecureStore.setItemAsync(
-        `${CREDENTIALS_KEY_PREFIX}${userId}`,
-        credentialsData
-      );
+      await AsyncStorage.setItem('savedEmail', email);
 
       return true;
     } catch (error) {
@@ -207,30 +225,22 @@ export const useBiometric = () => {
     }
   };
 
-  const getStoredCredentials = async (userId: string): Promise<{
-    userId: string;
-    email: string;
-    encryptedData?: string;
-  } | null> => {
+  const getStoredBiometricToken = async (userId: string): Promise<string | null> => {
     try {
-      const credentialsData = await SecureStore.getItemAsync(
+      const biometricToken = await SecureStore.getItemAsync(
         `${CREDENTIALS_KEY_PREFIX}${userId}`
       );
 
-      if (!credentialsData) {
-        return null;
-      }
-
-      return JSON.parse(credentialsData);
+      return biometricToken;
     } catch (error) {
-      console.error('Error retrieving credentials:', error);
+      console.error('Error retrieving biometric token:', error);
       return null;
     }
   };
 
   const authenticateForLogin = async (): Promise<{
     success: boolean;
-    email?: string;
+    biometricToken?: string;
     userId?: string;
     error?: string;
   }> => {
@@ -259,18 +269,18 @@ export const useBiometric = () => {
         };
       }
 
-      const credentials = await getStoredCredentials(userId);
-      if (!credentials) {
+      const biometricToken = await getStoredBiometricToken(userId);
+      if (!biometricToken) {
         return {
           success: false,
-          error: 'Credentials not found. Please login with email and password.',
+          error: 'Biometric credentials not found. Please login with email and password.',
         };
       }
 
       return {
         success: true,
-        email: credentials.email,
-        userId: credentials.userId,
+        biometricToken,
+        userId,
       };
     } catch (error) {
       console.error('Error authenticating for login:', error);
@@ -314,7 +324,7 @@ export const useBiometric = () => {
     enableBiometric,
     disableBiometric,
     saveCredentials,
-    getStoredCredentials,
+    getStoredBiometricToken,
     authenticateForLogin,
     promptEnableBiometric,
     checkBiometricCapabilities,
