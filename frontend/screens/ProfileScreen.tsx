@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, SafeAreaView, Pressable } from 'react-native';
 import { Appbar, Card, Text, List, Divider, Avatar, Button, ActivityIndicator } from 'react-native-paper';
@@ -23,39 +22,52 @@ export default function ProfileScreen({ navigation }) {
 
   const loadUserData = async () => {
     try {
-      const token = await tokenService.getToken();
-      
+      const token = await AsyncStorage.getItem('token');
+
+      console.log('Loading profile data with token:', token ? 'Token exists' : 'No token');
+
       if (!token) {
-        Alert.alert('Session Expired', 'Please login again');
+        console.log('No token found, redirecting to login');
+        Alert.alert('Session Expired', 'Please log in again');
         navigation.replace('Login');
         return;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
-      const data = await response.json();
-      
-      if (response.status === 401) {
-        Alert.alert('Session Expired', 'Please login again');
-        await tokenService.clearToken();
-        navigation.replace('Login');
-        return;
+      console.log('Profile response status:', response.status);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('Unauthorized - clearing token and redirecting to login');
+          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'lastActivityTime']);
+          Alert.alert('Session Expired', 'Please log in again');
+          navigation.replace('Login');
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
       }
-      
+
+      const data = await response.json();
+      console.log('Profile data received:', data.success);
+
       if (data.success && data.data) {
         setUser(data.data);
+        console.log('Monnify accounts:', data.data.monnifyAccounts);
         loadUserStats(token);
       } else {
-        console.error('No user data received:', data);
-        Alert.alert('Error', data.message || 'Failed to load profile data');
+        console.error('No user data received');
+        Alert.alert('Error', 'Failed to load profile data');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
-      Alert.alert('Error', 'Failed to load profile data. Please try again.');
+      Alert.alert('Error', 'Failed to load profile. Please try logging in again.');
+      navigation.replace('Login');
     } finally {
       setLoading(false);
     }
@@ -81,10 +93,10 @@ export default function ProfileScreen({ navigation }) {
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.data?.transactions) {
         const transactions = data.data.transactions;
-        
+
         // Calculate stats from transactions
         const totalTransactions = transactions.length;
         const totalSpent = transactions
@@ -93,7 +105,7 @@ export default function ProfileScreen({ navigation }) {
         const totalCashback = transactions
           .filter(t => t.type === 'cashback')
           .reduce((sum, t) => sum + (t.amount || 0), 0);
-        
+
         setStats({
           totalTransactions,
           totalSpent,
@@ -178,13 +190,13 @@ export default function ProfileScreen({ navigation }) {
           <Card.Content>
             <Text style={styles.cardTitle}>Account Information</Text>
             <Divider style={styles.divider} />
-            
+
             <List.Item
               title="Wallet Balance"
               description={`₦${(user?.walletBalance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`}
               left={props => <List.Icon {...props} icon="wallet" />}
             />
-            
+
             {user?.monnifyAccounts && user.monnifyAccounts.length > 0 && (
               <>
                 <List.Item
@@ -212,7 +224,7 @@ export default function ProfileScreen({ navigation }) {
                 />
               </>
             )}
-            
+
             <List.Item
               title="Account Status"
               description={user?.isVerified ? 'Verified' : 'Not Verified'}
@@ -226,21 +238,21 @@ export default function ProfileScreen({ navigation }) {
           <Card.Content>
             <Text style={styles.cardTitle}>Quick Actions</Text>
             <Divider style={styles.divider} />
-            
+
             <List.Item
               title="Transaction History"
               left={props => <List.Icon {...props} icon="history" />}
               right={props => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => navigation.navigate('History')}
             />
-            
+
             <List.Item
               title="Fund Wallet"
               left={props => <List.Icon {...props} icon="cash-plus" />}
               right={props => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => navigation.navigate('Wallet')}
             />
-            
+
             <List.Item
               title="Edit Profile"
               description="Update your information"
@@ -248,7 +260,7 @@ export default function ProfileScreen({ navigation }) {
               right={props => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => Alert.alert('Coming Soon', 'Profile editing will be available soon')}
             />
-            
+
             <List.Item
               title="Verify Account (KYC)"
               description={user?.kyc?.status === 'approved' ? 'Verified ✓' : user?.kyc?.status === 'pending' ? 'Under review' : 'Not verified - Tap to verify'}
@@ -258,13 +270,13 @@ export default function ProfileScreen({ navigation }) {
                 if (user?.kyc?.status === 'approved') {
                   Alert.alert('Account Verified', 'Your account is already verified.');
                 } else if (user?.kyc?.status === 'pending') {
-                  Alert.alert('KYC Under Review', 'Your verification is currently being reviewed. You will be notified once complete.');
+                  Alert.Alert('KYC Under Review', 'Your verification is currently being reviewed. You will be notified once complete.');
                 } else {
                   navigation.navigate('KYCPersonalInfo');
                 }
               }}
             />
-            
+
             <List.Item
               title="Settings"
               left={props => <List.Icon {...props} icon="cog" />}

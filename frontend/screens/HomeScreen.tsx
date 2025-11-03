@@ -29,7 +29,10 @@ export default function HomeScreen({ navigation }) {
       const token = await tokenService.getToken();
       const userId = await AsyncStorage.getItem('userId');
 
+      console.log('Loading user data with token:', token ? 'Token exists' : 'No token');
+
       if (!token || !userId) {
+        console.log('No token or userId, redirecting to login');
         navigation.replace('Login');
         return;
       }
@@ -37,14 +40,30 @@ export default function HomeScreen({ navigation }) {
       const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log('Profile response status:', response.status);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('Unauthorized - clearing token and redirecting to login');
+          await tokenService.clearToken();
+          await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'lastActivityTime']);
+          navigation.replace('Login');
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('Profile data received:', data.success);
 
       if (data.success && data.data) {
         setUser(data.data);
         setWalletBalance(data.data.walletBalance || 0);
+        console.log('Monnify accounts:', data.data.monnifyAccounts);
         await loadRecentTransactions(token);
       } else {
         // Session expired or invalid, clear all auth data
@@ -54,7 +73,10 @@ export default function HomeScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      Alert.alert('Error', 'Failed to load user data');
+      Alert.alert('Error', 'Failed to load user data. Please try logging in again.');
+      await tokenService.clearToken();
+      await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'lastActivityTime']);
+      navigation.replace('Login');
     } finally {
       setLoading(false);
     }
@@ -362,7 +384,7 @@ export default function HomeScreen({ navigation }) {
             </View>
             
             {/* Monnify Account Details */}
-            {user?.monnifyAccounts && user.monnifyAccounts.length > 0 && (
+            {user?.monnifyAccounts && user.monnifyAccounts.length > 0 ? (
               <View style={styles.accountDetails}>
                 <View style={styles.accountRow}>
                   <Ionicons name="business-outline" size={14} color="#FFFFFF" />
@@ -376,6 +398,12 @@ export default function HomeScreen({ navigation }) {
                   <Ionicons name="person-outline" size={14} color="#FFFFFF" />
                   <Text style={styles.accountText}>{user.monnifyAccounts[0].accountName}</Text>
                 </View>
+              </View>
+            ) : (
+              <View style={styles.accountDetails}>
+                <Text style={[styles.accountText, { textAlign: 'center', opacity: 0.8 }]}>
+                  Virtual account will be created automatically
+                </Text>
               </View>
             )}
             
