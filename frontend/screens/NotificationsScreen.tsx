@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { AppText, AppDivider } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
+import { tokenService } from '../utils/tokenService';
 
 interface Notification {
   _id: string;
@@ -39,12 +40,13 @@ export default function NotificationsScreen() {
 
   const fetchNotifications = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      setRefreshing(true);
+      const token = await tokenService.getToken();
       const response = await axios.get(
         `${API_BASE_URL}/api/notifications`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.success) {
         setNotifications(response.data.data);
       }
@@ -66,13 +68,13 @@ export default function NotificationsScreen() {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       await axios.put(
         `${API_BASE_URL}/api/notifications/${notificationId}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setNotifications(prev =>
         prev.map(notif =>
           notif._id === notificationId ? { ...notif, isRead: true } : notif
@@ -86,13 +88,13 @@ export default function NotificationsScreen() {
 
   const markAllAsRead = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       await axios.put(
         `${API_BASE_URL}/api/notifications/mark-all-read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })));
     } catch (error: any) {
       console.error('Failed to mark all as read:', error);
@@ -102,12 +104,12 @@ export default function NotificationsScreen() {
 
   const deleteNotification = async (notificationId: string) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       await axios.delete(
         `${API_BASE_URL}/api/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
     } catch (error: any) {
       console.error('Failed to delete notification:', error);
