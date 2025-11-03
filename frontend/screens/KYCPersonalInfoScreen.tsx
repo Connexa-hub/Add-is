@@ -288,11 +288,11 @@ export default function KYCPersonalInfoScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'android' ? 40 : 0,
   },
   header: {
     flexDirection: 'row',

@@ -14,6 +14,7 @@ export default function HomeScreen({ navigation }) {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [balanceVisible, setBalanceVisible] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -212,15 +213,12 @@ export default function HomeScreen({ navigation }) {
         />
         <Appbar.Action 
           icon="magnify" 
-          onPress={() => Alert.alert('Search', 'Global search functionality coming soon!')} 
+          onPress={() => setSearchQuery('')} 
         />
         <View style={{ position: 'relative' }}>
           <Appbar.Action 
             icon="bell-outline" 
-            onPress={() => {
-              loadUnreadNotifications();
-              Alert.alert('Notifications', 'Notification screen coming soon!');
-            }} 
+            onPress={() => navigation.navigate('Notifications')} 
           />
           {unreadNotifications > 0 && (
             <View style={styles.notificationBadge}>
@@ -320,7 +318,9 @@ export default function HomeScreen({ navigation }) {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
                 <Text style={styles.balanceLabel}>  Available Balance</Text>
-                <Ionicons name="eye-off" size={16} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                <Pressable onPress={() => setBalanceVisible(!balanceVisible)} style={{ marginLeft: 8 }}>
+                  <Ionicons name={balanceVisible ? "eye" : "eye-off"} size={16} color="#FFFFFF" />
+                </Pressable>
               </View>
               <Pressable onPress={() => navigation.navigate('History')}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -330,9 +330,30 @@ export default function HomeScreen({ navigation }) {
               </Pressable>
             </View>
             <View style={styles.balanceRow}>
-              <Text style={styles.balanceAmount}>****</Text>
+              <Text style={styles.balanceAmount}>
+                {balanceVisible ? `₦${walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}` : '****'}
+              </Text>
               <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
             </View>
+            
+            {/* Monnify Account Details */}
+            {user?.monnifyAccounts && user.monnifyAccounts.length > 0 && (
+              <View style={styles.accountDetails}>
+                <View style={styles.accountRow}>
+                  <Ionicons name="business-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.accountText}>{user.monnifyAccounts[0].bankName}</Text>
+                </View>
+                <View style={styles.accountRow}>
+                  <Ionicons name="card-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.accountText}>{user.monnifyAccounts[0].accountNumber}</Text>
+                </View>
+                <View style={styles.accountRow}>
+                  <Ionicons name="person-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.accountText}>{user.monnifyAccounts[0].accountName}</Text>
+                </View>
+              </View>
+            )}
+            
             <Button
               mode="contained"
               onPress={() => navigation.navigate('Wallet')}
@@ -666,5 +687,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  accountDetails: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  accountText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    marginLeft: 6,
+    opacity: 0.9,
   },
 });

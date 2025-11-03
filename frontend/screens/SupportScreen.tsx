@@ -76,7 +76,7 @@ export default function SupportScreen() {
   const [formData, setFormData] = useState({
     subject: '',
     message: '',
-    category: 'general',
+    category: '',
   });
 
   useEffect(() => {
@@ -111,6 +111,10 @@ export default function SupportScreen() {
   };
 
   const handleSubmitTicket = async () => {
+    if (!formData.category) {
+      Alert.alert('Error', 'Please select a category');
+      return;
+    }
     if (!formData.subject.trim()) {
       Alert.alert('Error', 'Please enter a subject');
       return;
@@ -130,10 +134,10 @@ export default function SupportScreen() {
       );
 
       if (response.data.success) {
-        Alert.alert('Success', 'Your support ticket has been submitted. We will get back to you soon!');
         setShowNewTicketModal(false);
-        setFormData({ subject: '', message: '', category: 'general' });
+        setFormData({ subject: '', message: '', category: '' });
         fetchTickets();
+        Alert.alert('Success', 'Your support ticket has been submitted. We will get back to you soon!');
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to submit ticket');
