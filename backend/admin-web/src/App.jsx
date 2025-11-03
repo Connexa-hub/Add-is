@@ -17,6 +17,7 @@ import VTUProductManagement from './pages/VTUProductManagement';
 import Reconciliation from './pages/Reconciliation';
 import QuickAmountGrids from './pages/QuickAmountGrids';
 import ScreenContent from './pages/ScreenContent';
+import UnverifiedUsers from './pages/UnverifiedUsers';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -151,6 +152,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ScreenContent />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/unverified-users"
+            element={
+              <ProtectedRoute>
+                <UnverifiedUsers />
               </ProtectedRoute>
             }
           />

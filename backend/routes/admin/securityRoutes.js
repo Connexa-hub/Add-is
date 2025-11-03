@@ -223,4 +223,69 @@ router.post('/cleanup-unverified', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
+// Test email sending endpoint
+router.post('/test-email', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { to, testType } = req.body;
+
+    if (!to) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address is required'
+      });
+    }
+
+    const emailService = require('../../utils/emailService');
+    
+    let result;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    switch (testType) {
+      case 'verification':
+        result = await emailService.sendVerificationEmail(to, otp);
+        break;
+      case 'password_reset':
+        result = await emailService.sendPasswordResetEmail({ email: to, name: 'Test User' }, otp);
+        break;
+      case 'welcome':
+        result = await emailService.sendWelcomeEmail({ email: to, name: 'Test User' });
+        break;
+      default:
+        result = await emailService.sendEmail(
+          to,
+          'Test Email from VTU247 Admin',
+          `<h2>Test Email</h2><p>This is a test email sent from the admin panel at ${new Date().toLocaleString()}.</p><p>If you received this, the email service is working correctly!</p>`
+        );
+    }
+
+    logSecurityEvent('EMAIL_TEST_SENT', {
+      adminId: req.userId,
+      recipient: to,
+      testType: testType || 'basic',
+      timestamp: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Test email sent successfully',
+      data: {
+        messageId: result.messageId,
+        recipient: to,
+        sentAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Email test failed:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: error.isEmailConfigError 
+        ? 'Email service not configured. Please check EMAIL_USER and EMAIL_PASS environment variables.'
+        : `Failed to send test email: ${error.message}`,
+      error: error.message,
+      isConfigError: error.isEmailConfigError || false
+    });
+  }
+});
+
 module.exports = router;

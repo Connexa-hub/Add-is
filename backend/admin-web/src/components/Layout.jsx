@@ -35,6 +35,7 @@ export default function Layout({ children }) {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Users, label: 'Users', path: '/users' },
+    { icon: Shield, label: 'Unverified Users', path: '/unverified-users' },
     { icon: Shield, label: 'KYC Management', path: '/kyc' },
     { icon: Image, label: 'Banners', path: '/banners' },
     { icon: ShoppingBag, label: 'VTU Products', path: '/vtu-products' },

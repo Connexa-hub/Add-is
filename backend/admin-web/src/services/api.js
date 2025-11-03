@@ -48,6 +48,10 @@ export const adminAPI = {
 
   cleanupUnverifiedUsers: (daysOld = 1) =>
     api.post('/admin/security/cleanup-unverified', { daysOld }),
+  
+  testEmail: (data) => api.post('/admin/security/test-email', data),
+  getUnverifiedUsers: (params) => api.get('/admin/security/unverified-users', { params }),
+  manualVerifyEmail: (email, reason) => api.post('/admin/security/manual-verify-email', { email, reason }),
 };
 
 export const serviceAPI = {
