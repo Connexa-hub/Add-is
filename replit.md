@@ -12,6 +12,20 @@ The project aims to provide a robust, user-friendly, and secure platform for dig
 - RESTful API design
 
 ## Recent Changes
+**November 3, 2025 - Monnify Account Display & UI Improvements**
+- **✅ Monnify Virtual Account Display on Dashboard**: Added account details to HomeScreen for quick access
+  - Displays Bank Name, Account Number, and Account Name in wallet card
+  - Account number is copyable with one-tap copy button using expo-clipboard
+  - Shows helpful message: "Fund your wallet instantly by transferring to this account"
+  - Conditional rendering - only shows when user.monnifyAccounts exists
+- **✅ Copy Functionality in Profile Section**: Enhanced ProfileScreen with copy-to-clipboard feature
+  - Added copy icon button next to Virtual Account Number in profile
+  - Shows success/error alerts when copying account number
+  - Uses expo-clipboard for cross-platform compatibility
+- **✅ Removed Promotional Content**: Cleaned up DataScreen UI
+  - Removed static promotional card with "Simply Dial *955*4* mobile no#" message
+  - Streamlined user interface for better experience
+
 **November 3, 2025 - CRITICAL: Authentication Loop Fix & OPay-Style Biometric Flow**
 - **✅ Fixed Authentication Loop Issue**: Successfully resolved the login/fingerprint loop that was causing continuous navigation between login, fingerprint, and home screens
   - Fixed navigation loop: Added useRef to prevent repeated useEffect execution in LoginScreen
