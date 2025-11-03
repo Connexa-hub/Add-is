@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
@@ -42,7 +43,7 @@ export default function LoginScreen({ navigation }) {
 
   const checkSessionReauth = async () => {
     // Check if user has valid token but session timed out
-    const token = await AsyncStorage.getItem('token');
+    const token = await SecureStore.getItemAsync('auth_token');
     const biometricEnabled = await isBiometricEnabled();
     
     if (token) {
@@ -60,7 +61,8 @@ export default function LoginScreen({ navigation }) {
       } catch (error) {
         // Token expired, but keep biometric enabled for re-authentication
         // Only clear the session tokens, NOT the biometric settings
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        await SecureStore.deleteItemAsync('auth_token');
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
       }
     }
     
@@ -136,8 +138,11 @@ export default function LoginScreen({ navigation }) {
           const userEmail = response.data.data.user?.email || '';
           const userName = response.data.data.user?.name || '';
 
+          // Store auth token in SecureStore (encrypted)
+          await SecureStore.setItemAsync('auth_token', response.data.data.token);
+          
+          // Store non-sensitive data in AsyncStorage
           await AsyncStorage.multiSet([
-            ['token', response.data.data.token],
             ['userId', userId],
             ['userEmail', userEmail],
             ['userName', userName],
@@ -220,8 +225,11 @@ export default function LoginScreen({ navigation }) {
         const userEmail = res.data.data.user?.email || '';
         const userName = res.data.data.user?.name || '';
 
+        // Store auth token in SecureStore (encrypted)
+        await SecureStore.setItemAsync('auth_token', res.data.data.token);
+        
+        // Store non-sensitive data in AsyncStorage
         await AsyncStorage.multiSet([
-          ['token', res.data.data.token],
           ['userId', userId],
           ['userEmail', userEmail],
           ['userName', userName],
@@ -229,7 +237,7 @@ export default function LoginScreen({ navigation }) {
           ['lastActivityTime', Date.now().toString()]
         ]);
 
-        const savedToken = await AsyncStorage.getItem('token');
+        const savedToken = await SecureStore.getItemAsync('auth_token');
         if (savedToken) {
           const biometricEnabled = await isBiometricEnabled();
 

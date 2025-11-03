@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert, Mo
 import { Switch, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { AppText, AppButton, AppDivider, AppInput } from '../src/components/atoms';
 import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
@@ -251,8 +252,8 @@ export default function SettingsScreen({ navigation }: any) {
         onPress: async () => {
           try {
             // Clear ALL authentication data including biometric on explicit logout
+            await SecureStore.deleteItemAsync('auth_token');
             await AsyncStorage.multiRemove([
-              'token', 
               'userId', 
               'userEmail', 
               'userName', 

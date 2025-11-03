@@ -32,7 +32,7 @@ const requestBiometricToken = async (authToken: string): Promise<string | null> 
         },
       }
     );
-    
+
     if (response.data.success && response.data.data.biometricToken) {
       return response.data.data.biometricToken;
     }
@@ -151,7 +151,7 @@ export const useBiometric = () => {
     }
   };
 
-  const enableBiometric = async (userId: string, token: string): Promise<boolean> => {
+  const enableBiometric = async (userId: string, token?: string): Promise<boolean> => {
     try {
       if (!capabilities.isAvailable) {
         Alert.alert(
@@ -163,23 +163,27 @@ export const useBiometric = () => {
         return false;
       }
 
-      const authResult = await authenticate(
-        `Enable ${capabilities.biometricType || 'biometric'} login`,
-        'Cancel'
-      );
+      // Get token from secure storage if not provided
+      let authToken = token;
+      if (!authToken) {
+        authToken = await SecureStore.getItemAsync('auth_token');
+        if (!authToken) {
+          Alert.alert('Error', 'Authentication token not found. Please login again.');
+          return false;
+        }
+      }
 
-      if (!authResult.success) {
-        Alert.alert('Authentication Failed', authResult.error || 'Could not enable biometric authentication');
+      // Request biometric token from server
+      const biometricToken = await requestBiometricToken(authToken);
+      if (!biometricToken) {
+        Alert.alert('Error', 'Failed to setup biometric authentication. Please try again.');
         return false;
       }
 
+      // Save biometric settings
       await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
       await AsyncStorage.setItem('biometric_user_id', userId);
-      
-      const biometricToken = await requestBiometricToken(token);
-      if (biometricToken) {
-        await SecureStore.setItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`, biometricToken);
-      }
+      await SecureStore.setItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`, biometricToken);
 
       return true;
     } catch (error) {
