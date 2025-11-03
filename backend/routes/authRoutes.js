@@ -27,21 +27,41 @@ router.get('/profile', verifyToken, async (req, res, next) => {
       });
     }
 
-    // Auto-create virtual account if not exists (only if KYC approved with BVN/NIN)
+    // Auto-create virtual account if not exists
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
-      if (user.kyc && user.kyc.status === 'approved' && user.kyc.personal && (user.kyc.personal.bvn || user.kyc.personal.nin)) {
+      // Check if we have a monnifyAccountReference but no accounts array
+      if (user.monnifyAccountReference) {
         try {
-          const accountReference = `USER_${user._id}_${Date.now()}`;
+          // Try to fetch existing account details
+          const accountDetails = await monnifyClient.getReservedAccountDetails(user.monnifyAccountReference);
+          if (accountDetails.success && accountDetails.data.accounts) {
+            user.monnifyAccounts = accountDetails.data.accounts.map(acc => ({
+              accountNumber: acc.accountNumber,
+              accountName: acc.accountName,
+              bankName: acc.bankName,
+              bankCode: acc.bankCode
+            }));
+            await user.save();
+          }
+        } catch (error) {
+          console.error('Failed to fetch existing account details:', error);
+        }
+      }
+      
+      // If still no accounts, try to create new ones (Tier 1 - basic account)
+      if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
+        try {
+          const accountReference = user.monnifyAccountReference || `USER_${user._id}_${Date.now()}`;
           const result = await monnifyClient.createReservedAccount({
             accountReference,
             accountName: user.name,
             customerEmail: user.email,
             customerName: user.name,
-            bvn: user.kyc.personal.bvn,
-            nin: user.kyc.personal.nin
+            bvn: user.kyc?.personal?.bvn,
+            nin: user.kyc?.personal?.nin
           });
 
-          if (result.success) {
+          if (result.success && result.data.accounts) {
             user.monnifyAccountReference = accountReference;
             user.monnifyAccounts = result.data.accounts.map(acc => ({
               accountNumber: acc.accountNumber,
@@ -53,6 +73,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
           }
         } catch (error) {
           console.error('Auto virtual account creation failed:', error);
+          // Don't fail the request if Monnify fails
         }
       }
     }

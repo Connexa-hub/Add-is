@@ -19,6 +19,7 @@ import { AppText, AppInput, AppButton, AppDivider } from '../src/components/atom
 import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
+import { tokenService } from '../utils/tokenService';
 
 interface Reply {
   userId: {
@@ -85,12 +86,13 @@ export default function SupportScreen() {
 
   const fetchTickets = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      setLoading(true);
+      const token = await tokenService.getToken();
       const response = await axios.get(
         `${API_BASE_URL}/api/admin/support/user`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.success) {
         setTickets(response.data.data);
       }
@@ -126,7 +128,7 @@ export default function SupportScreen() {
 
     setSubmitting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       const response = await axios.post(
         `${API_BASE_URL}/api/admin/support`,
         formData,
@@ -148,7 +150,7 @@ export default function SupportScreen() {
 
   const fetchTicketDetails = async (ticketId: string) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       const response = await axios.get(
         `${API_BASE_URL}/api/admin/support/${ticketId}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -177,7 +179,7 @@ export default function SupportScreen() {
 
     setSendingReply(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       const response = await axios.post(
         `${API_BASE_URL}/api/admin/support/${ticketDetails._id}/reply`,
         { message: replyText },

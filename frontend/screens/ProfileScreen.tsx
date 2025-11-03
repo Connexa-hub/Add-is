@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/api';
+import { tokenService } from '../utils/tokenService';
 
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
@@ -22,7 +23,13 @@ export default function ProfileScreen({ navigation }) {
 
   const loadUserData = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
+      
+      if (!token) {
+        Alert.alert('Session Expired', 'Please login again');
+        navigation.replace('Login');
+        return;
+      }
       
       const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
@@ -32,15 +39,23 @@ export default function ProfileScreen({ navigation }) {
 
       const data = await response.json();
       
+      if (response.status === 401) {
+        Alert.alert('Session Expired', 'Please login again');
+        await tokenService.clearToken();
+        navigation.replace('Login');
+        return;
+      }
+      
       if (data.success && data.data) {
         setUser(data.data);
         loadUserStats(token);
       } else {
-        console.error('No user data received');
-        Alert.alert('Error', 'Failed to load profile data');
+        console.error('No user data received:', data);
+        Alert.alert('Error', data.message || 'Failed to load profile data');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      Alert.alert('Error', 'Failed to load profile data. Please try again.');
     } finally {
       setLoading(false);
     }
