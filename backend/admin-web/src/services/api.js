@@ -64,6 +64,7 @@ export const supportAPI = {
   getTicketDetails: (ticketId) => api.get(`/admin/support/${ticketId}`),
   updateTicketStatus: (ticketId, status) => api.put(`/admin/support/${ticketId}/status`, { status }),
   replyToTicket: (ticketId, response) => api.post(`/admin/support/${ticketId}/response`, { response }),
+  addReply: (ticketId, message) => api.post(`/admin/support/${ticketId}/reply`, { message }),
 };
 
 export const cashbackAPI = {

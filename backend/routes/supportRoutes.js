@@ -60,7 +60,8 @@ router.get('/', verifyToken, isAdmin, async (req, res, next) => {
 router.get('/:id', verifyToken, async (req, res, next) => {
   try {
     const ticket = await SupportTicket.findById(req.params.id)
-      .populate('userId', 'name email phone');
+      .populate('userId', 'name email phone role')
+      .populate('replies.userId', 'name role');
     
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
@@ -99,26 +100,89 @@ router.put('/:id/status', verifyToken, isAdmin, async (req, res, next) => {
   }
 });
 
-// Add response to ticket (Admin only)
-router.post('/:id/response', verifyToken, isAdmin, async (req, res, next) => {
+// Add reply to ticket (Both users and admins)
+router.post('/:id/reply', verifyToken, async (req, res, next) => {
   try {
-    const { response } = req.body;
+    const { message } = req.body;
     
-    const ticket = await SupportTicket.findByIdAndUpdate(
-      req.params.id,
-      { 
-        response,
-        status: 'resolved',
-        resolvedAt: new Date()
-      },
-      { new: true, runValidators: true }
-    ).populate('userId', 'name email phone');
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
+    
+    const ticket = await SupportTicket.findById(req.params.id);
     
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
     
-    res.json({ success: true, data: ticket });
+    // Check if user owns the ticket or is admin
+    const user = await User.findById(req.userId);
+    if (ticket.userId.toString() !== req.userId && user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    
+    // Add reply to the replies array
+    ticket.replies.push({
+      userId: req.userId,
+      message: message.trim(),
+      isAdmin: user.role === 'admin',
+      createdAt: new Date()
+    });
+    
+    // Update ticket status if admin replies
+    if (user.role === 'admin' && ticket.status === 'open') {
+      ticket.status = 'pending';
+    }
+    
+    ticket.updatedAt = new Date();
+    await ticket.save();
+    
+    // Populate and return the updated ticket
+    const updatedTicket = await SupportTicket.findById(ticket._id)
+      .populate('userId', 'name email phone role')
+      .populate('replies.userId', 'name role');
+    
+    res.json({ success: true, data: updatedTicket });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Add response to ticket (Admin only) - Modified to use replies array
+router.post('/:id/response', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { response } = req.body;
+    
+    if (!response || !response.trim()) {
+      return res.status(400).json({ success: false, message: 'Response is required' });
+    }
+    
+    const ticket = await SupportTicket.findById(req.params.id);
+    
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+    
+    // Add response to replies array
+    ticket.replies.push({
+      userId: req.userId,
+      message: response.trim(),
+      isAdmin: true,
+      createdAt: new Date()
+    });
+    
+    ticket.status = 'resolved';
+    ticket.resolvedAt = new Date();
+    ticket.updatedAt = new Date();
+    
+    await ticket.save();
+    
+    // Populate and return the updated ticket
+    const updatedTicket = await SupportTicket.findById(ticket._id)
+      .populate('userId', 'name email phone role')
+      .populate('replies.userId', 'name role');
+    
+    res.json({ success: true, data: updatedTicket });
   } catch (error) {
     next(error);
   }

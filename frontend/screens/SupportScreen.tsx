@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,9 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -17,14 +20,33 @@ import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
+interface Reply {
+  userId: {
+    _id: string;
+    name: string;
+    role: string;
+  };
+  message: string;
+  isAdmin: boolean;
+  createdAt: string;
+}
+
 interface Ticket {
   _id: string;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
   subject: string;
   message: string;
   category: string;
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
-  response?: string;
+  status: 'open' | 'pending' | 'resolved' | 'closed';
+  priority?: string;
+  replies?: Reply[];
   createdAt: string;
+  updatedAt?: string;
   resolvedAt?: string;
 }
 
@@ -44,9 +66,13 @@ export default function SupportScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
-  const [showTicketDetailModal, setShowTicketDetailModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [ticketDetails, setTicketDetails] = useState<Ticket | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const [formData, setFormData] = useState({
     subject: '',
     message: '',
@@ -116,6 +142,67 @@ export default function SupportScreen() {
     }
   };
 
+  const fetchTicketDetails = async (ticketId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(
+        `${API_BASE_URL}/api/admin/support/${ticketId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setTicketDetails(response.data.data);
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch ticket details:', error);
+      Alert.alert('Error', 'Failed to load ticket details');
+    }
+  };
+
+  const handleOpenChat = async (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setShowChatModal(true);
+    await fetchTicketDetails(ticket._id);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !ticketDetails) return;
+
+    setSendingReply(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/admin/support/${ticketDetails._id}/reply`,
+        { message: replyText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setReplyText('');
+        await fetchTicketDetails(ticketDetails._id);
+        fetchTickets();
+      }
+    } catch (error: any) {
+      console.error('Failed to send reply:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to send reply');
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  const formatTime = (date: string) => {
+    const d = new Date(date);
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
@@ -139,10 +226,7 @@ export default function SupportScreen() {
   const renderTicketCard = (ticket: Ticket) => (
     <Pressable
       key={ticket._id}
-      onPress={() => {
-        setSelectedTicket(ticket);
-        setShowTicketDetailModal(true);
-      }}
+      onPress={() => handleOpenChat(ticket)}
       style={[
         styles.ticketCard,
         {
@@ -296,7 +380,7 @@ export default function SupportScreen() {
             </AppText>
             <AppInput
               value={formData.subject}
-              onChangeText={(text) => setFormData({ ...formData, subject: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, subject: text })}
               placeholder="Brief description of your issue"
             />
           </View>
@@ -307,7 +391,7 @@ export default function SupportScreen() {
             </AppText>
             <AppInput
               value={formData.message}
-              onChangeText={(text) => setFormData({ ...formData, message: text })}
+              onChangeText={(text: string) => setFormData({ ...formData, message: text })}
               placeholder="Provide detailed information about your issue"
               multiline
               numberOfLines={6}
@@ -322,99 +406,139 @@ export default function SupportScreen() {
       </AppModal>
 
       <AppModal
-        visible={showTicketDetailModal}
-        onClose={() => setShowTicketDetailModal(false)}
-        title="Ticket Details"
+        visible={showChatModal}
+        onClose={() => {
+          setShowChatModal(false);
+          setTicketDetails(null);
+          setReplyText('');
+        }}
+        title={selectedTicket?.subject || 'Support Chat'}
       >
-        {selectedTicket && (
-          <ScrollView>
+        {ticketDetails ? (
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1, maxHeight: '80vh' as any }}
+          >
             <View style={{ marginBottom: tokens.spacing.md }}>
-              <AppText variant="caption" style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing.xs }}>
-                Status
-              </AppText>
-              <View
-                style={[
-                  {
-                    backgroundColor: getStatusColor(selectedTicket.status) + '20',
-                    paddingHorizontal: tokens.spacing.md,
-                    paddingVertical: tokens.spacing.sm,
-                    borderRadius: tokens.radius.base,
-                    alignSelf: 'flex-start',
-                  },
-                ]}
-              >
-                <AppText variant="body2" weight="semibold" style={{ color: getStatusColor(selectedTicket.status), textTransform: 'capitalize' }}>
-                  {selectedTicket.status}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
+                <View
+                  style={{
+                    backgroundColor: getStatusColor(ticketDetails.status) + '20',
+                    paddingHorizontal: tokens.spacing.sm,
+                    paddingVertical: tokens.spacing.xs,
+                    borderRadius: tokens.radius.sm,
+                  }}
+                >
+                  <AppText
+                    variant="caption"
+                    weight="semibold"
+                    style={{ color: getStatusColor(ticketDetails.status), textTransform: 'capitalize' }}
+                  >
+                    {ticketDetails.status}
+                  </AppText>
+                </View>
+                <AppText variant="caption" style={{ color: tokens.colors.text.secondary }}>
+                  {ticketDetails.category}
                 </AppText>
               </View>
             </View>
 
-            <AppDivider />
-
-            <View style={{ marginTop: tokens.spacing.md, marginBottom: tokens.spacing.md }}>
-              <AppText variant="caption" style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing.xs }}>
-                Subject
-              </AppText>
-              <AppText variant="h3" weight="semibold">
-                {selectedTicket.subject}
-              </AppText>
-            </View>
-
-            <View style={{ marginBottom: tokens.spacing.md }}>
-              <AppText variant="caption" style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing.xs }}>
-                Category
-              </AppText>
-              <AppText variant="body2" style={{ textTransform: 'capitalize' }}>
-                {selectedTicket.category}
-              </AppText>
-            </View>
-
-            <View style={{ marginBottom: tokens.spacing.md }}>
-              <AppText variant="caption" style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing.xs }}>
-                Created
-              </AppText>
-              <AppText variant="body2">
-                {new Date(selectedTicket.createdAt).toLocaleString()}
-              </AppText>
-            </View>
-
-            <AppDivider />
-
-            <View style={{ marginTop: tokens.spacing.md, marginBottom: tokens.spacing.md }}>
-              <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.sm }}>
-                Your Message
-              </AppText>
-              <AppText variant="body2" style={{ color: tokens.colors.text.secondary }}>
-                {selectedTicket.message}
-              </AppText>
-            </View>
-
-            {selectedTicket.response && (
-              <>
-                <AppDivider />
-                <View
-                  style={[
-                    {
-                      marginTop: tokens.spacing.md,
-                      backgroundColor: tokens.colors.success.light,
-                      padding: tokens.spacing.md,
-                      borderRadius: tokens.radius.base,
-                    },
-                  ]}
-                >
-                  <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.sm }}>
-                    Support Response
+            <ScrollView
+              ref={scrollViewRef}
+              style={{ flex: 1, marginBottom: tokens.spacing.md }}
+              contentContainerStyle={{ paddingBottom: tokens.spacing.md }}
+            >
+              <View
+                style={{
+                  backgroundColor: tokens.colors.background.paper,
+                  padding: tokens.spacing.md,
+                  borderRadius: tokens.radius.base,
+                  marginBottom: tokens.spacing.md,
+                  ...tokens.shadows.xs,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: tokens.spacing.xs }}>
+                  <AppText variant="subtitle2" weight="semibold" style={{ color: tokens.colors.primary.main }}>
+                    You
                   </AppText>
-                  <AppText variant="body2">{selectedTicket.response}</AppText>
-                  {selectedTicket.resolvedAt && (
-                    <AppText variant="caption" style={{ color: tokens.colors.text.secondary, marginTop: tokens.spacing.sm }}>
-                      Resolved on {new Date(selectedTicket.resolvedAt).toLocaleString()}
-                    </AppText>
-                  )}
+                  <AppText variant="caption" style={{ color: tokens.colors.text.secondary }}>
+                    {formatTime(ticketDetails.createdAt)}
+                  </AppText>
                 </View>
-              </>
-            )}
-          </ScrollView>
+                <AppText variant="body2">{ticketDetails.message}</AppText>
+              </View>
+
+              {ticketDetails.replies && ticketDetails.replies.length > 0 && ticketDetails.replies.map((reply: Reply, index: number) => (
+                <View
+                  key={index}
+                  style={{
+                    backgroundColor: reply.isAdmin ? tokens.colors.primary.light : tokens.colors.background.paper,
+                    padding: tokens.spacing.md,
+                    borderRadius: tokens.radius.base,
+                    marginBottom: tokens.spacing.md,
+                    alignSelf: reply.isAdmin ? 'flex-start' : 'flex-end',
+                    maxWidth: '85%',
+                    ...tokens.shadows.xs,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: tokens.spacing.xs }}>
+                    <AppText
+                      variant="subtitle2"
+                      weight="semibold"
+                      style={{ color: reply.isAdmin ? tokens.colors.primary.main : tokens.colors.text.primary }}
+                    >
+                      {reply.isAdmin ? 'Support Team' : (reply.userId?.name || 'You')}
+                    </AppText>
+                    <AppText variant="caption" style={{ color: tokens.colors.text.secondary, marginLeft: tokens.spacing.sm }}>
+                      {formatTime(reply.createdAt)}
+                    </AppText>
+                  </View>
+                  <AppText variant="body2">{reply.message}</AppText>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={{ borderTopWidth: 1, borderTopColor: tokens.colors.border.default, paddingTop: tokens.spacing.md }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: tokens.spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <AppInput
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    placeholder="Type your message..."
+                    multiline
+                    numberOfLines={2}
+                    style={{ minHeight: 60, textAlignVertical: 'top' }}
+                  />
+                </View>
+                <Pressable
+                  onPress={handleSendReply}
+                  disabled={!replyText.trim() || sendingReply}
+                  style={{
+                    backgroundColor: !replyText.trim() || sendingReply ? tokens.colors.neutral.gray300 : tokens.colors.primary.main,
+                    padding: tokens.spacing.md,
+                    borderRadius: tokens.radius.base,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minWidth: 50,
+                    minHeight: 50,
+                  }}
+                >
+                  {sendingReply ? (
+                    <ActivityIndicator size="small" color={tokens.colors.white} />
+                  ) : (
+                    <Ionicons name="send" size={20} color={tokens.colors.white} />
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        ) : (
+          <View style={{ padding: tokens.spacing.xl, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={tokens.colors.primary.main} />
+            <AppText variant="body2" style={{ color: tokens.colors.text.secondary, marginTop: tokens.spacing.md }}>
+              Loading conversation...
+            </AppText>
+          </View>
         )}
       </AppModal>
     </View>

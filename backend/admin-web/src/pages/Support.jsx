@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Headphones, MessageCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Headphones, MessageCircle, AlertCircle, Send } from 'lucide-react';
 import { supportAPI } from '../services/api';
 
 const Support = () => {
@@ -12,8 +12,10 @@ const Support = () => {
     resolvedToday: 0
   });
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketDetails, setTicketDetails] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
     fetchTickets();
@@ -80,14 +82,34 @@ const Support = () => {
     return priorityMap[priority] || 'badge-info';
   };
 
+  const fetchTicketDetails = async (ticketId) => {
+    try {
+      const response = await supportAPI.getTicketDetails(ticketId);
+      if (response.data.success) {
+        setTicketDetails(response.data.data);
+        setTimeout(() => {
+          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error fetching ticket details:', error);
+      setError('Failed to load ticket details');
+    }
+  };
+
+  const handleOpenTicket = async (ticket) => {
+    setSelectedTicket(ticket);
+    await fetchTicketDetails(ticket.id);
+  };
+
   const handleReply = async (ticketId) => {
     if (!replyText.trim()) return;
     
     try {
       setReplyLoading(true);
-      await supportAPI.replyToTicket(ticketId, replyText);
+      await supportAPI.addReply(ticketId, replyText);
       setReplyText('');
-      setSelectedTicket(null);
+      await fetchTicketDetails(ticketId);
       fetchTickets();
     } catch (error) {
       console.error('Reply error:', error);
@@ -101,10 +123,22 @@ const Support = () => {
     try {
       await supportAPI.updateTicketStatus(ticketId, newStatus);
       fetchTickets();
+      if (selectedTicket && selectedTicket.id === ticketId) {
+        await fetchTicketDetails(ticketId);
+      }
     } catch (error) {
       console.error('Status update error:', error);
       setError('Failed to update status');
     }
+  };
+
+  const formatTime = (date) => {
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -240,9 +274,9 @@ const Support = () => {
                         <button 
                           className="btn btn-primary" 
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
-                          onClick={() => setSelectedTicket(ticket)}
+                          onClick={() => handleOpenTicket(ticket)}
                         >
-                          Reply
+                          View Chat
                         </button>
                       </div>
                     </td>
@@ -253,7 +287,7 @@ const Support = () => {
           </table>
         </div>
 
-        {selectedTicket && (
+        {selectedTicket && ticketDetails && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -264,45 +298,169 @@ const Support = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000
+            zIndex: 1000,
+            padding: '1rem'
           }}>
-            <div className="card" style={{ maxWidth: '600px', width: '90%', padding: '2rem' }}>
-              <h3 style={{ marginBottom: '1rem' }}>Reply to: {selectedTicket.subject}</h3>
-              <p style={{ marginBottom: '1rem', color: 'var(--gray-600)' }}>
-                From: {selectedTicket.user} ({selectedTicket.email})
-              </p>
-              <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--gray-50)', borderRadius: '8px' }}>
-                <strong>Original Message:</strong>
-                <p style={{ marginTop: '0.5rem' }}>{selectedTicket.message}</p>
+            <div className="card" style={{ 
+              maxWidth: '700px', 
+              width: '100%', 
+              height: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0,
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                padding: '1.5rem', 
+                borderBottom: '1px solid var(--gray-200)',
+                backgroundColor: 'var(--gray-50)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ marginBottom: '0.5rem', fontSize: '1.25rem' }}>{ticketDetails.subject}</h3>
+                    <p style={{ color: 'var(--gray-600)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                      From: {ticketDetails.userId?.name} ({ticketDetails.userId?.email})
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span className={`badge ${getStatusBadge(ticketDetails.status)}`}>
+                        {ticketDetails.status}
+                      </span>
+                      <span className={`badge ${getPriorityBadge(ticketDetails.priority)}`}>
+                        {ticketDetails.priority} priority
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedTicket(null);
+                      setTicketDetails(null);
+                      setReplyText('');
+                    }}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      fontSize: '1.5rem', 
+                      cursor: 'pointer',
+                      color: 'var(--gray-500)'
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  {ticketDetails.status !== 'resolved' && (
+                    <button
+                      className="btn btn-success"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                      onClick={() => handleStatusUpdate(ticketDetails._id, 'resolved')}
+                    >
+                      Mark Resolved
+                    </button>
+                  )}
+                  {ticketDetails.status === 'open' && (
+                    <button
+                      className="btn btn-warning"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                      onClick={() => handleStatusUpdate(ticketDetails._id, 'pending')}
+                    >
+                      Mark Pending
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="input-group">
-                <label className="input-label">Your Response</label>
-                <textarea
-                  className="input-field"
-                  rows={4}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Type your response here..."
-                  style={{ resize: 'vertical' }}
-                />
+
+              <div style={{ 
+                flex: 1, 
+                overflowY: 'auto', 
+                padding: '1.5rem',
+                backgroundColor: '#f9fafb'
+              }}>
+                <div style={{ 
+                  marginBottom: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <strong style={{ color: 'var(--primary)' }}>{ticketDetails.userId?.name}</strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                      {formatTime(ticketDetails.createdAt)}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--gray-700)' }}>{ticketDetails.message}</p>
+                </div>
+
+                {ticketDetails.replies && ticketDetails.replies.length > 0 && ticketDetails.replies.map((reply, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      marginBottom: '1rem',
+                      padding: '1rem',
+                      backgroundColor: reply.isAdmin ? '#e0f2fe' : 'white',
+                      borderRadius: '8px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                      marginLeft: reply.isAdmin ? '0' : '1rem',
+                      marginRight: reply.isAdmin ? '1rem' : '0'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <strong style={{ color: reply.isAdmin ? 'var(--primary)' : 'var(--gray-700)' }}>
+                        {reply.isAdmin ? 'Support Team' : (reply.userId?.name || 'User')}
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                        {formatTime(reply.createdAt)}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, color: 'var(--gray-700)' }}>{reply.message}</p>
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
               </div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => handleReply(selectedTicket.id)}
-                  disabled={replyLoading || !replyText.trim()}
-                >
-                  {replyLoading ? 'Sending...' : 'Send Reply & Resolve'}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setSelectedTicket(null);
-                    setReplyText('');
-                  }}
-                >
-                  Cancel
-                </button>
+
+              <div style={{ 
+                padding: '1rem 1.5rem', 
+                borderTop: '1px solid var(--gray-200)',
+                backgroundColor: 'white'
+              }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                  <textarea
+                    className="input-field"
+                    rows={2}
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleReply(ticketDetails._id);
+                      }
+                    }}
+                    placeholder="Type your response..."
+                    style={{ 
+                      resize: 'none',
+                      flex: 1,
+                      marginBottom: 0
+                    }}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleReply(ticketDetails._id)}
+                    disabled={replyLoading || !replyText.trim()}
+                    style={{ 
+                      padding: '0.75rem 1.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    {replyLoading ? 'Sending...' : (
+                      <>
+                        <Send size={16} />
+                        Send
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
