@@ -8,8 +8,14 @@ module.exports = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Verify token version for session invalidation
-    const user = await User.findById(decoded.id || decoded.userId).select('tokenVersion');
+    // Verify token version for session invalidation with timeout
+    const userPromise = User.findById(decoded.id || decoded.userId).select('tokenVersion').lean();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database query timeout')), 5000)
+    );
+    
+    const user = await Promise.race([userPromise, timeoutPromise]);
+    
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found' });
     }
@@ -23,8 +29,12 @@ module.exports = async (req, res, next) => {
     next();
   } catch (e) {
     if (e.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Token expired' });
+      return res.status(401).json({ success: false, message: 'Token expired', code: 'TOKEN_EXPIRED' });
     }
-    res.status(401).json({ success: false, message: 'Invalid token' });
+    if (e.message === 'Database query timeout') {
+      return res.status(503).json({ success: false, message: 'Service temporarily unavailable', code: 'TIMEOUT' });
+    }
+    console.error('Token verification error:', e.message);
+    res.status(401).json({ success: false, message: 'Invalid token', code: 'INVALID_TOKEN' });
   }
 };

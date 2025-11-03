@@ -251,6 +251,7 @@ export const useBiometric = () => {
     try {
       const enabled = await isBiometricEnabled();
       if (!enabled) {
+        console.log('Biometric not enabled');
         return {
           success: false,
           error: 'Biometric login is not enabled',
@@ -259,28 +260,37 @@ export const useBiometric = () => {
 
       const userId = await AsyncStorage.getItem('biometric_user_id');
       if (!userId) {
+        console.log('No biometric user ID found');
         return {
           success: false,
           error: 'No biometric login configured',
         };
       }
 
+      console.log('Authenticating biometric for user:', userId);
       const authResult = await authenticate('Login with biometric', 'Cancel');
       if (!authResult.success) {
+        console.log('Biometric authentication failed:', authResult.error);
         return {
           success: false,
           error: authResult.error,
         };
       }
 
+      console.log('Retrieving stored biometric token');
       const biometricToken = await getStoredBiometricToken(userId);
       if (!biometricToken) {
+        console.log('No biometric token found in secure storage');
+        // Clear biometric settings if token is missing
+        await AsyncStorage.removeItem(BIOMETRIC_ENABLED_KEY);
+        await AsyncStorage.removeItem('biometric_user_id');
         return {
           success: false,
           error: 'Biometric credentials not found. Please login with email and password.',
         };
       }
 
+      console.log('Biometric login successful');
       return {
         success: true,
         biometricToken,
@@ -290,7 +300,7 @@ export const useBiometric = () => {
       console.error('Error authenticating for login:', error);
       return {
         success: false,
-        error: 'An unexpected error occurred',
+        error: 'An unexpected error occurred during biometric authentication',
       };
     }
   };
