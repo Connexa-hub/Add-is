@@ -19,8 +19,8 @@ const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const { securityEventLogger } = require('./middleware/securityLogger');
 
-// Trust proxy in development if needed
-if (!isProduction) app.set('trust proxy', 1);
+// Trust proxy - required for production deployments behind reverse proxies
+app.set('trust proxy', 1);
 
 // Security headers
 app.use(
