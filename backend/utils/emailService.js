@@ -1,16 +1,33 @@
 
 const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
 let transporter = null;
 let emailConfigError = null;
+let useSendGrid = false;
 
 const initializeEmailService = () => {
+  // Check if SendGrid API key is available (preferred for production)
+  if (process.env.SENDGRID_API_KEY) {
+    try {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      useSendGrid = true;
+      console.log('✅ SendGrid email service initialized successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid initialization failed:', error.message);
+      emailConfigError = `Failed to initialize SendGrid: ${error.message}`;
+      return false;
+    }
+  }
+  
+  // Fallback to Gmail SMTP
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    emailConfigError = 'Email service not configured: EMAIL_USER and EMAIL_PASS environment variables are required';
+    emailConfigError = 'Email service not configured: Either SENDGRID_API_KEY or (EMAIL_USER and EMAIL_PASS) are required';
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('⚠️  EMAIL SERVICE NOT CONFIGURED');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('   EMAIL_USER and EMAIL_PASS must be set for email functionality');
+    console.error('   Set SENDGRID_API_KEY (recommended) or EMAIL_USER and EMAIL_PASS');
     console.error('   Authentication features requiring email will fail');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return false;
@@ -37,24 +54,41 @@ const initializeEmailService = () => {
 initializeEmailService();
 
 const sendEmail = async (to, subject, html) => {
-  if (emailConfigError || !transporter) {
+  if (emailConfigError || (!useSendGrid && !transporter)) {
     const error = new Error(emailConfigError || 'Email service not initialized');
     error.isEmailConfigError = true;
     throw error;
   }
 
   try {
-    const fromEmail = process.env.EMAIL_USER;
-    
-    const info = await transporter.sendMail({
-      from: `"VTU247" <${fromEmail}>`,
-      to: to,
-      subject: subject,
-      html: html
-    });
+    if (useSendGrid) {
+      // Use SendGrid
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER || 'noreply@vtu247.com';
+      
+      const msg = {
+        to: to,
+        from: fromEmail,
+        subject: subject,
+        html: html
+      };
 
-    console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+      const response = await sgMail.send(msg);
+      console.log(`✅ Email sent successfully via SendGrid to ${to}`);
+      return { success: true, messageId: response[0].headers['x-message-id'] };
+    } else {
+      // Use SMTP
+      const fromEmail = process.env.EMAIL_USER;
+      
+      const info = await transporter.sendMail({
+        from: `"VTU247" <${fromEmail}>`,
+        to: to,
+        subject: subject,
+        html: html
+      });
+
+      console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
+      return { success: true, messageId: info.messageId };
+    }
   } catch (error) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('❌ EMAIL SENDING FAILED');
