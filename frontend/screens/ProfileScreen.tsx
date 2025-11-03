@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, SafeAreaView } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, SafeAreaView, Pressable } from 'react-native';
 import { Appbar, Card, Text, List, Divider, Avatar, Button, ActivityIndicator } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/api';
 
@@ -93,6 +95,15 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const handleCopyAccountNumber = async (accountNumber: string) => {
+    try {
+      await Clipboard.setStringAsync(accountNumber);
+      Alert.alert('Copied!', 'Account number copied to clipboard');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to copy account number');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -165,6 +176,14 @@ export default function ProfileScreen({ navigation }) {
                   title="Virtual Account Number"
                   description={user.monnifyAccounts[0].accountNumber}
                   left={props => <List.Icon {...props} icon="bank" />}
+                  right={props => (
+                    <Pressable 
+                      onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
+                      style={styles.copyIconButton}
+                    >
+                      <Ionicons name="copy-outline" size={20} color="#6200ee" />
+                    </Pressable>
+                  )}
                 />
                 <List.Item
                   title="Bank Name"
@@ -327,5 +346,10 @@ const styles = StyleSheet.create({
   },
   divider: {
     marginVertical: 12,
+  },
+  copyIconButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

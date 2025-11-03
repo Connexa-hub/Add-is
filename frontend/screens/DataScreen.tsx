@@ -383,17 +383,6 @@ export default function DataScreen() {
           />
         </View>
 
-        <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.md }}>
-          <View style={[styles.infoCard, { backgroundColor: '#00B894', borderRadius: tokens.radius.lg, padding: tokens.spacing.md }]}>
-            <AppText variant="body2" weight="semibold" color="#FFFFFF">
-              Top-up your Data anytime, anywhere
-            </AppText>
-            <AppText variant="h3" weight="bold" color="#FFFFFF">
-              Simply Dial *955*4* mobile no#
-            </AppText>
-          </View>
-        </View>
-
         <View style={{ paddingHorizontal: tokens.spacing.lg, marginBottom: tokens.spacing.lg }}>
           <AppText variant="subtitle1" weight="semibold" style={{ marginBottom: tokens.spacing.md }}>
             Data Plans

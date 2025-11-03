@@ -4,6 +4,7 @@ import { Appbar, Card, Text, Avatar, Button, ActivityIndicator } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import * as Clipboard from 'expo-clipboard';
 import { API_BASE_URL } from '../constants/api';
 import { BannerCarousel } from '../src/components/molecules';
 import { tokenService } from '../utils/tokenService';
@@ -125,6 +126,15 @@ export default function HomeScreen({ navigation }) {
       'lastActivityTime'
     ]);
     navigation.replace('Login');
+  };
+
+  const handleCopyAccountNumber = async (accountNumber: string) => {
+    try {
+      await Clipboard.setStringAsync(accountNumber);
+      Alert.alert('Copied!', 'Account number copied to clipboard');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to copy account number');
+    }
   };
 
   // VTU Services organized by VTPass categories
@@ -380,6 +390,55 @@ export default function HomeScreen({ navigation }) {
             </Button>
           </Card.Content>
         </Card>
+
+        {/* Monnify Virtual Account Card */}
+        {user?.monnifyAccounts && user.monnifyAccounts.length > 0 && (
+          <Card style={styles.monnifyCard}>
+            <Card.Content>
+              <View style={styles.monnifyHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="wallet" size={20} color="#6366f1" />
+                  <Text style={styles.monnifyTitle}>  Virtual Account</Text>
+                </View>
+              </View>
+              
+              <View style={styles.monnifyDetails}>
+                <View style={styles.monnifyRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.monnifyLabel}>Bank Name</Text>
+                    <Text style={styles.monnifyValue}>{user.monnifyAccounts[0].bankName}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.monnifyRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.monnifyLabel}>Account Number</Text>
+                    <Text style={styles.monnifyValue}>{user.monnifyAccounts[0].accountNumber}</Text>
+                  </View>
+                  <Pressable 
+                    onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
+                    style={styles.copyButton}
+                  >
+                    <Ionicons name="copy-outline" size={20} color="#6366f1" />
+                    <Text style={styles.copyText}>Copy</Text>
+                  </Pressable>
+                </View>
+                
+                <View style={styles.monnifyRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.monnifyLabel}>Account Name</Text>
+                    <Text style={styles.monnifyValue}>{user.monnifyAccounts[0].accountName}</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.monnifyFooter}>
+                <Ionicons name="information-circle-outline" size={16} color="#666" />
+                <Text style={styles.monnifyFooterText}>Fund your wallet instantly by transferring to this account</Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
 
         {/* Top Banner Carousel */}
         <BannerCarousel section="home-top" />
@@ -719,5 +778,72 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginLeft: 6,
     opacity: 0.9,
+  },
+  monnifyCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    elevation: 3,
+    borderRadius: 16,
+  },
+  monnifyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  monnifyTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  monnifyDetails: {
+    gap: 12,
+  },
+  monnifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  monnifyLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  monnifyValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8E9FE',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  copyText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  monnifyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    gap: 6,
+  },
+  monnifyFooterText: {
+    fontSize: 11,
+    color: '#666',
+    flex: 1,
   },
 });

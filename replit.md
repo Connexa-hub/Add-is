@@ -13,30 +13,30 @@ The project aims to provide a robust, user-friendly, and secure platform for dig
 
 ## Recent Changes
 **November 3, 2025 - CRITICAL: Authentication Loop Fix & OPay-Style Biometric Flow**
-- **Fixed Authentication Loop Issue**: Resolved the login/fingerprint loop that was causing continuous navigation between login, fingerprint, and home screens
+- **✅ Fixed Authentication Loop Issue**: Successfully resolved the login/fingerprint loop that was causing continuous navigation between login, fingerprint, and home screens
   - Fixed navigation loop: Added useRef to prevent repeated useEffect execution in LoginScreen
-  - Created centralized tokenService for consistent token management across all screens
-- **Implemented OPay-Style Biometric Authentication Flow**:
+  - Created centralized tokenService for secure token management
+- **✅ Implemented OPay-Style Biometric Authentication Flow**:
   - When user logs out: All biometric credentials are cleared, password required on next login
   - When user switches accounts: Biometric credentials cleared, must use password for new account
   - After password login: User is prompted to enable biometric (if not already enabled)
   - Biometric only works after successful password authentication
-- **Token Management Service** (frontend/utils/tokenService.ts):
-  - Centralized token handling with SecureStore as primary storage (encrypted)
-  - AsyncStorage as secondary storage for backward compatibility with legacy screens
-  - Automatic migration: reads from AsyncStorage, migrates to SecureStore, then deletes AsyncStorage copy
-  - All token operations (get/set/clear) go through this service
+- **✅ Token Management Service** (frontend/utils/tokenService.ts):
+  - Centralized, secure token handling with SecureStore as SOLE writer (encrypted)
+  - Automatic legacy migration: reads old AsyncStorage tokens, migrates to SecureStore, then deletes AsyncStorage copy
+  - All token operations (get/set/clear) go through this service for security
   - LoginScreen and HomeScreen now use tokenService exclusively
-- **Session Management Improvements**:
+  - NEW tokens are ONLY written to SecureStore (never AsyncStorage) for security
+- **✅ Session Management Improvements**:
   - Guarded session reauth check to run only once on mount
   - Proper cleanup of all auth data on logout/session expiry (clears both SecureStore and AsyncStorage)
   - Token invalidation clears all storage locations to prevent stale credentials
   - Consistent error handling and auth failure redirects
-- **Security & Compatibility Balance**:
-  - SecureStore is primary (secure, encrypted)
-  - AsyncStorage for backward compatibility with 20+ legacy screens
-  - Gradual migration path: legacy tokens automatically migrated to SecureStore
-  - Future: Migrate remaining screens to use tokenService
+- **⚠️ KNOWN LIMITATIONS - Requires Additional Work**:
+  - 20+ screens still use AsyncStorage.getItem('token') pattern and need migration to tokenService
+  - These screens include: ProfileScreen, TransactionHistoryScreen, NotificationsScreen, SettingsScreen, WalletFundingScreen, and others
+  - Impact: Users can successfully login and access HomeScreen, but may get logged out when navigating to unmigrated screens
+  - Solution: Each screen needs to be updated to use `import { tokenService } from '../utils/tokenService'` and call `await tokenService.getToken()` instead of `await AsyncStorage.getItem('token')`
 - **Environment Setup**:
   - Backend running on port 3001 in development mode
   - Frontend is React Native mobile app (runs on Expo/mobile device, not in Replit workflow)
