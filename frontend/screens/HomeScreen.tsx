@@ -3,8 +3,10 @@ import { View, StyleSheet, ScrollView, RefreshControl, Alert, Pressable } from '
 import { Appbar, Card, Text, Avatar, Button, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '../constants/api';
 import { BannerCarousel } from '../src/components/molecules';
+import { tokenService } from '../utils/tokenService';
 
 export default function HomeScreen({ navigation }) {
   const [user, setUser] = useState(null);
@@ -23,7 +25,7 @@ export default function HomeScreen({ navigation }) {
 
   const loadUserData = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       const userId = await AsyncStorage.getItem('userId');
 
       if (!token || !userId) {
@@ -44,6 +46,9 @@ export default function HomeScreen({ navigation }) {
         setWalletBalance(data.data.walletBalance || 0);
         await loadRecentTransactions(token);
       } else {
+        // Session expired or invalid, clear all auth data
+        await tokenService.clearToken();
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'lastActivityTime']);
         navigation.replace('Login');
       }
     } catch (error) {
@@ -83,7 +88,7 @@ export default function HomeScreen({ navigation }) {
 
   const loadUnreadNotifications = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
       if (!token) return;
 
       const response = await fetch(`${API_BASE_URL}/api/notifications/unread/count`, {
@@ -108,7 +113,17 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleLogout = async () => {
-    await AsyncStorage.clear();
+    // Clear all auth data using tokenService
+    await tokenService.clearToken();
+    await AsyncStorage.multiRemove([
+      'userId',
+      'userEmail',
+      'userName',
+      'savedEmail',
+      'biometricEnabled',
+      'biometric_user_id',
+      'lastActivityTime'
+    ]);
     navigation.replace('Login');
   };
 

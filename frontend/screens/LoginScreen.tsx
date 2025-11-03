@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +11,7 @@ import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { BiometricModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
+import { tokenService } from '../utils/tokenService';
 
 export default function LoginScreen({ navigation }) {
   const { tokens } = useAppTheme();
@@ -34,12 +35,16 @@ export default function LoginScreen({ navigation }) {
   const [showBiometricModal, setShowBiometricModal] = useState(false);
   const [pendingBiometricData, setPendingBiometricData] = useState(null);
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const hasCheckedSession = useRef(false);
 
   useEffect(() => {
-    checkBiometricStatus();
-    checkSavedCredentials();
-    checkSessionReauth();
-  }, [capabilities, isBiometricLoading]);
+    if (!isBiometricLoading && !hasCheckedSession.current) {
+      hasCheckedSession.current = true;
+      checkBiometricStatus();
+      checkSavedCredentials();
+      checkSessionReauth();
+    }
+  }, [isBiometricLoading]);
 
   const checkSessionReauth = async () => {
     try {
@@ -68,9 +73,9 @@ export default function LoginScreen({ navigation }) {
         } catch (error) {
           // Token expired or validation failed
           console.log('Session validation failed:', error.message);
-          // Only clear the auth token, keep biometric settings
+          // Clear the auth token from all locations, keep biometric settings
           await SecureStore.deleteItemAsync('auth_token');
-          await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'lastActivityTime']);
+          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'lastActivityTime']);
         }
       }
       
@@ -163,8 +168,8 @@ export default function LoginScreen({ navigation }) {
           const userEmail = response.data.data.user?.email || '';
           const userName = response.data.data.user?.name || '';
 
-          // Store auth token in SecureStore (encrypted)
-          await SecureStore.setItemAsync('auth_token', response.data.data.token);
+          // Store auth token using tokenService (SecureStore + backward compatibility)
+          await tokenService.setToken(response.data.data.token);
           
           // Store non-sensitive data in AsyncStorage
           await AsyncStorage.multiSet([
@@ -263,8 +268,8 @@ export default function LoginScreen({ navigation }) {
         const userEmail = res.data.data.user?.email || '';
         const userName = res.data.data.user?.name || '';
 
-        // Store auth token in SecureStore (encrypted)
-        await SecureStore.setItemAsync('auth_token', res.data.data.token);
+        // Store auth token using tokenService (SecureStore + backward compatibility)
+        await tokenService.setToken(res.data.data.token);
         
         // Store non-sensitive data in AsyncStorage
         await AsyncStorage.multiSet([
@@ -410,9 +415,20 @@ export default function LoginScreen({ navigation }) {
                   gap: tokens.spacing.lg, 
                   marginBottom: tokens.spacing['2xl'] 
                 }]}>
-                  <TouchableOpacity onPress={() => {
+                  <TouchableOpacity onPress={async () => {
+                    // Clear biometric credentials when switching accounts (OPay flow)
+                    await AsyncStorage.multiRemove([
+                      'savedEmail',
+                      'biometricEnabled',
+                      'biometric_user_id'
+                    ]);
+                    const userId = await AsyncStorage.getItem('userId');
+                    if (userId) {
+                      await SecureStore.deleteItemAsync(`biometric_credentials_${userId}`);
+                    }
                     setSavedEmail(null);
                     setEmail('');
+                    setBiometricConfigured(false);
                     setShowPasswordLogin(true);
                   }}>
                     <AppText variant="body2" color={tokens.colors.primary.main}>
