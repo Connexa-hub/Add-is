@@ -12,6 +12,30 @@ The project aims to provide a robust, user-friendly, and secure platform for dig
 - RESTful API design
 
 ## Recent Changes
+**November 3, 2025 - Chat-Based Support System Implementation**
+- **Complete Support Chat System**: Implemented full-featured chat-based support for user-admin communication
+  - Backend: Added `POST /api/admin/support/:id/reply` endpoint for both users and admins to add chat messages
+  - Modified existing reply endpoints to use replies array format for continuous conversations
+  - All replies stored with userId, message, isAdmin flag, and timestamps
+  - Proper authentication: users can only reply to their own tickets, admins can reply to any ticket
+- **Mobile App Chat Interface**: Enhanced frontend/screens/SupportScreen.tsx with modern chat UI
+  - Chat-style interface showing full conversation history in chronological order
+  - Visual distinction between user messages (white) and admin replies (blue)
+  - Message timestamps for all communications
+  - Input field and send button for real-time replies
+  - Auto-scroll to latest messages
+  - Pull-to-refresh for updating conversation
+- **Admin Web Panel Chat View**: Updated backend/admin-web/src/pages/Support.jsx
+  - Full-height modal displaying complete chat conversation thread
+  - Shows sender name (user name or "Support Team") for each message
+  - Chronological message display with timestamps
+  - Reply input at bottom with send functionality
+  - Status management buttons (Mark Pending, Mark Resolved)
+  - Real-time updates when sending messages
+- **API Service Updates**: Added support for chat replies in admin-web/src/services/api.js
+  - New `addReply` function for sending chat messages to support tickets
+  - Maintains backward compatibility with existing support endpoints
+
 **November 2, 2025 - CRITICAL: Complete Authentication & Email Service Overhaul**
 - **Email Service Hardening**: Completely rewrote email service to fail-fast with clear error messages instead of silent failures
   - Added startup validation that checks for EMAIL_USER and EMAIL_PASS configuration
