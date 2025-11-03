@@ -1,29 +1,25 @@
-const nodemailer = require('nodemailer');
 
-let transporter = null;
+const { Resend } = require('resend');
+
+let resend = null;
 let emailConfigError = null;
 
 const initializeEmailService = () => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    emailConfigError = 'Email service not configured: EMAIL_USER and EMAIL_PASS environment variables are required';
+  if (!process.env.RESEND_API_KEY) {
+    emailConfigError = 'Email service not configured: RESEND_API_KEY environment variable is required';
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('⚠️  EMAIL SERVICE NOT CONFIGURED');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('   EMAIL_USER and EMAIL_PASS must be set for email functionality');
+    console.error('   RESEND_API_KEY must be set for email functionality');
+    console.error('   Get your key from: https://resend.com/api-keys');
     console.error('   Authentication features requiring email will fail');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return false;
   }
 
   try {
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-    console.log('✅ Email service initialized successfully');
+    resend = new Resend(process.env.RESEND_API_KEY);
+    console.log('✅ Resend email service initialized successfully');
     return true;
   } catch (error) {
     emailConfigError = `Failed to initialize email service: ${error.message}`;
@@ -35,31 +31,42 @@ const initializeEmailService = () => {
 initializeEmailService();
 
 const sendEmail = async (to, subject, html) => {
-  if (emailConfigError || !transporter) {
+  if (emailConfigError || !resend) {
     const error = new Error(emailConfigError || 'Email service not initialized');
     error.isEmailConfigError = true;
     throw error;
   }
 
   try {
-    const mailOptions = {
-      from: `"VTU Bill Payment" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html
-    };
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: [to],
+      subject: subject,
+      html: html
+    });
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    if (error) {
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('❌ RESEND EMAIL SENDING FAILED');
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('Error:', error);
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      const emailError = new Error(`Failed to send email: ${error.message || 'Unknown error'}`);
+      emailError.originalError = error;
+      emailError.isEmailSendError = true;
+      throw emailError;
+    }
+
+    console.log(`✅ Email sent successfully to ${to}: ${data.id}`);
+    return { success: true, messageId: data.id };
   } catch (error) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('❌ EMAIL SENDING FAILED');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('Error Code:', error.code);
     console.error('Error Message:', error.message);
-    console.error('Response:', error.response);
-    console.error('Command:', error.command);
     console.error('Full Error:', error);
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
@@ -114,7 +121,6 @@ const sendPasswordResetEmail = (user, otp) => {
 };
 
 const sendVerificationEmail = (emailOrUser, otp) => {
-  // Support both email string and user object
   const email = typeof emailOrUser === 'string' ? emailOrUser : emailOrUser.email;
   const name = typeof emailOrUser === 'string' ? 'User' : emailOrUser.name;
   
@@ -154,79 +160,67 @@ const sendPinResetEmail = (user, otp) => {
 };
 
 const sendAccountDeletionEmail = async (user) => {
-  const mailOptions = {
-    from: process.env.EMAIL_FROM || 'noreply@addis.com',
-    to: user.email,
-    subject: 'Account Deletion Confirmation - Addis',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-          .info-box { background: #fff; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Account Deleted</h1>
-          </div>
-          <div class="content">
-            <p>Hello ${user.name},</p>
-
-            <p>This email confirms that your Addis account has been permanently deleted as per your request.</p>
-
-            <div class="info-box">
-              <h3>What has been deleted:</h3>
-              <ul>
-                <li>✓ Your account and personal information</li>
-                <li>✓ All transaction history</li>
-                <li>✓ Saved payment cards</li>
-                <li>✓ Notifications and preferences</li>
-                <li>✓ Support tickets</li>
-                <li>✓ Cashback records</li>
-              </ul>
-            </div>
-
-            ${user.monnifyAccountReference ? `
-            <div class="info-box">
-              <h3>Virtual Account Information:</h3>
-              <p>Your Monnify virtual account(s) will be automatically deactivated after 90 days of inactivity. Please do not send money to these accounts anymore:</p>
-              ${user.monnifyAccounts?.map(acc => `
-                <p><strong>${acc.bankName}:</strong> ${acc.accountNumber}</p>
-              `).join('') || ''}
-            </div>
-            ` : ''}
-
-            <p>We're sorry to see you go. If you change your mind, you can always create a new account.</p>
-
-            <p>If you did not request this deletion, please contact our support team immediately at support@addis.com</p>
-
-            <p>Thank you for using Addis.</p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Addis. All rights reserved.</p>
-          </div>
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        .info-box { background: #fff; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Account Deleted</h1>
         </div>
-      </body>
-      </html>
-    `
-  };
+        <div class="content">
+          <p>Hello ${user.name},</p>
+          <p>This email confirms that your Addis account has been permanently deleted as per your request.</p>
+          <div class="info-box">
+            <h3>What has been deleted:</h3>
+            <ul>
+              <li>✓ Your account and personal information</li>
+              <li>✓ All transaction history</li>
+              <li>✓ Saved payment cards</li>
+              <li>✓ Notifications and preferences</li>
+              <li>✓ Support tickets</li>
+              <li>✓ Cashback records</li>
+            </ul>
+          </div>
+          ${user.monnifyAccountReference ? `
+          <div class="info-box">
+            <h3>Virtual Account Information:</h3>
+            <p>Your Monnify virtual account(s) will be automatically deactivated after 90 days of inactivity. Please do not send money to these accounts anymore:</p>
+            ${user.monnifyAccounts?.map(acc => `
+              <p><strong>${acc.bankName}:</strong> ${acc.accountNumber}</p>
+            `).join('') || ''}
+          </div>
+          ` : ''}
+          <p>We're sorry to see you go. If you change your mind, you can always create a new account.</p>
+          <p>If you did not request this deletion, please contact our support team immediately at support@addis.com</p>
+          <p>Thank you for using Addis.</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} Addis. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
 
   try {
-    await transporter.sendMail(mailOptions);
+    await sendEmail(user.email, 'Account Deletion Confirmation - Addis', html);
     console.log('Account deletion email sent to:', user.email);
   } catch (error) {
     console.error('Error sending account deletion email:', error);
     throw error;
   }
 };
-
 
 module.exports = {
   sendEmail,
