@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "resend": "^6.4.0"
+    "nodemailer": "^7.0.10"
   }
 }

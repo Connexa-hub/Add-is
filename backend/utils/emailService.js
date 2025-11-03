@@ -1,25 +1,31 @@
 
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-let resend = null;
+let transporter = null;
 let emailConfigError = null;
 
 const initializeEmailService = () => {
-  if (!process.env.RESEND_API_KEY) {
-    emailConfigError = 'Email service not configured: RESEND_API_KEY environment variable is required';
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    emailConfigError = 'Email service not configured: EMAIL_USER and EMAIL_PASS environment variables are required';
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('⚠️  EMAIL SERVICE NOT CONFIGURED');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('   RESEND_API_KEY must be set for email functionality');
-    console.error('   Get your key from: https://resend.com/api-keys');
+    console.error('   EMAIL_USER and EMAIL_PASS must be set for email functionality');
     console.error('   Authentication features requiring email will fail');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return false;
   }
 
   try {
-    resend = new Resend(process.env.RESEND_API_KEY);
-    console.log('✅ Resend email service initialized successfully');
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+    
+    console.log('✅ Gmail email service initialized successfully');
     return true;
   } catch (error) {
     emailConfigError = `Failed to initialize email service: ${error.message}`;
@@ -31,37 +37,24 @@ const initializeEmailService = () => {
 initializeEmailService();
 
 const sendEmail = async (to, subject, html) => {
-  if (emailConfigError || !resend) {
+  if (emailConfigError || !transporter) {
     const error = new Error(emailConfigError || 'Email service not initialized');
     error.isEmailConfigError = true;
     throw error;
   }
 
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const fromEmail = process.env.EMAIL_USER;
     
-    const { data, error } = await resend.emails.send({
-      from: fromEmail,
-      to: [to],
+    const info = await transporter.sendMail({
+      from: `"VTU247" <${fromEmail}>`,
+      to: to,
       subject: subject,
       html: html
     });
 
-    if (error) {
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('❌ RESEND EMAIL SENDING FAILED');
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('Error:', error);
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
-      const emailError = new Error(`Failed to send email: ${error.message || 'Unknown error'}`);
-      emailError.originalError = error;
-      emailError.isEmailSendError = true;
-      throw emailError;
-    }
-
-    console.log(`✅ Email sent successfully to ${to}: ${data.id}`);
-    return { success: true, messageId: data.id };
+    console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('❌ EMAIL SENDING FAILED');
