@@ -67,9 +67,25 @@ const sendEmail = async (to, subject, html) => {
       
       const msg = {
         to: to,
-        from: fromEmail,
+        from: {
+          email: fromEmail,
+          name: 'Addis VTU'
+        },
+        replyTo: fromEmail,
         subject: subject,
-        html: html
+        html: html,
+        trackingSettings: {
+          clickTracking: { enable: false },
+          openTracking: { enable: false }
+        },
+        mailSettings: {
+          bypassListManagement: {
+            enable: false
+          },
+          sandboxMode: {
+            enable: false
+          }
+        }
       };
 
       const response = await sgMail.send(msg);
@@ -135,16 +151,29 @@ const sendTransactionReceipt = (user, transaction) => {
 
 const sendPasswordResetEmail = (user, otp) => {
   const html = `
-    <h2>Password Reset Request</h2>
-    <p>Hi ${user.name},</p>
-    <p>You requested a password reset. Use the verification code below to reset your password:</p>
-    <h1 style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
-    <p>This code expires in 1 hour.</p>
-    <p>If you didn't request this, please ignore this email.</p>
-    <br>
-    <p>Best regards,<br>VTU Bill Payment Team</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0;">Addis VTU</h1>
+      </div>
+      <div style="padding: 30px;">
+        <h2 style="color: #333;">Password Reset Request</h2>
+        <p>Hi ${user.name},</p>
+        <p>You requested a password reset. Use the verification code below to reset your password:</p>
+        <div style="background-color: #f0f0f0; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+          <h1 style="font-size: 36px; letter-spacing: 8px; margin: 0; color: #333;">${otp}</h1>
+        </div>
+        <p style="color: #666;">This code expires in 1 hour.</p>
+        <p style="color: #e53e3e; font-weight: bold;">If you didn't request this, please secure your account immediately.</p>
+        <br>
+        <p>Best regards,<br><strong>Addis Support Team</strong></p>
+      </div>
+      <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+        <p>© ${new Date().getFullYear()} Addis. All rights reserved.</p>
+        <p>This is an automated message. Please do not reply to this email.</p>
+      </div>
+    </div>
   `;
-  return sendEmail(user.email, 'Password Reset Code', html);
+  return sendEmail(user.email, 'Password Reset Code - Addis', html);
 };
 
 const sendVerificationEmail = (emailOrUser, otp) => {
@@ -152,20 +181,29 @@ const sendVerificationEmail = (emailOrUser, otp) => {
   const name = typeof emailOrUser === 'string' ? 'User' : emailOrUser.name;
   
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #333;">Welcome to VTU Bill Payment!</h2>
-      <p>Hi ${name},</p>
-      <p>Thank you for creating an account. To complete your registration, please verify your email address using the code below:</p>
-      <div style="background-color: #f0f0f0; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-        <h1 style="font-size: 36px; letter-spacing: 8px; margin: 0; color: #333;">${otp}</h1>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0;">Addis VTU</h1>
       </div>
-      <p style="color: #666;">This verification code expires in 1 hour.</p>
-      <p style="color: #666;">If you didn't create this account, please ignore this email.</p>
-      <br>
-      <p>Best regards,<br><strong>VTU Bill Payment Team</strong></p>
+      <div style="padding: 30px;">
+        <h2 style="color: #333;">Welcome to Addis!</h2>
+        <p>Hi ${name},</p>
+        <p>Thank you for creating an account. To complete your registration, please verify your email address using the code below:</p>
+        <div style="background-color: #f0f0f0; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+          <h1 style="font-size: 36px; letter-spacing: 8px; margin: 0; color: #333;">${otp}</h1>
+        </div>
+        <p style="color: #666;">This verification code expires in 1 hour.</p>
+        <p style="color: #666;">If you didn't create this account, please ignore this email.</p>
+        <br>
+        <p>Best regards,<br><strong>Addis Support Team</strong></p>
+      </div>
+      <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+        <p>© ${new Date().getFullYear()} Addis. All rights reserved.</p>
+        <p>This is an automated message. Please do not reply to this email.</p>
+      </div>
     </div>
   `;
-  return sendEmail(email, 'Verify Your Email Address', html);
+  return sendEmail(email, 'Verify Your Email Address - Addis', html);
 };
 
 const sendPinResetEmail = (user, otp) => {
