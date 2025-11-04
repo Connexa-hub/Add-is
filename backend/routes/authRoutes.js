@@ -30,7 +30,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
     // Auto-create virtual account if not exists
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
       console.log('User has no Monnify accounts, attempting to create/fetch...');
-      
+
       // Check if we have a monnifyAccountReference but no accounts array
       if (user.monnifyAccountReference) {
         try {
@@ -50,18 +50,18 @@ router.get('/profile', verifyToken, async (req, res, next) => {
           console.error('Failed to fetch existing account details:', error.message);
         }
       }
-      
+
       // If still no accounts, try to create new ones
       if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
         try {
           const accountReference = user.monnifyAccountReference || `USER_${user._id}_${Date.now()}`;
-          
+
           console.log('Creating new Monnify virtual account:', {
             accountReference,
             name: user.name,
             email: user.email
           });
-          
+
           const result = await monnifyClient.createReservedAccount({
             accountReference,
             accountName: user.name,
@@ -189,7 +189,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const user = await User.create({
+    const newUser = await User.create({
       name,
       email,
       password: hashed,
@@ -198,15 +198,48 @@ router.post('/register', registerValidation, async (req, res, next) => {
       emailVerified: false
     });
 
-    await user.save();
-    
+    // Create Monnify reserved account for the user
+    try {
+      const accountReference = `USER_${newUser._id}`;
+      console.log('Creating Monnify account for:', email);
+
+      const monnifyResult = await monnifyClient.createReservedAccount({
+        accountReference,
+        accountName: name,
+        customerEmail: email,
+        customerName: name,
+      });
+
+      if (monnifyResult.success && monnifyResult.data) {
+        const accounts = monnifyResult.data.accounts || [];
+        console.log('Monnify accounts created:', accounts.length);
+
+        newUser.monnifyAccountReference = accountReference;
+        newUser.monnifyAccounts = accounts.map(acc => ({
+          accountNumber: acc.accountNumber,
+          accountName: acc.accountName,
+          bankName: acc.bankName,
+          bankCode: acc.bankCode,
+        }));
+        await newUser.save();
+        console.log('Monnify accounts saved to user:', newUser.monnifyAccounts);
+      } else {
+        console.error('Monnify account creation failed:', monnifyResult);
+      }
+    } catch (monnifyError) {
+      console.error('Monnify account creation error:', monnifyError.message);
+      // Continue even if Monnify fails - don't block registration
+    }
+
+    await newUser.save();
+
     let emailSent = false;
     try {
-      await emailService.sendVerificationEmail(user.email, otp);
+      await emailService.sendVerificationEmail(newUser.email, otp);
       emailSent = true;
     } catch (emailError) {
       console.error('Failed to send verification email during registration:', emailError);
-      
+
       // Don't delete user - allow them to proceed to verification screen
       // They can resend the verification email from there
       if (emailError.isEmailConfigError) {
@@ -214,38 +247,13 @@ router.post('/register', registerValidation, async (req, res, next) => {
       }
     }
 
-    // Create Monnify virtual account in background
-    try {
-      const accountReference = `USER_${user._id}`;
-      const monnifyResult = await monnifyClient.createReservedAccount({
-        accountReference,
-        accountName: user.name,
-        customerEmail: user.email,
-        customerName: user.name
-      });
-
-      if (monnifyResult.success && monnifyResult.data.accounts) {
-        user.monnifyAccountReference = accountReference;
-        user.monnifyAccounts = monnifyResult.data.accounts.map(acc => ({
-          accountNumber: acc.accountNumber,
-          accountName: acc.accountName,
-          bankName: acc.bankName,
-          bankCode: acc.bankCode
-        }));
-        await user.save();
-      }
-    } catch (monnifyError) {
-      console.error('Monnify account creation failed:', monnifyError);
-      // Don't fail registration if Monnify fails
-    }
-
     res.status(201).json({
       success: true,
-      message: emailSent 
-        ? 'Registration successful! Please verify your email.' 
+      message: emailSent
+        ? 'Registration successful! Please verify your email.'
         : 'Registration successful! Email service unavailable - please use resend or contact support.',
-      data: { 
-        email: user.email,
+      data: {
+        email: newUser.email,
         emailSent: emailSent
       }
     });
@@ -279,7 +287,7 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
       // Send verification email
       let emailSent = false;
       let emailErrorMessage = null;
-      
+
       try {
         await emailService.sendVerificationEmail(user.email, otp);
         emailSent = true;
@@ -294,7 +302,7 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
 
       return res.status(403).json({
         success: false,
-        message: emailSent 
+        message: emailSent
           ? 'Please verify your email before logging in. A new verification code has been sent to your email.'
           : `Email verification required. ${emailErrorMessage}`,
         requiresVerification: true,
@@ -305,6 +313,40 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
     }
 
     resetLoginAttempts(email);
+
+    // Update last login
+    user.lastLogin = new Date();
+
+    // Create Monnify account if it doesn't exist
+    if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
+      try {
+        const accountReference = `USER_${user._id}`;
+        console.log('Creating missing Monnify account for:', user.email);
+
+        const monnifyResult = await monnifyClient.createReservedAccount({
+          accountReference,
+          accountName: user.name,
+          customerEmail: user.email,
+          customerName: user.name,
+        });
+
+        if (monnifyResult.success && monnifyResult.data) {
+          const accounts = monnifyResult.data.accounts || [];
+          user.monnifyAccountReference = accountReference;
+          user.monnifyAccounts = accounts.map(acc => ({
+            accountNumber: acc.accountNumber,
+            accountName: acc.accountName,
+            bankName: acc.bankName,
+            bankCode: acc.bankCode,
+          }));
+          console.log('Monnify accounts created on login:', user.monnifyAccounts);
+        }
+      } catch (monnifyError) {
+        console.error('Error creating Monnify account on login:', monnifyError.message);
+      }
+    }
+
+    await user.save();
 
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
@@ -341,7 +383,7 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
 router.post('/enable-biometric', verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -357,7 +399,7 @@ router.post('/enable-biometric', verifyToken, async (req, res, next) => {
     }
 
     const biometricToken = crypto.randomBytes(32).toString('hex');
-    
+
     user.biometricToken = biometricToken;
     user.biometricEnabled = true;
     await user.save();
@@ -477,7 +519,7 @@ router.post('/forgot-password', async (req, res, next) => {
       });
     } catch (emailError) {
       console.error('Failed to send password reset email:', emailError);
-      
+
       if (emailError.isEmailConfigError) {
         return res.status(503).json({
           success: false,
@@ -486,7 +528,7 @@ router.post('/forgot-password', async (req, res, next) => {
           supportEmail: 'support@vtu247.com'
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         message: 'Failed to send password reset email. Please try again or contact support.',
@@ -645,7 +687,7 @@ router.post('/resend-verification', async (req, res, next) => {
       });
     } catch (emailError) {
       console.error('Failed to resend verification email:', emailError);
-      
+
       if (emailError.isEmailConfigError) {
         return res.status(503).json({
           success: false,
@@ -654,7 +696,7 @@ router.post('/resend-verification', async (req, res, next) => {
           supportEmail: 'support@vtu247.com'
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         message: 'Failed to send verification email. Please try again later or contact support.',

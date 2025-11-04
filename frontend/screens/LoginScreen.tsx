@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +23,7 @@ export default function LoginScreen({ navigation }) {
     saveCredentials,
   } = useBiometric();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmal] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -51,20 +50,20 @@ export default function LoginScreen({ navigation }) {
       // Check if user has valid token but session timed out
       const token = await SecureStore.getItemAsync('auth_token');
       const biometricEnabled = await isBiometricEnabled();
-      
+
       if (token) {
         // User has a token, verify if it's still valid
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-          
+
           const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
             headers: { Authorization: `Bearer ${token}` },
             signal: controller.signal
           });
-          
+
           clearTimeout(timeoutId);
-          
+
           if (response.data.success) {
             // Token is valid, navigate to main
             navigation.replace('Main');
@@ -78,7 +77,7 @@ export default function LoginScreen({ navigation }) {
           await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'lastActivityTime']);
         }
       }
-      
+
       // If biometric is enabled and we have saved credentials, show biometric login UI
       // But DON'T auto-trigger the authentication - wait for user to tap the button
       const saved = await AsyncStorage.getItem('savedEmail');
@@ -158,13 +157,13 @@ export default function LoginScreen({ navigation }) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
+
         const response = await axios.post(
           `${API_BASE_URL}/api/auth/biometric-login`, 
           { biometricToken: result.biometricToken },
           { signal: controller.signal }
         );
-        
+
         clearTimeout(timeoutId);
 
         if (response.data.success && response.data.data.token) {
@@ -177,7 +176,7 @@ export default function LoginScreen({ navigation }) {
 
           // Critical: Store token FIRST using tokenService
           await tokenService.setToken(token);
-          
+
           // Then store other data
           await AsyncStorage.multiSet([
             ['userId', userId],
@@ -190,21 +189,21 @@ export default function LoginScreen({ navigation }) {
           // Verify token was actually stored
           const storedToken = await tokenService.getToken();
           const asyncToken = await AsyncStorage.getItem('token');
-          
+
           console.log('Token storage verification:', {
             secureStoreHasToken: !!storedToken,
             asyncStorageHasToken: !!asyncToken
           });
-          
+
           if (!storedToken || !asyncToken) {
             throw new Error('Failed to store authentication token properly');
           }
 
           console.log('Token verified, navigating to Main...');
-          
+
           // Small delay to ensure storage is complete
           await new Promise(resolve => setTimeout(resolve, 300));
-          
+
           setLoading(false);
           navigation.replace('Main');
         } else {
@@ -213,11 +212,11 @@ export default function LoginScreen({ navigation }) {
       } catch (loginError) {
         console.error('Biometric login error:', loginError);
         setLoading(false);
-        
+
         // Clear invalid tokens
         await tokenService.clearToken();
         await AsyncStorage.removeItem('token');
-        
+
         setShowPasswordLogin(true);
         Alert.alert(
           'Login Failed',
@@ -234,22 +233,61 @@ export default function LoginScreen({ navigation }) {
 
   const handleEnableBiometric = async () => {
     if (!pendingBiometricData) return;
-    
-    const success = await enableBiometric(pendingBiometricData.userId, pendingBiometricData.token);
-    if (success) {
-      await saveCredentials(pendingBiometricData.userId, pendingBiometricData.userEmail);
-      Alert.alert(
-        'Success',
-        `${capabilities.biometricType || 'Biometric'} login enabled! You can now login quickly using your ${capabilities.biometricType?.toLowerCase() || 'biometric'}.`
+
+    try {
+      setLoading(true);
+      console.log('Enabling biometric for user:', pendingBiometricData.userId);
+
+      const success = await enableBiometric(
+        pendingBiometricData.userId,
+        pendingBiometricData.token
       );
+
+      if (success) {
+        console.log('Biometric enabled successfully, saving credentials');
+        await saveCredentials(pendingBiometricData.userId, pendingBiometricData.email);
+        setShowBiometricModal(false);
+        setPendingBiometricData(null);
+
+        Alert.alert(
+          'Success!',
+          `${capabilities.biometricType || 'Biometric'} login has been enabled. You can now use it to login quickly.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (navigation?.reset) {
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Main' }],
+                  });
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to enable biometric authentication');
+      }
+    } catch (error) {
+      console.error('Error enabling biometric:', error);
+      Alert.alert('Error', 'Failed to enable biometric authentication');
+    } finally {
+      setLoading(false);
     }
-    setShowBiometricModal(false);
-    navigation.replace('Main');
   };
 
   const handleSkipBiometric = () => {
+    console.log('User skipped biometric setup');
     setShowBiometricModal(false);
-    navigation.replace('Main');
+    setPendingBiometricData(null);
+
+    if (navigation?.reset) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' }],
+      });
+    }
   };
 
   const handleLogin = async () => {
@@ -294,13 +332,8 @@ export default function LoginScreen({ navigation }) {
         const userName = res.data.data.user?.name || '';
         const token = res.data.data.token;
 
-        // Store auth token using tokenService (SecureStore)
+        // Store auth data
         await tokenService.setToken(token);
-        
-        // Store backward compatibility token in AsyncStorage
-        await AsyncStorage.setItem('token', token);
-        
-        // Store non-sensitive data in AsyncStorage
         await AsyncStorage.multiSet([
           ['userId', userId],
           ['userEmail', userEmail],
@@ -309,24 +342,27 @@ export default function LoginScreen({ navigation }) {
           ['lastActivityTime', Date.now().toString()]
         ]);
 
-        const savedToken = await tokenService.getToken();
-        if (savedToken) {
+        // Check if biometric should be offered
+        if (capabilities.isAvailable) {
           const biometricEnabled = await isBiometricEnabled();
 
-          // Only show biometric modal if not previously shown for this email
-          const biometricPromptShown = await AsyncStorage.getItem(`biometric_prompt_shown_${email}`);
-          
-          if (!biometricEnabled && capabilities.isAvailable && !biometricPromptShown) {
-            await AsyncStorage.setItem(`biometric_prompt_shown_${email}`, 'true');
-            setPendingBiometricData({ userId, userEmail, token: res.data.data.token });
+          if (!biometricEnabled) {
+            // Show biometric setup modal for first-time users
+            setPendingBiometricData({
+              userId: userId,
+              email: userEmail,
+              token: token,
+            });
             setShowBiometricModal(true);
-          } else {
-            navigation.replace('Main');
+            return; // Don't navigate yet, wait for modal response
           }
-        } else {
-          setErrors({
-            email: '',
-            password: 'Failed to save session. Please try again.'
+        }
+
+        // Navigate to main app
+        if (navigation?.reset) {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Main' }],
           });
         }
       }
@@ -589,7 +625,7 @@ export default function LoginScreen({ navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Biometric Modal */}
+      {/* Biometric Setup Modal */}
       <BiometricModal
         visible={showBiometricModal}
         onEnable={handleEnableBiometric}
