@@ -38,9 +38,9 @@ export default function App() {
 
         // Keep splash visible for 3 seconds
         await new Promise((resolve) => setTimeout(resolve, 3000));
-        
+
         setAppIsReady(true);
-        
+
         // Fade out splash
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -101,5 +101,3 @@ const styles = StyleSheet.create({
     height: 150,
   },
 });
-
-

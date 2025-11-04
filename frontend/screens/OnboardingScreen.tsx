@@ -51,13 +51,37 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    fetchOnboardingSlides();
+    // Load cached slides immediately if available
+    loadCachedSlidesFirst();
     return () => {
       if (autoSwipeTimerRef.current) {
         clearTimeout(autoSwipeTimerRef.current);
       }
     };
   }, []);
+
+  const loadCachedSlidesFirst = async () => {
+    try {
+      const cachedSlides = await AsyncStorage.getItem('onboarding_slides');
+      
+      if (cachedSlides) {
+        // Load cached slides immediately - no loading state
+        const cachedData = JSON.parse(cachedSlides);
+        setSlides(cachedData);
+        setLoading(false);
+        console.log('✅ Loaded onboarding slides from cache instantly');
+        
+        // Fetch fresh data in background
+        fetchSlidesInBackground();
+      } else {
+        // No cache, fetch from API
+        await fetchSlidesFromAPI();
+      }
+    } catch (err) {
+      console.error('Error loading cached slides:', err);
+      await fetchSlidesFromAPI();
+    }
+  };
 
   useEffect(() => {
     if (slides.length > 0 && !loading) {
@@ -75,37 +99,27 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     };
   }, [slides, currentIndex, loading]);
 
-  const fetchOnboardingSlides = async () => {
-    try {
-      const cachedSlides = await AsyncStorage.getItem('onboarding_slides');
-      const lastFetch = await AsyncStorage.getItem('onboarding_last_fetch');
-      const now = Date.now();
-
-      if (cachedSlides && lastFetch) {
-        const cachedData = JSON.parse(cachedSlides);
-        const lastFetchTime = parseInt(lastFetch, 10);
-
-        if (now - lastFetchTime < CACHE_DURATION) {
-          setSlides(cachedData);
-          setLoading(false);
-          fetchSlidesInBackground();
-          return;
-        }
-      }
-
-      await fetchSlidesFromAPI();
-    } catch (err) {
-      console.error('Error fetching onboarding slides:', err);
-      handleFetchError();
-    }
-  };
+  
 
   const fetchSlidesInBackground = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/onboarding`);
+      const response = await axios.get(`${API_BASE_URL}/api/onboarding`, {
+        timeout: 5000
+      });
       if (response.data.success && response.data.data.length > 0) {
-        await AsyncStorage.setItem('onboarding_slides', JSON.stringify(response.data.data));
+        const sortedSlides = response.data.data.sort((a: OnboardingSlide, b: OnboardingSlide) => a.order - b.order);
+        
+        // Update cache silently
+        await AsyncStorage.setItem('onboarding_slides', JSON.stringify(sortedSlides));
         await AsyncStorage.setItem('onboarding_last_fetch', Date.now().toString());
+        
+        // Only update UI if slides changed
+        const currentSlidesStr = JSON.stringify(slides);
+        const newSlidesStr = JSON.stringify(sortedSlides);
+        if (currentSlidesStr !== newSlidesStr) {
+          setSlides(sortedSlides);
+          console.log('🔄 Updated onboarding slides from server');
+        }
       }
     } catch (err) {
       console.error('Background fetch error:', err);
@@ -259,7 +273,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     </View>
   );
 
-  if (loading) {
+  if (loading && slides.length === 0) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: tokens.colors.background.default }]}>
         <ActivityIndicator size="large" color={tokens.colors.primary.main} />

@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { API_BASE_URL } from '../../constants/api';
 import { tokenService } from '../../utils/tokenService';
 
@@ -86,12 +87,34 @@ export default function AppNavigator() {
 
   const hasCheckedAuth = useRef(false);
 
+  // Preload onboarding slides during splash
+  const preloadOnboardingSlides = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/onboarding`, {
+        timeout: 3000 // 3 second timeout
+      });
+      
+      if (response.data.success && response.data.data.length > 0) {
+        const sortedSlides = response.data.data.sort((a, b) => a.order - b.order);
+        await AsyncStorage.setItem('onboarding_slides', JSON.stringify(sortedSlides));
+        await AsyncStorage.setItem('onboarding_last_fetch', Date.now().toString());
+        console.log('✅ Onboarding slides preloaded successfully');
+      }
+    } catch (error) {
+      console.log('Onboarding preload skipped:', error.message);
+      // Don't block app loading if onboarding fetch fails
+    }
+  };
+
   useEffect(() => {
     async function checkAuth() {
       if (hasCheckedAuth.current) return;
       hasCheckedAuth.current = true;
 
       try {
+        // Preload onboarding slides immediately
+        preloadOnboardingSlides();
+
         const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
 
         // Check token from both sources
