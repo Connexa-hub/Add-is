@@ -79,12 +79,14 @@ export default function LoginScreen({ navigation }) {
         }
       }
       
-      // If biometric is enabled and we have saved credentials, show biometric login
+      // If biometric is enabled and we have saved credentials, show biometric login UI
+      // But DON'T auto-trigger the authentication - wait for user to tap the button
       const saved = await AsyncStorage.getItem('savedEmail');
       if (biometricEnabled && saved) {
         setBiometricConfigured(true);
         setSavedEmail(saved);
         setEmail(saved);
+        // Do NOT call handleBiometricLogin() here - let user tap the button
       }
     } catch (error) {
       console.error('Error in checkSessionReauth:', error);
@@ -410,10 +412,10 @@ export default function LoginScreen({ navigation }) {
 
                 <AppText 
                   variant="body1" 
-                  color={tokens.colors.primary.main} 
-                  style={{ marginBottom: tokens.spacing.md }}
+                  color={tokens.colors.text.secondary} 
+                  style={{ marginBottom: tokens.spacing.md, textAlign: 'center' }}
                 >
-                  Click to log in with {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
+                  Tap the button below to authenticate with {capabilities.biometricType || 'biometric'}
                 </AppText>
 
                 <AppButton
@@ -424,8 +426,9 @@ export default function LoginScreen({ navigation }) {
                   fullWidth
                   size="lg"
                   style={{ marginBottom: tokens.spacing.xl, maxWidth: 300 }}
+                  icon={<Ionicons name="finger-print" size={24} color="#fff" />}
                 >
-                  Verify {capabilities.biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric'}
+                  Login with {capabilities.biometricType || 'Biometric'}
                 </AppButton>
 
                 {/* Alternative login options */}
