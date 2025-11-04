@@ -130,6 +130,7 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
 
+      // First, authenticate with biometric
       const result = await authenticateForLogin();
 
       if (!result.success) {
@@ -151,9 +152,10 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
+      // After successful biometric auth, login to backend
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
         const response = await axios.post(
           `${API_BASE_URL}/api/auth/biometric-login`, 
@@ -167,9 +169,15 @@ export default function LoginScreen({ navigation }) {
           const userId = response.data.data.user?.id || '';
           const userEmail = response.data.data.user?.email || '';
           const userName = response.data.data.user?.name || '';
+          const token = response.data.data.token;
 
-          // Store auth token using tokenService (SecureStore + backward compatibility)
-          await tokenService.setToken(response.data.data.token);
+          console.log('Biometric login successful, storing credentials...');
+
+          // Store auth token using tokenService (SecureStore)
+          await tokenService.setToken(token);
+          
+          // Store backward compatibility token in AsyncStorage
+          await AsyncStorage.setItem('token', token);
           
           // Store non-sensitive data in AsyncStorage
           await AsyncStorage.multiSet([
@@ -180,7 +188,13 @@ export default function LoginScreen({ navigation }) {
             ['lastActivityTime', Date.now().toString()]
           ]);
 
-          // Navigate only once
+          // Verify token was stored before navigating
+          const storedToken = await tokenService.getToken();
+          if (!storedToken) {
+            throw new Error('Failed to store authentication token');
+          }
+
+          console.log('Token verified, navigating to Main...');
           setLoading(false);
           navigation.replace('Main');
         } else {
@@ -190,8 +204,9 @@ export default function LoginScreen({ navigation }) {
         console.error('Biometric login error:', loginError);
         setLoading(false);
         
-        // Clear the invalid biometric token
-        await AsyncStorage.removeItem('biometricToken');
+        // Clear invalid tokens
+        await tokenService.clearToken();
+        await AsyncStorage.removeItem('token');
         
         setShowPasswordLogin(true);
         Alert.alert(
@@ -267,9 +282,13 @@ export default function LoginScreen({ navigation }) {
         const userId = res.data.data.user?.id || '';
         const userEmail = res.data.data.user?.email || '';
         const userName = res.data.data.user?.name || '';
+        const token = res.data.data.token;
 
-        // Store auth token using tokenService (SecureStore + backward compatibility)
-        await tokenService.setToken(res.data.data.token);
+        // Store auth token using tokenService (SecureStore)
+        await tokenService.setToken(token);
+        
+        // Store backward compatibility token in AsyncStorage
+        await AsyncStorage.setItem('token', token);
         
         // Store non-sensitive data in AsyncStorage
         await AsyncStorage.multiSet([
@@ -280,7 +299,7 @@ export default function LoginScreen({ navigation }) {
           ['lastActivityTime', Date.now().toString()]
         ]);
 
-        const savedToken = await SecureStore.getItemAsync('auth_token');
+        const savedToken = await tokenService.getToken();
         if (savedToken) {
           const biometricEnabled = await isBiometricEnabled();
 

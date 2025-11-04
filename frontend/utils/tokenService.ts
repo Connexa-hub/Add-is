@@ -13,12 +13,22 @@ export interface TokenService {
 class SecureTokenService implements TokenService {
   async getToken(): Promise<string | null> {
     try {
+      // Try SecureStore first
       const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
       
       if (token) {
         return token;
       }
       
+      // Fall back to AsyncStorage for backward compatibility
+      const asyncToken = await AsyncStorage.getItem('token');
+      if (asyncToken) {
+        console.log('Found token in AsyncStorage, migrating to SecureStore');
+        await this.setToken(asyncToken);
+        return asyncToken;
+      }
+      
+      // Check legacy location
       const legacyToken = await AsyncStorage.getItem(LEGACY_TOKEN_KEY);
       if (legacyToken) {
         console.log('Migrating legacy token to SecureStore');
@@ -36,9 +46,12 @@ class SecureTokenService implements TokenService {
 
   async setToken(token: string): Promise<void> {
     try {
-      // Only write to SecureStore (secure, encrypted)
-      // Never write to AsyncStorage - that's a security vulnerability
+      // Primary: Write to SecureStore (secure, encrypted)
       await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+      
+      // Backward compatibility: Also write to AsyncStorage for screens still using it
+      // This ensures smooth transition and prevents session loss
+      await AsyncStorage.setItem('token', token);
     } catch (error) {
       console.error('Error setting auth token:', error);
       throw error;
@@ -49,6 +62,7 @@ class SecureTokenService implements TokenService {
     try {
       await Promise.all([
         SecureStore.deleteItemAsync(AUTH_TOKEN_KEY),
+        AsyncStorage.removeItem('token'),
         AsyncStorage.removeItem(LEGACY_TOKEN_KEY),
       ]);
     } catch (error) {

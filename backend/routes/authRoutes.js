@@ -52,13 +52,25 @@ router.get('/profile', verifyToken, async (req, res, next) => {
       if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
         try {
           const accountReference = user.monnifyAccountReference || `USER_${user._id}_${Date.now()}`;
+          
+          console.log('Creating virtual account for user:', {
+            accountReference,
+            name: user.name,
+            email: user.email
+          });
+          
           const result = await monnifyClient.createReservedAccount({
             accountReference,
             accountName: user.name,
             customerEmail: user.email,
             customerName: user.name,
-            bvn: user.kyc?.personal?.bvn,
-            nin: user.kyc?.personal?.nin
+            bvn: user.kyc?.personal?.bvn || undefined,
+            nin: user.kyc?.personal?.nin || undefined
+          });
+
+          console.log('Monnify account creation result:', {
+            success: result.success,
+            hasAccounts: result.data?.accounts?.length > 0
           });
 
           if (result.success && result.data.accounts) {
@@ -70,9 +82,15 @@ router.get('/profile', verifyToken, async (req, res, next) => {
               bankCode: acc.bankCode
             }));
             await user.save();
+            console.log('Virtual accounts saved successfully');
+          } else {
+            console.error('Monnify returned success but no accounts');
           }
         } catch (error) {
-          console.error('Auto virtual account creation failed:', error);
+          console.error('Auto virtual account creation failed:', error.message);
+          if (error.response?.data) {
+            console.error('Monnify error details:', error.response.data);
+          }
           // Don't fail the request if Monnify fails
         }
       }

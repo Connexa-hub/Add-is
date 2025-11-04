@@ -22,7 +22,7 @@ export default function ProfileScreen({ navigation }) {
 
   const loadUserData = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenService.getToken();
 
       console.log('Loading profile data with token:', token ? 'Token exists' : 'No token');
 
@@ -45,6 +45,7 @@ export default function ProfileScreen({ navigation }) {
       if (!response.ok) {
         if (response.status === 401) {
           console.log('Unauthorized - clearing token and redirecting to login');
+          await tokenService.clearToken();
           await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'lastActivityTime']);
           Alert.alert('Session Expired', 'Please log in again');
           navigation.replace('Login');
