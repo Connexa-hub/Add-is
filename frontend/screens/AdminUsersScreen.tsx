@@ -63,6 +63,42 @@ export default function AdminUsersScreen({ navigation }: any) {
     );
   };
 
+  const handleDeleteUser = (userId: string, userName: string) => {
+    Alert.alert(
+      'Delete User',
+      `Are you sure you want to permanently delete ${userName}? This action cannot be undone and will delete:\n\n• User account\n• All transactions\n• Saved cards\n• Notifications\n• Support tickets\n• Cashback records`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              const data = await response.json();
+              if (data.success) {
+                Alert.alert('Success', 'User deleted successfully');
+                fetchUsers();
+              } else {
+                Alert.alert('Error', data.message || 'Failed to delete user');
+              }
+            } catch (error) {
+              console.error('Error:', error);
+              Alert.alert('Error', 'Failed to delete user');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const UserCard = ({ user }: any) => (
     <View style={[styles.userCard, { backgroundColor: tokens.colors.background.paper }]}>
       <View style={styles.userHeader}>
@@ -102,6 +138,13 @@ export default function AdminUsersScreen({ navigation }: any) {
           style={{ flex: 1 }}
         >
           <AppText color={tokens.colors.primary.main}>View Details</AppText>
+        </AppButton>
+        <AppButton
+          mode="text"
+          onPress={() => handleDeleteUser(user._id, user.name)}
+          style={{ flex: 1 }}
+        >
+          <AppText color={tokens.colors.error.main}>Delete</AppText>
         </AppButton>
       </View>
     </View>

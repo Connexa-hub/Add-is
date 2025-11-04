@@ -695,6 +695,56 @@ router.get('/reconciliation', verifyToken, isAdmin, async (req, res, next) => {
   }
 });
 
+// Delete user account (admin only)
+router.delete('/users/:userId', verifyToken, isAdmin, async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Prevent deleting admin accounts
+    if (user.role === 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Cannot delete admin accounts through this endpoint' 
+      });
+    }
+
+    // Delete all related data
+    const Transaction = require('../models/Transaction');
+    const Card = require('../models/Card');
+    const Notification = require('../models/Notification');
+    const SupportTicket = require('../models/SupportTicket');
+    const Cashback = require('../models/Cashback');
+
+    await Promise.all([
+      Transaction.deleteMany({ userId }),
+      Card.deleteMany({ userId }),
+      Notification.deleteMany({ userId }),
+      SupportTicket.deleteMany({ userId }),
+      Cashback.deleteMany({ userId })
+    ]);
+
+    // Log Monnify account reference for records
+    if (user.monnifyAccountReference) {
+      console.log(`Deleted user Monnify account reference: ${user.monnifyAccountReference}`);
+    }
+
+    // Delete user account
+    await User.findByIdAndDelete(userId);
+
+    res.json({
+      success: true,
+      message: 'User account and all associated data deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Process refund
 router.post('/transactions/:transactionId/refund', verifyToken, isAdmin, async (req, res, next) => {
   try {

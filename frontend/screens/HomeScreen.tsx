@@ -19,6 +19,11 @@ export default function HomeScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceVisible, setBalanceVisible] = useState(false);
 
+  // Placeholder for setBalance function as it was used in the changes but not defined in original
+  const setBalance = (balance) => {
+    setWalletBalance(balance);
+  };
+
   useEffect(() => {
     loadUserData();
     loadUnreadNotifications();
@@ -26,13 +31,13 @@ export default function HomeScreen({ navigation }) {
 
   const loadUserData = async () => {
     try {
-      const token = await tokenService.getToken();
-      const userId = await AsyncStorage.getItem('userId');
-
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
       console.log('Loading user data with token:', token ? 'Token exists' : 'No token');
 
-      if (!token || !userId) {
-        console.log('No token or userId, redirecting to login');
+      if (!token) {
+        console.log('No token - redirecting to login');
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
         navigation.replace('Login');
         return;
       }
@@ -46,39 +51,91 @@ export default function HomeScreen({ navigation }) {
 
       console.log('Profile response status:', response.status);
 
+      if (response.status === 401) {
+        console.log('Session expired - clearing and redirecting');
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
+        navigation.replace('Login');
+        return;
+      }
+
       if (!response.ok) {
-        if (response.status === 401) {
-          console.log('Unauthorized - clearing token and redirecting to login');
-          await tokenService.clearToken();
-          await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'lastActivityTime']);
-          navigation.replace('Login');
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Profile data received:', data.success);
+      console.log('Profile data received:', !!data.data);
+      console.log('Monnify accounts:', data.data?.monnifyAccounts || []);
 
       if (data.success && data.data) {
-        setUser(data.data);
-        setWalletBalance(data.data.walletBalance || 0);
-        console.log('Monnify accounts:', data.data.monnifyAccounts);
-        await loadRecentTransactions(token);
+        const userData = data.data;
+        setUser(userData);
+        setBalance(userData.walletBalance || 0);
+
+        // Store user data for offline access
+        await AsyncStorage.setItem('userName', userData.name || '');
+        await AsyncStorage.setItem('userEmail', userData.email || '');
+        await AsyncStorage.setItem('userId', userData.id || '');
       } else {
-        // Session expired or invalid, clear all auth data
-        await tokenService.clearToken();
-        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'lastActivityTime']);
-        navigation.replace('Login');
+        console.error('Failed to load profile:', data.message);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      Alert.alert('Error', 'Failed to load user data. Please try logging in again.');
-      await tokenService.clearToken();
-      await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'lastActivityTime']);
-      navigation.replace('Login');
+      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        navigation.replace('Login');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBalance = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      console.log('Fetching balance with token:', token ? 'Token exists' : 'No token');
+
+      if (!token) {
+        console.log('No token found, redirecting to login');
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        navigation.replace('Login');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/wallet`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Balance response status:', response.status);
+
+      if (response.status === 401) {
+        console.log('Unauthorized - clearing session and redirecting to login');
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
+        navigation.replace('Login');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Balance data received:', data.success);
+
+      if (data.success) {
+        setBalance(data.data.balance);
+      } else {
+        console.error('Balance fetch failed:', data.message);
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+      // Don't redirect on network errors, only on auth errors
+      if (error.message.includes('401')) {
+        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        navigation.replace('Login');
+      }
     }
   };
 
@@ -299,7 +356,7 @@ export default function HomeScreen({ navigation }) {
                 'Your verification is being reviewed. You will be notified once complete.'
               );
             } else if (user?.kyc?.status === 'rejected') {
-              Alert.alert(
+              Alert.Alert(
                 'KYC Rejected',
                 user?.kyc?.rejectionReason || 'Please resubmit your verification documents.',
                 [
@@ -382,7 +439,7 @@ export default function HomeScreen({ navigation }) {
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
             </View>
-            
+
             {/* Monnify Account Details */}
             {user?.monnifyAccounts && user.monnifyAccounts.length > 0 ? (
               <View style={styles.accountDetails}>
@@ -406,7 +463,7 @@ export default function HomeScreen({ navigation }) {
                 </Text>
               </View>
             )}
-            
+
             <Button
               mode="contained"
               onPress={() => navigation.navigate('Wallet')}
@@ -429,7 +486,7 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.monnifyTitle}>  Virtual Account</Text>
                 </View>
               </View>
-              
+
               <View style={styles.monnifyDetails}>
                 <View style={styles.monnifyRow}>
                   <View style={{ flex: 1 }}>
@@ -437,7 +494,7 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.monnifyValue}>{user.monnifyAccounts[0].bankName}</Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.monnifyRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.monnifyLabel}>Account Number</Text>
@@ -451,7 +508,7 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.copyText}>Copy</Text>
                   </Pressable>
                 </View>
-                
+
                 <View style={styles.monnifyRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.monnifyLabel}>Account Name</Text>
@@ -459,7 +516,7 @@ export default function HomeScreen({ navigation }) {
                   </View>
                 </View>
               </View>
-              
+
               <View style={styles.monnifyFooter}>
                 <Ionicons name="information-circle-outline" size={16} color="#666" />
                 <Text style={styles.monnifyFooterText}>Fund your wallet instantly by transferring to this account</Text>

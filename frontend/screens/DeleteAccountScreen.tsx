@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { AppText, AppButton, AppInput } from '../src/components/atoms';
 import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
@@ -18,6 +18,7 @@ export default function DeleteAccountScreen({ navigation }: any) {
     title: '',
     message: '',
   });
+  const [showSuccessModal, setShowSuccessModal] = useState(false); // Added for success modal
 
   const handleDeleteAccount = async () => {
     if (!password) {
@@ -47,27 +48,55 @@ export default function DeleteAccountScreen({ navigation }: any) {
       const response = await fetch(`${API_BASE_URL}/api/auth/delete-account`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ password }),
       });
 
+      console.log('Delete account response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete account');
+      }
+
       const data = await response.json();
+      console.log('Delete account response:', data);
 
       if (data.success) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'onboarding_completed']);
-        
-        setModalConfig({
-          type: 'success',
-          title: 'Account Deleted',
-          message: 'Your account has been permanently deleted. We\'re sorry to see you go.',
-        });
-        setShowModal(true);
+        // Clear ALL authentication and user data
+        try {
+          await SecureStore.deleteItemAsync('auth_token');
+        } catch (e) {
+          console.log('No auth_token in SecureStore');
+        }
 
+        await AsyncStorage.multiRemove([
+          'token',
+          'userId',
+          'userEmail',
+          'userName',
+          'biometricToken',
+          'savedEmail',
+          'biometricEnabled',
+          'biometric_user_id',
+          'sessionTimeout',
+          'autoLogoutEnabled',
+          'lastActivityTime',
+        ]);
+
+        console.log('All user data cleared successfully');
+
+        setShowSuccessModal(true);
+
+        // Navigate to login after showing success
         setTimeout(() => {
           if (navigation?.reset) {
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' as never }],
+            });
           }
         }, 2000);
       } else {
@@ -83,7 +112,7 @@ export default function DeleteAccountScreen({ navigation }: any) {
       setModalConfig({
         type: 'error',
         title: 'Error',
-        message: 'An error occurred while deleting your account. Please try again.',
+        message: error.message || 'An error occurred while deleting your account. Please try again.',
       });
       setShowModal(true);
     } finally {
@@ -226,6 +255,15 @@ export default function DeleteAccountScreen({ navigation }: any) {
             ? { text: 'Cancel', onPress: () => setShowModal(false) }
             : undefined
         }
+      />
+
+      {/* Success Modal (if needed, based on your original code structure) */}
+      <AppModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        type="success"
+        title="Account Deleted"
+        message="Your account has been permanently deleted. We're sorry to see you go."
       />
     </SafeAreaView>
   );
