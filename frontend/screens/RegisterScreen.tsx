@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
-import tokenService from '../src/services/tokenService'; // Assuming tokenService is used for storing tokens
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenService } from '../utils/tokenService';
 
 // Placeholder for isBiometricEnabled and setShowBiometricModal, and setPendingBiometricData
 // In a real app, these would be imported or defined elsewhere.
