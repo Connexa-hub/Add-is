@@ -23,7 +23,7 @@ export default function LoginScreen({ navigation }) {
     saveCredentials,
   } = useBiometric();
 
-  const [email, setEmal] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -251,17 +251,16 @@ export default function LoginScreen({ navigation }) {
 
         Alert.alert(
           'Success!',
-          `${capabilities.biometricType || 'Biometric'} login has been enabled. You can now use it to login quickly.`,
+          `${capabilities.biometricType || 'Biometric'} login has been enabled. You can now use it to login.`,
           [
             {
               text: 'OK',
               onPress: () => {
-                if (navigation?.reset) {
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Main' }],
-                  });
-                }
+                // Don't auto-navigate - user should use biometric to login
+                setShowBiometricModal(false);
+                setPendingBiometricData(null);
+                // Show biometric login UI
+                setBiometricConfigured(true);
               },
             },
           ]
@@ -281,13 +280,21 @@ export default function LoginScreen({ navigation }) {
     console.log('User skipped biometric setup');
     setShowBiometricModal(false);
     setPendingBiometricData(null);
-
-    if (navigation?.reset) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' }],
-      });
-    }
+    
+    // User chose to skip biometric, redirect to login
+    // They need to login normally next time
+    Alert.alert(
+      'Biometric Skipped',
+      'You can enable biometric login later in Settings. Please login with your credentials.',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            setShowPasswordLogin(true);
+          }
+        }
+      ]
+    );
   };
 
   const handleLogin = async () => {

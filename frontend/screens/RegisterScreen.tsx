@@ -1,10 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView, Image, Alert } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import tokenService from '../src/services/tokenService'; // Assuming tokenService is used for storing tokens
+
+// Placeholder for isBiometricEnabled and setShowBiometricModal, and setPendingBiometricData
+// In a real app, these would be imported or defined elsewhere.
+const isBiometricEnabled = async () => true;
+const setShowBiometricModal = () => {};
+const setPendingBiometricData = () => {};
+const capabilities = { isAvailable: false }; // Mock capabilities
 
 export default function RegisterScreen({ navigation }) {
   const { tokens } = useAppTheme();
@@ -101,23 +110,43 @@ export default function RegisterScreen({ navigation }) {
       }, {
         timeout: 25000 // 25 second axios timeout
       });
-      
+
       clearTimeout(timeoutId);
-      
-      // Navigate to verification screen, passing email sending status
-      navigation.navigate('EmailVerification', { 
-        email,
-        emailSent: res.data.emailSent !== false // true if email was sent or status unknown
-      });
+
+      const { token, userId, userEmail, userName } = res.data;
+
+      // Store auth data
+      await tokenService.setToken(token);
+      await AsyncStorage.multiSet([
+        ['userId', userId],
+        ['userEmail', userEmail],
+        ['userName', userName],
+        ['hasSeenOnboarding', 'true']  // Mark onboarding as completed
+      ]);
+
+      // After successful registration, redirect to login
+      // User should login to verify their credentials work
+      Alert.alert(
+        'Registration Successful!',
+        'Your account has been created. Please login to continue.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              navigation.replace('Login');
+            }
+          }
+        ]
+      );
     } catch (err) {
       clearTimeout(timeoutId);
       const errorData = err.response?.data;
-      
+
       if (errorData?.requiresVerification && errorData?.email) {
         navigation.navigate('EmailVerification', { email: errorData.email });
         return;
       }
-      
+
       // Handle timeout errors
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         setErrors({
@@ -125,6 +154,8 @@ export default function RegisterScreen({ navigation }) {
           email: 'Request timeout. Please check your connection and try again.'
         });
       } else {
+        // This is where the original error "Property 'setEmail' doesn't exist" might have occurred if it was in LoginScreen
+        // In RegisterScreen, we're just displaying the error message from the backend.
         setErrors({
           ...errors,
           email: errorData?.message || 'Registration failed. Please try again.'

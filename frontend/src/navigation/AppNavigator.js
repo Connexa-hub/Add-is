@@ -130,21 +130,33 @@ export default function AppNavigator() {
         if (!hasSeenOnboarding) {
           setInitialRoute('Onboarding');
         } else if (token) {
-          // Try to validate token, but with rate limiting protection
-          try {
-            const isValid = await validateToken(token);
-            if (isValid) {
-              setInitialRoute('Main');
-            } else {
-              console.log('Token validation failed - clearing session');
-              await tokenService.clearToken();
-              await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+          // Check if session timed out
+          const hasTimedOut = await checkSessionTimeout(token);
+          
+          if (hasTimedOut) {
+            console.log('Session timed out - clearing and showing login');
+            await tokenService.clearToken();
+            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'lastActivityTime']);
+            setInitialRoute('Login');
+          } else {
+            // Try to validate token
+            try {
+              const isValid = await validateToken(token);
+              if (isValid) {
+                // Update last activity time
+                await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+                setInitialRoute('Main');
+              } else {
+                console.log('Token validation failed - clearing session');
+                await tokenService.clearToken();
+                await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+                setInitialRoute('Login');
+              }
+            } catch (validationError) {
+              // If validation fails due to network/rate limit, show login
+              console.error('Token validation error:', validationError);
               setInitialRoute('Login');
             }
-          } catch (validationError) {
-            // If validation fails due to network/rate limit, still allow login screen
-            console.error('Token validation error:', validationError);
-            setInitialRoute('Login');
           }
         } else {
           setInitialRoute('Login');
