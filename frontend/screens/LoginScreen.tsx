@@ -175,13 +175,10 @@ export default function LoginScreen({ navigation }) {
 
           console.log('Biometric login successful, storing credentials...');
 
-          // Store auth token using tokenService (SecureStore)
+          // Critical: Store token FIRST using tokenService
           await tokenService.setToken(token);
           
-          // Store backward compatibility token in AsyncStorage
-          await AsyncStorage.setItem('token', token);
-          
-          // Store non-sensitive data in AsyncStorage
+          // Then store other data
           await AsyncStorage.multiSet([
             ['userId', userId],
             ['userEmail', userEmail],
@@ -190,13 +187,24 @@ export default function LoginScreen({ navigation }) {
             ['lastActivityTime', Date.now().toString()]
           ]);
 
-          // Verify token was stored before navigating
+          // Verify token was actually stored
           const storedToken = await tokenService.getToken();
-          if (!storedToken) {
-            throw new Error('Failed to store authentication token');
+          const asyncToken = await AsyncStorage.getItem('token');
+          
+          console.log('Token storage verification:', {
+            secureStoreHasToken: !!storedToken,
+            asyncStorageHasToken: !!asyncToken
+          });
+          
+          if (!storedToken || !asyncToken) {
+            throw new Error('Failed to store authentication token properly');
           }
 
           console.log('Token verified, navigating to Main...');
+          
+          // Small delay to ensure storage is complete
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
           setLoading(false);
           navigation.replace('Main');
         } else {

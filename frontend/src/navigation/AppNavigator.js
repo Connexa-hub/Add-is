@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../constants/api';
+import { tokenService } from '../../utils/tokenService';
 
 import OnboardingScreen from '../../screens/OnboardingScreen';
 import LoginScreen from '../../screens/LoginScreen';
@@ -83,8 +84,57 @@ export default function AppNavigator() {
   const [initialRoute, setInitialRoute] = useState(null);
   const [isReady, setIsReady] = useState(false);
 
+  const hasCheckedAuth = useRef(false);
+
   useEffect(() => {
-    checkOnboardingStatus();
+    async function checkAuth() {
+      if (hasCheckedAuth.current) return;
+      hasCheckedAuth.current = true;
+
+      try {
+        const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+
+        // Check token from both sources
+        const secureToken = await tokenService.getToken();
+        const asyncToken = await AsyncStorage.getItem('token');
+        const token = secureToken || asyncToken;
+
+        console.log('Navigator auth check:', {
+          hasOnboarded: !!hasSeenOnboarding,
+          hasToken: !!token
+        });
+
+        if (!hasSeenOnboarding) {
+          setInitialRoute('Onboarding');
+        } else if (token) {
+          // Try to validate token, but with rate limiting protection
+          try {
+            const isValid = await validateToken(token);
+            if (isValid) {
+              setInitialRoute('Main');
+            } else {
+              console.log('Token validation failed - clearing session');
+              await tokenService.clearToken();
+              await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+              setInitialRoute('Login');
+            }
+          } catch (validationError) {
+            // If validation fails due to network/rate limit, still allow login screen
+            console.error('Token validation error:', validationError);
+            setInitialRoute('Login');
+          }
+        } else {
+          setInitialRoute('Login');
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        setInitialRoute('Login');
+      } finally {
+        setIsReady(true);
+      }
+    }
+
+    checkAuth();
   }, []);
 
   const validateToken = async (token) => {
@@ -136,50 +186,6 @@ export default function AppNavigator() {
     } catch (error) {
       console.error('Error checking session timeout:', error);
       return false;
-    }
-  };
-
-  const checkOnboardingStatus = async () => {
-    try {
-      const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
-      const token = await AsyncStorage.getItem('token');
-
-      if (token) {
-        const isValid = await validateToken(token);
-
-        if (isValid) {
-          // Check if session timed out
-          const isTimedOut = await checkSessionTimeout(token);
-
-          if (isTimedOut) {
-            // Session expired, require login
-            // Session has expired - clear only session tokens, keep biometric settings
-            // This allows user to re-authenticate with biometric
-            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
-            setInitialRoute('Login');
-          } else {
-            // Update last activity time
-            await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
-            setInitialRoute('Main');
-          }
-        } else {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userEmail']);
-          if (onboardingCompleted === 'true') {
-            setInitialRoute('Login');
-          } else {
-            setInitialRoute('Onboarding');
-          }
-        }
-      } else if (onboardingCompleted === 'true') {
-        setInitialRoute('Login');
-      } else {
-        setInitialRoute('Onboarding');
-      }
-    } catch (error) {
-      console.error('Error checking onboarding status:', error);
-      setInitialRoute('Onboarding');
-    } finally {
-      setIsReady(true);
     }
   };
 

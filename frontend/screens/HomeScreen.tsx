@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert, Pressable } from 'react-native';
 import { Appbar, Card, Text, Avatar, Button, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,21 +24,31 @@ export default function HomeScreen({ navigation }) {
     setWalletBalance(balance);
   };
 
+  const hasLoadedRef = useRef(false);
+
   useEffect(() => {
-    loadUserData();
-    loadUnreadNotifications();
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadUserData();
+      loadUnreadNotifications();
+    }
   }, []);
 
   const loadUserData = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('token');
+      
+      // Check both SecureStore and AsyncStorage
+      const secureToken = await tokenService.getToken();
+      const asyncToken = await AsyncStorage.getItem('token');
+      const token = secureToken || asyncToken;
+      
       console.log('Loading user data with token:', token ? 'Token exists' : 'No token');
 
       if (!token) {
-        console.log('No token - redirecting to login');
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
-        navigation.replace('Login');
+        console.log('No token found');
+        setLoading(false);
+        // Don't navigate here - let the navigator handle it
         return;
       }
 
