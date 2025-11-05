@@ -1,0 +1,128 @@
+## CRITICAL PRODUCTION FIXES FOR VTU APP
+
+**IMPORTANT:** This is the FINAL update before production release. All changes must be production-ready with no placeholders. Ensure all functionality is fully tested and stable.
+
+---
+
+### ISSUE 1: Login Loop - Authentication Flow Bug (HIGH PRIORITY)
+**Problem:** Infinite login loop occurring - user logs in with fingerprint → homescreen loads → redirects to password login → back to fingerprint login → homescreen → repeats continuously.
+
+**Required Fix:**
+- Debug and fix the authentication state management causing the loop
+- Ensure single authentication method is used per session without redirects
+- Check for conflicting auth listeners or navigation guards
+- Verify token/session persistence is working correctly
+- Test both fingerprint and password login flows independently
+- Ensure homescreen loads ONCE after successful authentication without any redirects
+
+---
+
+### ISSUE 2: Monify Account Number Display & Copy Function
+**Problem:** 
+- Monify account numbers for newly registered users don't display in dashboard homescreen or profile section
+- No copy functionality exists
+
+**Required Implementation:**
+- Fix API integration to fetch and display Monify account numbers for all users (including new registrations)
+- Add copy-to-clipboard functionality with the following specs:
+  - Simple tap/click to copy account number
+  - Smooth animation feedback (e.g., checkmark icon, color change, or scale animation)
+  - NO modal alerts or popups that disrupt UI
+  - Use non-intrusive feedback like toast notification at bottom or inline icon animation
+- Display account number prominently in both:
+  - Dashboard homescreen
+  - Profile section
+
+---
+
+### ISSUE 3: Admin Panel - User Management Features
+**Required New Features in Admin Panel:**
+
+Add comprehensive user details view with:
+- Full user information display (name, email, phone, registration date, etc.)
+- **Monify account details** for each user
+- Action buttons for each user:
+  - **DELETE** - Permanently delete user account (with confirmation dialog)
+  - **DISABLE** - Temporarily disable user account
+  - **ACTIVATE** - Re-enable disabled accounts
+- Add status indicator showing if account is Active/Disabled/Suspended
+- Include search and filter functionality for user management
+- Ensure all actions are secure with proper admin authentication
+
+---
+
+### ISSUE 4: Banner URL Links in Admin Panel
+**Required Feature:**
+
+In the Banner Management section:
+- Add URL field when creating/editing banners
+- Allow admin to input clickable URL for each banner
+- Store URL alongside banner data
+- In frontend app: Make banners clickable
+  - When user taps banner, open the associated URL
+  - Use in-app browser or external browser based on URL type
+  - Handle cases where no URL is set (banner should not be clickable)
+- Apply this to banners across all screens and products
+
+---
+
+### ISSUE 5: Initial Setup Flow - Security & Session Settings (NEW FEATURE)
+**Required Implementation:**
+
+After successful registration and BEFORE showing homescreen, show a one-time setup screen:
+
+**Setup Screen Should Include:**
+1. **Fingerprint/Biometric Setup**
+   - Toggle to enable/disable biometric authentication
+   - Prompt to register fingerprint if device supports it
+   - Skip option if user prefers password only
+
+2. **Session Timeout Configuration**
+   - Allow user to set auto-logout timer (in minutes)
+   - Options suggested: 5, 10, 15, 30 minutes, or Never
+   - Default to 15 minutes for security
+   - Similar to OPay's session management
+
+3. **Implementation Details:**
+   - Store preferences securely (encrypted storage)
+   - Implement auto-logout timer that runs in background
+   - When session expires, require re-authentication (biometric or password)
+   - Allow users to modify these settings later in Profile/Settings
+   - Clear, intuitive UI matching OPay's style
+
+**Flow:** Registration Success → Setup Screen → Homescreen
+
+---
+
+### PRODUCTION READINESS REQUIREMENTS
+
+**CRITICAL - Before Completion:**
+1. Remove ALL test/demo API keys and placeholders
+2. Verify all production API endpoints are configured
+3. Test EVERY feature mentioned above thoroughly
+4. Ensure no console errors or warnings
+5. Test on both Android devices (multiple screen sizes)
+6. Verify offline/online state handling
+7. Check all permissions (biometric, storage, network)
+8. Ensure proper error handling for all API calls
+9. Test with slow/unstable internet connections
+10. Verify all user data is encrypted and secure
+
+**Post-Fix Testing Checklist:**
+- [ ] Login works smoothly without loops (both methods)
+- [ ] Monify accounts display for all users
+- [ ] Copy function works with smooth animation
+- [ ] Admin panel user management fully functional
+- [ ] Banner URLs work correctly in app
+- [ ] Initial setup flow appears for new users only
+- [ ] Session timeout works as configured
+- [ ] App is stable and ready for Play Store release
+
+---
+
+**AFTER COMPLETION:** Notify me immediately so I can:
+1. Replace all secret keys with production keys
+2. Do final testing
+3. Submit to Google Play Store
+
+**DO NOT leave any TODO comments, placeholder functions, or incomplete features. This MUST be production-ready.**
