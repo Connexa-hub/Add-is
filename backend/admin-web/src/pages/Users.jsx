@@ -14,6 +14,8 @@ const Users = () => {
   const [showCleanupModal, setShowCleanupModal] = useState(false);
   const [cleanupDays, setCleanupDays] = useState(1);
   const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedUserDetails, setSelectedUserDetails] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -50,6 +52,30 @@ const Users = () => {
       fetchUsers();
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to update status');
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`⚠️ WARNING: This will permanently delete the account for "${userName}" and ALL associated data including transactions, cards, and notifications. This action CANNOT be undone.\n\nAre you absolutely sure you want to delete this user?`)) {
+      return;
+    }
+
+    try {
+      await adminAPI.deleteUser(userId);
+      alert('User deleted successfully');
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
+  const handleViewDetails = async (userId) => {
+    try {
+      const response = await adminAPI.getUserDetails(userId);
+      setSelectedUserDetails(response.data.data);
+      setShowDetailsModal(true);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to load user details');
     }
   };
 
@@ -146,7 +172,15 @@ const Users = () => {
                     </td>
                     <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          className="btn btn-info"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          onClick={() => handleViewDetails(user._id)}
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
                         <button
                           className="btn btn-primary"
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
@@ -154,15 +188,25 @@ const Users = () => {
                             setSelectedUser(user);
                             setShowWalletModal(true);
                           }}
+                          title="Update Wallet"
                         >
                           <DollarSign size={16} />
                         </button>
                         <button
-                          className={`btn ${user.isActive ? 'btn-danger' : 'btn-success'}`}
+                          className={`btn ${user.isActive ? 'btn-warning' : 'btn-success'}`}
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
                           onClick={() => handleStatusToggle(user._id, user.isActive)}
+                          title={user.isActive ? 'Disable Account' : 'Activate Account'}
                         >
                           {user.isActive ? <Ban size={16} /> : <CheckCircle size={16} />}
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          onClick={() => handleDeleteUser(user._id, user.name)}
+                          title="Delete User"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -245,6 +289,87 @@ const Users = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showDetailsModal && selectedUserDetails && (
+        <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+              User Details - {selectedUserDetails.user?.name}
+            </h2>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.75rem' }}>
+                Basic Information
+              </h3>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--gray-50)', borderRadius: '0.25rem' }}>
+                  <span style={{ fontWeight: '500' }}>Email:</span>
+                  <span>{selectedUserDetails.user?.email}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--gray-50)', borderRadius: '0.25rem' }}>
+                  <span style={{ fontWeight: '500' }}>Phone:</span>
+                  <span>{selectedUserDetails.user?.phoneNumber || 'Not provided'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--gray-50)', borderRadius: '0.25rem' }}>
+                  <span style={{ fontWeight: '500' }}>Wallet Balance:</span>
+                  <span style={{ fontWeight: '600', color: 'var(--success)' }}>₦{selectedUserDetails.user?.walletBalance?.toLocaleString() || 0}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--gray-50)', borderRadius: '0.25rem' }}>
+                  <span style={{ fontWeight: '500' }}>Status:</span>
+                  <span className={`badge ${selectedUserDetails.user?.isActive ? 'badge-success' : 'badge-danger'}`}>
+                    {selectedUserDetails.user?.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--gray-50)', borderRadius: '0.25rem' }}>
+                  <span style={{ fontWeight: '500' }}>Registered:</span>
+                  <span>{new Date(selectedUserDetails.user?.createdAt).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {selectedUserDetails.user?.monnifyAccounts && selectedUserDetails.user.monnifyAccounts.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.75rem' }}>
+                  Monnify Virtual Accounts
+                </h3>
+                {selectedUserDetails.user.monnifyAccounts.map((account, index) => (
+                  <div key={index} style={{ padding: '1rem', backgroundColor: 'var(--primary-light)', borderRadius: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      <div>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Bank Name:</span>
+                        <div style={{ fontWeight: '600' }}>{account.bankName}</div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Account Number:</span>
+                        <div style={{ fontWeight: '600', fontSize: '1.125rem', color: 'var(--primary)' }}>{account.accountNumber}</div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Account Name:</span>
+                        <div style={{ fontWeight: '600' }}>{account.accountName}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedUserDetails.user?.monnifyAccountReference && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.75rem' }}>
+                  Monnify Reference
+                </h3>
+                <div style={{ padding: '0.5rem', backgroundColor: 'var(--gray-50)', borderRadius: '0.25rem', fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                  {selectedUserDetails.user.monnifyAccountReference}
+                </div>
+              </div>
+            )}
+
+            <button className="btn btn-secondary" onClick={() => setShowDetailsModal(false)} style={{ width: '100%' }}>
+              Close
+            </button>
           </div>
         </div>
       )}

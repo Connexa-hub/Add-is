@@ -18,6 +18,7 @@ export default function HomeScreen({ navigation }) {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceVisible, setBalanceVisible] = useState(false);
+  const [copiedAccount, setCopiedAccount] = useState(null);
 
   // Placeholder for setBalance function as it was used in the changes but not defined in original
   const setBalance = (balance) => {
@@ -63,7 +64,8 @@ export default function HomeScreen({ navigation }) {
 
       if (response.status === 401) {
         console.log('Session expired - clearing and redirecting');
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
+        await tokenService.clearToken();
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
         navigation.replace('Login');
         return;
       }
@@ -91,7 +93,8 @@ export default function HomeScreen({ navigation }) {
     } catch (error) {
       console.error('Error loading user data:', error);
       if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        await tokenService.clearToken();
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
       }
     } finally {
@@ -106,7 +109,8 @@ export default function HomeScreen({ navigation }) {
 
       if (!token) {
         console.log('No token found, redirecting to login');
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        await tokenService.clearToken();
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
         return;
       }
@@ -122,7 +126,8 @@ export default function HomeScreen({ navigation }) {
 
       if (response.status === 401) {
         console.log('Unauthorized - clearing session and redirecting to login');
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
+        await tokenService.clearToken();
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
         navigation.replace('Login');
         return;
       }
@@ -143,7 +148,8 @@ export default function HomeScreen({ navigation }) {
       console.error('Failed to fetch balance:', error);
       // Don't redirect on network errors, only on auth errors
       if (error.message.includes('401')) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
+        await tokenService.clearToken();
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
       }
     }
@@ -220,9 +226,10 @@ export default function HomeScreen({ navigation }) {
   const handleCopyAccountNumber = async (accountNumber: string) => {
     try {
       await Clipboard.setStringAsync(accountNumber);
-      Alert.alert('Copied!', 'Account number copied to clipboard');
+      setCopiedAccount(accountNumber);
+      setTimeout(() => setCopiedAccount(null), 2000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to copy account number');
+      console.error('Failed to copy account number:', error);
     }
   };
 
@@ -512,10 +519,16 @@ export default function HomeScreen({ navigation }) {
                   </View>
                   <Pressable 
                     onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
-                    style={styles.copyButton}
+                    style={[styles.copyButton, copiedAccount === user.monnifyAccounts[0].accountNumber && styles.copiedButton]}
                   >
-                    <Ionicons name="copy-outline" size={20} color="#6366f1" />
-                    <Text style={styles.copyText}>Copy</Text>
+                    <Ionicons 
+                      name={copiedAccount === user.monnifyAccounts[0].accountNumber ? "checkmark-circle" : "copy-outline"} 
+                      size={20} 
+                      color={copiedAccount === user.monnifyAccounts[0].accountNumber ? "#10b981" : "#6366f1"} 
+                    />
+                    <Text style={[styles.copyText, copiedAccount === user.monnifyAccounts[0].accountNumber && { color: '#10b981' }]}>
+                      {copiedAccount === user.monnifyAccounts[0].accountNumber ? 'Copied!' : 'Copy'}
+                    </Text>
                   </Pressable>
                 </View>
 

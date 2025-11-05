@@ -10,6 +10,7 @@ import { tokenService } from '../utils/tokenService';
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copiedAccount, setCopiedAccount] = useState(null);
   const [stats, setStats] = useState({
     totalTransactions: 0,
     totalSpent: 0,
@@ -126,9 +127,10 @@ export default function ProfileScreen({ navigation }) {
   const handleCopyAccountNumber = async (accountNumber: string) => {
     try {
       await Clipboard.setStringAsync(accountNumber);
-      Alert.alert('Copied!', 'Account number copied to clipboard');
+      setCopiedAccount(accountNumber);
+      setTimeout(() => setCopiedAccount(null), 2000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to copy account number');
+      console.error('Failed to copy account number:', error);
     }
   };
 
@@ -209,7 +211,11 @@ export default function ProfileScreen({ navigation }) {
                       onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
                       style={styles.copyIconButton}
                     >
-                      <Ionicons name="copy-outline" size={20} color="#6200ee" />
+                      <Ionicons 
+                        name={copiedAccount === user.monnifyAccounts[0].accountNumber ? "checkmark-circle" : "copy-outline"} 
+                        size={20} 
+                        color={copiedAccount === user.monnifyAccounts[0].accountNumber ? "#10b981" : "#6200ee"} 
+                      />
                     </Pressable>
                   )}
                 />

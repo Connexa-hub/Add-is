@@ -45,6 +45,7 @@ export const adminAPI = {
   getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
   updateUserWallet: (userId, data) => api.put(`/admin/users/${userId}/wallet`, data),
   updateUserStatus: (userId, status) => api.put(`/admin/users/${userId}/status`, { status }),
+  deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
 
   cleanupUnverifiedUsers: (daysOld = 1) =>
     api.post('/admin/security/cleanup-unverified', { daysOld }),
