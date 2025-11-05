@@ -205,7 +205,16 @@ export default function LoginScreen({ navigation }) {
           await new Promise(resolve => setTimeout(resolve, 300));
 
           setLoading(false);
-          navigation.replace('Main');
+          
+          // Use reset to prevent back navigation to login
+          if (navigation?.reset) {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Main' }],
+            });
+          } else {
+            navigation.replace('Main');
+          }
         } else {
           throw new Error('Login failed - invalid response');
         }

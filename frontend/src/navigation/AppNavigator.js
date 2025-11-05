@@ -15,6 +15,7 @@ import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../screens/ResetPasswordScreen';
 import EmailVerificationScreen from '../../screens/EmailVerificationScreen';
+import InitialSetupScreen from '../../screens/InitialSetupScreen';
 
 import HomeScreen from '../../screens/HomeScreen';
 import WalletFundingScreen from '../../screens/WalletFundingScreen';
@@ -93,7 +94,7 @@ export default function AppNavigator() {
       const response = await axios.get(`${API_BASE_URL}/api/onboarding`, {
         timeout: 3000 // 3 second timeout
       });
-      
+
       if (response.data.success && response.data.data.length > 0) {
         const sortedSlides = response.data.data.sort((a, b) => a.order - b.order);
         await AsyncStorage.setItem('onboarding_slides', JSON.stringify(sortedSlides));
@@ -116,6 +117,7 @@ export default function AppNavigator() {
         preloadOnboardingSlides();
 
         const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+        const hasCompletedInitialSetup = await AsyncStorage.getItem('hasCompletedInitialSetup');
 
         // Check token from both sources
         const secureToken = await tokenService.getToken();
@@ -124,15 +126,19 @@ export default function AppNavigator() {
 
         console.log('Navigator auth check:', {
           hasOnboarded: !!hasSeenOnboarding,
-          hasToken: !!token
+          hasToken: !!token,
+          hasCompletedInitialSetup: !!hasCompletedInitialSetup
         });
 
         if (!hasSeenOnboarding) {
           setInitialRoute('Onboarding');
+        } else if (!hasCompletedInitialSetup && token) {
+          // If user has token but not completed setup, redirect to setup
+          setInitialRoute('InitialSetup');
         } else if (token) {
           // Check if session timed out
           const hasTimedOut = await checkSessionTimeout(token);
-          
+
           if (hasTimedOut) {
             console.log('Session timed out - clearing and showing login');
             await tokenService.clearToken();
@@ -238,9 +244,10 @@ export default function AppNavigator() {
         {/* Auth flow */}
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="InitialSetup" component={InitialSetupScreen} options={{ headerShown: false }} />
 
         {/* Main App */}
         <Stack.Screen name="Main" component={MainTabs} />

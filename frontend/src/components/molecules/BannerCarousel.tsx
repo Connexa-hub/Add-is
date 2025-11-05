@@ -3,6 +3,8 @@ import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PromoBanner } from './PromoBanner';
 import { API_BASE_URL } from '../../../constants/api';
+import { TouchableOpacity, Linking } from 'react-native';
+import axios from 'axios';
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +17,7 @@ interface Banner {
   backgroundColor?: string;
   section: string;
   isActive: boolean;
+  targetUrl?: string; // Added targetUrl to the interface
 }
 
 interface BannerCarouselProps {
@@ -101,6 +104,37 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
     }
   };
 
+  // Track impressions for each banner
+  useEffect(() => {
+    banners.forEach(async (banner) => {
+      try {
+        await axios.post(`${API_BASE_URL}/api/banners/${banner._id}/impression`);
+      } catch (error) {
+        console.error('Failed to track impression:', error);
+      }
+    });
+  }, [banners]);
+
+  // Handle banner press for clicks and URL opening
+  const handleBannerPress = async (banner: Banner) => {
+    try {
+      // Track click
+      await axios.post(`${API_BASE_URL}/api/banners/${banner._id}/click`);
+
+      // Open URL if exists
+      if (banner.targetUrl) {
+        const supported = await Linking.canOpenURL(banner.targetUrl);
+        if (supported) {
+          await Linking.openURL(banner.targetUrl);
+        } else {
+          console.error(`Cannot open URL: ${banner.targetUrl}`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to handle banner press:', error);
+    }
+  };
+
   if (banners.length === 0) {
     return null;
   }
@@ -118,16 +152,24 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
         contentContainerStyle={styles.scrollContent}
       >
         {banners.map((banner: Banner) => (
-          <View key={banner._id} style={styles.bannerWrapper}>
+          <TouchableOpacity
+            key={banner._id}
+            style={styles.bannerWrapper}
+            onPress={() => handleBannerPress(banner)}
+            activeOpacity={banner.targetUrl ? 0.7 : 1}
+            disabled={!banner.targetUrl}
+          >
             <PromoBanner
               title={banner.title}
               description={banner.description}
               backgroundColor={banner.backgroundColor}
+              mediaUrl={banner.mediaUrl} // Pass mediaUrl to PromoBanner if it's used there
+              mediaType={banner.mediaType} // Pass mediaType if needed
             />
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
-      
+
       {banners.length > 1 && (
         <View style={styles.pagination}>
           {banners.map((_: Banner, index: number) => (

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
+import tokenService from '../src/services/tokenService';
 
 export default function EmailVerificationScreen({ route, navigation }: any) {
   const { tokens } = useAppTheme();
@@ -50,21 +51,36 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
     setError('');
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/verify-email`, { email, otp });
-      
+
       if (res.data.success && res.data.data.token) {
+        // Store auth data
+        await tokenService.setToken(res.data.data.token);
         await AsyncStorage.multiSet([
-          ['token', res.data.data.token],
           ['userId', res.data.data.user?.id || ''],
           ['userEmail', res.data.data.user?.email || ''],
-          ['userName', res.data.data.user?.name || '']
+          ['userName', res.data.data.user?.name || ''],
+          ['lastActivityTime', Date.now().toString()]
         ]);
-        
-        const savedToken = await AsyncStorage.getItem('token');
-        if (savedToken) {
-          navigation.replace('Main');
-        } else {
-          setError('Failed to save session. Please try again.');
-        }
+
+        // Check if initial setup is complete
+        AsyncStorage.getItem('initialSetupComplete').then((setupComplete) => {
+          if (!setupComplete) {
+            // New user - show setup screen
+            navigation.replace('InitialSetup', {
+              userId: res.data.data.user.id,
+              email: res.data.data.user.email,
+              token: res.data.data.token
+            });
+          } else {
+            // Existing user - go to main
+            if (navigation?.reset) {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Main' }],
+              });
+            }
+          }
+        });
       } else {
         navigation.navigate('Login');
       }
@@ -80,7 +96,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
     setError('');
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/resend-verification`, { email });
-      
+
       // Check if email was actually sent
       if (response.data.success) {
         setCountdown(60);
@@ -90,7 +106,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
       }
     } catch (err: any) {
       const errorData = err.response?.data;
-      
+
       // Show specific error messages based on error code
       if (errorData?.errorCode === 'EMAIL_SERVICE_UNAVAILABLE') {
         setError(`Email service is currently unavailable. Please contact ${errorData.supportEmail || 'support@vtu247.com'} for manual verification.`);
@@ -127,7 +143,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
               }]}>
                 <Ionicons name="mail" size={40} color={tokens.colors.success.main} />
               </View>
-              
+
               <AppText variant="h1" weight="bold" style={{ marginBottom: tokens.spacing.sm }}>
                 Verify Your Email
               </AppText>
