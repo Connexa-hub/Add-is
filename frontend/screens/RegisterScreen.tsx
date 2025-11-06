@@ -309,26 +309,33 @@ export default function RegisterScreen({ navigation }) {
                 />
               </View>
 
-              <TouchableOpacity 
-                style={[styles.checkboxContainer, { marginBottom: tokens.spacing.base }]}
-                onPress={() => {
-                  setAgreeToTerms(!agreeToTerms);
-                  if (errors.terms) setErrors({ ...errors, terms: '' });
-                }}
-              >
-                <View style={[
-                  styles.checkbox,
-                  { 
-                    borderColor: errors.terms ? tokens.colors.error.main : tokens.colors.border.default,
-                    backgroundColor: agreeToTerms ? tokens.colors.primary.main : 'transparent'
-                  }
-                ]}>
-                  {agreeToTerms && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
-                </View>
-                <AppText variant="body2" color={tokens.colors.text.secondary} style={{ flex: 1, marginLeft: tokens.spacing.sm }}>
-                  I agree to the <AppText variant="body2" color={tokens.colors.primary.main}>Terms and Conditions</AppText>
-                </AppText>
-              </TouchableOpacity>
+              <View style={[styles.checkboxContainer, { marginBottom: tokens.spacing.base }]}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setAgreeToTerms(!agreeToTerms);
+                    if (errors.terms) setErrors({ ...errors, terms: '' });
+                  }}
+                  style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    { 
+                      borderColor: errors.terms ? tokens.colors.error.main : tokens.colors.border.default,
+                      backgroundColor: agreeToTerms ? tokens.colors.primary.main : 'transparent'
+                    }
+                  ]}>
+                    {agreeToTerms && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                  </View>
+                  <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginLeft: tokens.spacing.sm }}>
+                    I agree to the{' '}
+                  </AppText>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                  <AppText variant="body2" color={tokens.colors.primary.main} style={{ textDecorationLine: 'underline' }}>
+                    Privacy Policy & Terms
+                  </AppText>
+                </TouchableOpacity>
+              </View>
 
               {errors.terms && (
                 <AppText variant="caption" color={tokens.colors.error.main} style={{ marginBottom: tokens.spacing.base }}>

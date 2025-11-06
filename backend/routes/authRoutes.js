@@ -293,14 +293,28 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
     const { email, password } = req.body;
     const user = await User.findOne({ email }).select('+password');
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user) {
       recordFailedLogin(email);
       logSecurityEvent('FAILED_LOGIN_ATTEMPT', {
         email,
         ip: req.ip || req.connection.remoteAddress,
-        reason: !user ? 'user_not_found' : 'invalid_password'
+        reason: 'account_not_found'
       });
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No account found with this email address. Please sign up to create a new account.',
+        accountNotFound: true
+      });
+    }
+
+    if (!(await bcrypt.compare(password, user.password))) {
+      recordFailedLogin(email);
+      logSecurityEvent('FAILED_LOGIN_ATTEMPT', {
+        email,
+        ip: req.ip || req.connection.remoteAddress,
+        reason: 'invalid_password'
+      });
+      return res.status(401).json({ success: false, message: 'Invalid password' });
     }
 
     if (!user.emailVerified) {

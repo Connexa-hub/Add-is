@@ -17,6 +17,7 @@ import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../screens/ResetPasswordScreen';
 import EmailVerificationScreen from '../../screens/EmailVerificationScreen';
 import InitialSetupScreen from '../../screens/InitialSetupScreen';
+import PrivacyPolicyScreen from '../../screens/PrivacyPolicyScreen'; // Import PrivacyPolicyScreen
 
 import HomeScreen from '../../screens/HomeScreen';
 import WalletFundingScreen from '../../screens/WalletFundingScreen';
@@ -267,6 +268,7 @@ export default function AppNavigator() {
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
         <Stack.Screen name="InitialSetup" component={InitialSetupScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} /> {/* Add PrivacyPolicy route */}
 
         {/* Main App */}
         <Stack.Screen name="Main" component={MainTabs} />

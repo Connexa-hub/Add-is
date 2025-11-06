@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Addis",
-    "slug": "addis",
+    "name": "Addis Digital Banking",
+    "slug": "addis-digital-banking",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

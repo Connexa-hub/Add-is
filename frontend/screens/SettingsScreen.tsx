@@ -530,9 +530,9 @@ export default function SettingsScreen({ navigation }: any) {
               icon="document-text"
               iconColor={tokens.colors.neutral.gray600}
               iconBg={tokens.colors.neutral.gray200}
-              title="Terms & Conditions"
-              subtitle="View our terms of service"
-              onPress={() => {}}
+              title="Privacy Policy & Terms"
+              subtitle="View our privacy policy and terms"
+              onPress={() => navigation.navigate('PrivacyPolicy')}
               rightComponent={<Ionicons name="chevron-forward" size={20} color={tokens.colors.text.secondary} />}
             />
 

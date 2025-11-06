@@ -397,6 +397,24 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
+      if (errorData?.accountNotFound) {
+        Alert.alert(
+          'Account Not Found',
+          'No account exists with this email address. Would you like to create a new account?',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'Sign Up',
+              onPress: () => navigation.navigate('Register')
+            }
+          ]
+        );
+        return;
+      }
+
       setErrors({
         email: '',
         password: errorData?.message || 'Login failed. Please check your credentials.'
