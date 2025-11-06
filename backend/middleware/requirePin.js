@@ -6,14 +6,6 @@ const requirePin = async (req, res, next) => {
     const { transactionPin } = req.body;
     const userId = req.userId;
 
-    if (!transactionPin) {
-      return res.status(400).json({
-        success: false,
-        message: 'Transaction PIN is required for this operation',
-        requirePin: true
-      });
-    }
-
     const user = await User.findById(userId);
 
     if (!user) {
@@ -23,13 +15,24 @@ const requirePin = async (req, res, next) => {
       });
     }
 
-    // Allow first-time transactions to prompt PIN setup
+    // Check if PIN is set up - if not, require setup first
     if (!user.transactionPin || !user.transactionPin.isSet) {
       return res.status(428).json({
         success: false,
-        message: 'Transaction PIN required. Please set up your PIN to continue.',
+        message: 'Please set up your Transaction PIN to continue',
         requiresPinSetup: true,
-        isFirstTime: true
+        isFirstTime: true,
+        code: 'PIN_SETUP_REQUIRED'
+      });
+    }
+
+    // PIN is set up, now verify it was provided
+    if (!transactionPin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Transaction PIN is required for this operation',
+        requirePin: true,
+        code: 'PIN_REQUIRED'
       });
     }
 

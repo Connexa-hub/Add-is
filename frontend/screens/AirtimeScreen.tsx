@@ -203,7 +203,7 @@ export default function AirtimeScreen() {
     return numAmount >= 50 && numAmount <= 50000;
   };
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     let hasError = false;
     const newErrors = { phoneNumber: '', amount: '' };
 
@@ -225,7 +225,44 @@ export default function AirtimeScreen() {
     setErrors(newErrors);
     if (hasError) return;
 
-    setShowPaymentPreview(true);
+    try {
+      setLoading(true);
+
+      // Check if user has PIN setup
+      const token = await AsyncStorage.getItem('token');
+      const pinStatusResponse = await axios.get(
+        `${API_BASE_URL}/pin/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
+        setLoading(false);
+        Alert.alert(
+          'Set Up Transaction PIN',
+          'For security, you need to set up a Transaction PIN before making purchases.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Set Up PIN',
+              onPress: () => {
+                navigation.navigate('PINSetup', {
+                  onSuccess: () => {
+                    // After PIN setup, proceed with purchase
+                    navigation.goBack();
+                  }
+                });
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      setShowPaymentPreview(true);
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Error', 'An error occurred while verifying your PIN status. Please try again.');
+    }
   };
 
   const confirmPurchase = async (usedCashback: number) => {

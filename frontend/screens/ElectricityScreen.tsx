@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -101,7 +100,7 @@ export default function ElectricityScreen() {
 
       if (response.data.success && response.data.data.products) {
         const uniqueProviders = new Map<string, ElectricityProvider>();
-        
+
         response.data.data.products.forEach((product: any) => {
           const providerId = product.serviceID || product.network?.toLowerCase();
           if (providerId && !uniqueProviders.has(providerId)) {
@@ -118,9 +117,9 @@ export default function ElectricityScreen() {
         const providerList = Array.from(uniqueProviders.values()).sort((a, b) => 
           a.name.localeCompare(b.name)
         );
-        
+
         setProviders(providerList);
-        
+
         if (providerList.length > 0 && !selectedProvider) {
           setSelectedProvider(providerList[0].id);
         }
@@ -149,13 +148,13 @@ export default function ElectricityScreen() {
 
   const fetchQuickAmounts = async () => {
     if (!selectedProvider) return;
-    
+
     setLoadingQuickAmounts(true);
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/vtu/quick-amounts/electricity-bill/${selectedProvider}`
       );
-      
+
       if (response.data.success && response.data.data.amounts) {
         const amounts = response.data.data.amounts.map((amt: number) => ({
           value: amt.toString(),
@@ -219,11 +218,47 @@ export default function ElectricityScreen() {
 
   const confirmPayment = async (usedCashback: number) => {
     setShowPaymentPreview(false);
-    setShowProcessing(true);
-    setPaymentStatus('processing');
+    setLoading(true); // Set loading state here
 
     try {
       const token = await AsyncStorage.getItem('token');
+      
+      // Check if user has PIN setup
+      const pinStatusResponse = await axios.get(
+        `${API_BASE_URL}/pin/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
+        setLoading(false); // Ensure loading is false if PIN is not set
+        Alert.alert(
+          'Set Up Transaction PIN',
+          'For security, you need to set up a Transaction PIN before making purchases.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Set Up PIN',
+              onPress: () => {
+                // Assuming 'PINSetup' is a screen name in your navigation
+                navigation.navigate('PINSetup', {
+                  // You might need to pass a callback to handle success or failure
+                  onSuccess: () => {
+                    // After PIN setup, re-trigger the payment process or navigate back
+                    // For now, we'll just navigate back and let the user try again
+                    navigation.goBack(); 
+                  }
+                });
+              }
+            }
+          ]
+        );
+        return; // Stop execution if PIN setup is required
+      }
+
+      // If PIN is set, proceed with the actual payment
+      setShowProcessing(true);
+      setPaymentStatus('processing');
+
       const response = await axios.post(
         `${API_BASE_URL}/services/pay-electricity`,
         {
@@ -248,12 +283,14 @@ export default function ElectricityScreen() {
       }
     } catch (error: any) {
       console.error('Payment error:', error);
-      
+
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network')) {
         setPaymentStatus('pending');
       } else {
         setPaymentStatus('failed');
       }
+    } finally {
+      setLoading(false); // Ensure loading is reset after the entire process
     }
   };
 

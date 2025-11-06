@@ -89,6 +89,37 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
       return;
     }
 
+    // Check if PIN is set up before allowing payment
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const pinStatusResponse = await axios.get(
+        `${API_BASE_URL}/pin/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
+        onClose(); // Close payment preview
+        Alert.alert(
+          'Set Up Transaction PIN',
+          'For security, you need to set up a Transaction PIN before making purchases.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Set Up PIN',
+              onPress: () => {
+                // Navigation would need to be passed as prop or use navigation hook
+                // For now, just show message
+                Alert.alert('Info', 'Please set up your PIN in Settings > Security');
+              }
+            }
+          ]
+        );
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to check PIN status:', error);
+    }
+
     if (biometricEnabled && capabilities.isAvailable) {
       setLoading(true);
       const authResult = await authenticate(

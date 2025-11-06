@@ -169,7 +169,7 @@ export default function DataScreen() {
           network: selectedNetwork,
           dataAmount: extractDataAmount(product.displayName || product.title),
         }));
-        
+
         console.log('Loaded data plans:', plans.length, 'for network:', network.name);
         setDataPlans(plans);
       } else {
@@ -232,7 +232,7 @@ export default function DataScreen() {
     return phoneRegex.test(phone);
   };
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (!validatePhoneNumber(phoneNumber)) {
       setErrors({ phoneNumber: 'Please enter a valid 11-digit phone number' });
       return;
@@ -243,7 +243,46 @@ export default function DataScreen() {
       return;
     }
 
-    setShowPaymentPreview(true);
+    try {
+      setLoading(true);
+
+      // Check if user has PIN setup
+      const token = await AsyncStorage.getItem('token');
+      const pinStatusResponse = await axios.get(
+        `${API_BASE_URL}/pin/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
+        setLoading(false);
+        Alert.alert(
+          'Set Up Transaction PIN',
+          'For security, you need to set up a Transaction PIN before making purchases.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Set Up PIN',
+              onPress: () => {
+                navigation.navigate('PINSetup', {
+                  onSuccess: () => {
+                    navigation.goBack();
+                  }
+                });
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      setShowPaymentPreview(true);
+    } catch (error: any) {
+      setLoading(false);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to initiate purchase. Please check your connection and try again.'
+      );
+    }
   };
 
   const confirmPurchase = async (usedCashback: number) => {

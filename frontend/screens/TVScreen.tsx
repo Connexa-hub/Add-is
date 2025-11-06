@@ -91,7 +91,7 @@ export default function TVScreen() {
 
       if (response.data.success && response.data.data.products) {
         const uniqueProviders = new Map<string, TVProvider>();
-        
+
         response.data.data.products.forEach((product: any) => {
           const providerId = product.serviceID || product.network?.toLowerCase();
           if (providerId && !uniqueProviders.has(providerId)) {
@@ -106,7 +106,7 @@ export default function TVScreen() {
 
         const providerList = Array.from(uniqueProviders.values());
         setProviders(providerList);
-        
+
         if (providerList.length > 0 && !selectedProvider) {
           setSelectedProvider(providerList[0].id);
         }
@@ -218,7 +218,7 @@ export default function TVScreen() {
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
-      
+
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network')) {
         setPaymentStatus('pending');
       } else {
@@ -243,6 +243,47 @@ export default function TVScreen() {
     setShowPaymentPreview(false);
     navigation.navigate('WalletFunding' as never);
   };
+
+  const handlePurchase = async () => {
+    try {
+      setLoading(true);
+
+      // Check if user has PIN setup
+      const token = await AsyncStorage.getItem('token');
+      const pinStatusResponse = await axios.get(
+        `${API_BASE_URL}/pin/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
+        setLoading(false);
+        Alert.alert(
+          'Set Up Transaction PIN',
+          'For security, you need to set up a Transaction PIN before making purchases.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Set Up PIN',
+              onPress: () => {
+                navigation.navigate('PINSetup', {
+                  onSuccess: () => {
+                    navigation.goBack();
+                  }
+                });
+              }
+            }
+          ]
+        );
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking PIN status:', error);
+      Alert.alert('Error', 'Could not verify transaction PIN status. Please try again.');
+      setLoading(false);
+      return;
+    }
+  };
+
 
   return (
     <View style={[styles.container, { backgroundColor: tokens.colors.background.default }]}>
