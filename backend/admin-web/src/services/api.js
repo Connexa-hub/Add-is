@@ -44,12 +44,15 @@ export const adminAPI = {
   getUsers: (params) => api.get('/admin/users', { params }),
   getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
   updateUserWallet: (userId, data) => api.put(`/admin/users/${userId}/wallet`, data),
-  updateUserStatus: (userId, status) => api.put(`/admin/users/${userId}/status`, { status }),
-  deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
+  updateUserStatus: (userId, status) =>
+    api.put(`/admin/users/${userId}/status`, { status }),
+
+  deleteUser: (userId) =>
+    api.delete(`/admin/users/${userId}`),
 
   cleanupUnverifiedUsers: (daysOld = 1) =>
     api.post('/admin/security/cleanup-unverified', { daysOld }),
-  
+
   testEmail: (data) => api.post('/admin/security/test-email', data),
   getUnverifiedUsers: (params) => api.get('/admin/security/unverified-users', { params }),
   manualVerifyEmail: (email, reason) => api.post('/admin/security/manual-verify-email', { email, reason }),
