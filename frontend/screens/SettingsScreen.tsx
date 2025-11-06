@@ -175,12 +175,6 @@ export default function SettingsScreen({ navigation }: any) {
         if (success) {
           await saveCredentials(userId, userEmail);
           setBiometricEnabled(true);
-          showModal({
-            visible: true,
-            type: 'success',
-            title: 'Success!',
-            message: `${capabilities.biometricType || 'Biometric'} authentication has been enabled successfully.`,
-          });
         }
       } else {
         showModal({

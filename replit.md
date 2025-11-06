@@ -13,6 +13,27 @@ The project aims to provide a robust, user-friendly, and secure platform for dig
 
 ## Recent Changes
 
+**November 6, 2025 - CRITICAL PRODUCTION FIXES: Biometric Authentication & Homescreen UI**
+- **✅ Fixed Biometric Authentication System Prompt** (PRODUCTION BLOCKER RESOLVED):
+  - Updated `useBiometric.ts` `enableBiometric()` function to trigger system biometric authentication BEFORE saving credentials
+  - Flow now follows OPay pattern: User enables → System prompts for fingerprint → Authentication succeeds → Credentials saved
+  - Added proper error handling for cancelled/failed authentication
+  - Fixed in both InitialSetupScreen and SettingsScreen
+  - Users can no longer enable biometric without actually authenticating with their fingerprint/face ID
+  - Shows clear success/error alerts with appropriate feedback
+- **✅ Improved Homescreen UX - Compact Dashboard** (UI/UX Enhancement):
+  - Removed redundant standalone "Virtual Account" card that was cluttering the homescreen
+  - Redesigned dashboard card with horizontal account details layout (Bank • Account Number • Name)
+  - Added compact copy button directly in dashboard card
+  - Reduced homescreen length and improved visual hierarchy
+  - Account details still fully accessible in Profile and Wallet sections
+  - Follows mobile banking app best practices (similar to OPay, Kuda, PalmPay)
+- **Environment Setup**:
+  - Backend configured to run on port 3001
+  - Admin-web Vite configured with `allowedHosts: true` for Replit proxy support
+  - Workflow running both servers concurrently
+  - All dependencies installed successfully
+
 **November 6, 2025 - CRITICAL: Monnify Account Sync Fix & Replit Setup**
 - **✅ Fixed Monnify Account Database Sync Issues**: Resolved critical bug where virtual accounts created in Monnify weren't being saved to MongoDB
   - Updated User model schema to include reservationReference and collectionChannel fields

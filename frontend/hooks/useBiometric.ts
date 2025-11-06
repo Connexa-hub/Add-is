@@ -163,6 +163,22 @@ export const useBiometric = () => {
         return false;
       }
 
+      // CRITICAL: Trigger system biometric authentication FIRST
+      const authResult = await authenticate(
+        `Authenticate with ${capabilities.biometricType || 'biometric'}`,
+        'Cancel'
+      );
+
+      if (!authResult.success) {
+        // User cancelled or authentication failed
+        const errorMsg = authResult.error === 'Authentication cancelled by user'
+          ? 'Setup cancelled. You can enable biometric authentication later in Settings.'
+          : `Authentication failed: ${authResult.error}`;
+        
+        Alert.alert('Setup Cancelled', errorMsg);
+        return false;
+      }
+
       // Get token from secure storage if not provided
       let authToken = token;
       if (!authToken) {
@@ -180,11 +196,12 @@ export const useBiometric = () => {
         return false;
       }
 
-      // Save biometric settings
+      // Save biometric settings ONLY after successful authentication
       await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
       await AsyncStorage.setItem('biometric_user_id', userId);
       await SecureStore.setItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`, biometricToken);
 
+      Alert.alert('Success!', `${capabilities.biometricType || 'Biometric'} authentication enabled successfully!`);
       return true;
     } catch (error) {
       console.error('Error enabling biometric:', error);
