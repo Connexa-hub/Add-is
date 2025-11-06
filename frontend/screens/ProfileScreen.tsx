@@ -4,6 +4,7 @@ import { Appbar, Card, Text, List, Divider, Avatar, Button, ActivityIndicator } 
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store'; // Import SecureStore
 import { API_BASE_URL } from '../constants/api';
 import { tokenService } from '../utils/tokenService';
 import { useAppTheme } from '../src/hooks/useAppTheme';
@@ -136,6 +137,46 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear only session data, KEEP biometric credentials
+              await AsyncStorage.multiRemove([
+                'token',
+                'userId',
+                'userEmail',
+                'userName',
+                'lastActivityTime'
+              ]);
+
+              await SecureStore.deleteItemAsync('auth_token');
+
+              // DO NOT clear biometric settings on logout
+              // Keep: savedEmail, biometricEnabled, biometric_user_id, biometric_credentials_*
+              // These should only be cleared when user explicitly switches accounts
+
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const styles = createStyles(tokens);
 
   if (loading) {
@@ -151,15 +192,16 @@ export default function ProfileScreen({ navigation }: any) {
       <View style={styles.container}>
         <Appbar.Header>
           <Appbar.Content title="Profile" />
+          <Appbar.Action icon="logout" onPress={handleLogout} />
         </Appbar.Header>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Header */}
         <Card style={styles.profileCard}>
           <Card.Content style={styles.profileContent}>
-            <Avatar.Text 
-              size={80} 
-              label={user?.name?.substring(0, 2).toUpperCase() || 'U'} 
+            <Avatar.Text
+              size={80}
+              label={user?.name?.substring(0, 2).toUpperCase() || 'U'}
               style={styles.avatar}
             />
             <Text style={styles.name}>{user?.name}</Text>
@@ -211,14 +253,14 @@ export default function ProfileScreen({ navigation }: any) {
                   description={user.monnifyAccounts[0].accountNumber}
                   left={(props: any) => <List.Icon {...props} icon="bank" />}
                   right={(props: any) => (
-                    <Pressable 
+                    <Pressable
                       onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
                       style={styles.copyIconButton}
                     >
-                      <Ionicons 
-                        name={copiedAccount === user.monnifyAccounts[0].accountNumber ? "checkmark-circle" : "copy-outline"} 
-                        size={20} 
-                        color={copiedAccount === user.monnifyAccounts[0].accountNumber ? "#10b981" : "#6200ee"} 
+                      <Ionicons
+                        name={copiedAccount === user.monnifyAccounts[0].accountNumber ? "checkmark-circle" : "copy-outline"}
+                        size={20}
+                        color={copiedAccount === user.monnifyAccounts[0].accountNumber ? "#10b981" : "#6200ee"}
                       />
                     </Pressable>
                   )}
@@ -281,7 +323,7 @@ export default function ProfileScreen({ navigation }: any) {
                 if (user?.kyc?.status === 'approved') {
                   Alert.alert('Account Verified', 'Your account is already verified.');
                 } else if (user?.kyc?.status === 'pending') {
-                  Alert.Alert('KYC Under Review', 'Your verification is currently being reviewed. You will be notified once complete.');
+                  Alert.alert('KYC Under Review', 'Your verification is currently being reviewed. You will be notified once complete.');
                 } else {
                   navigation.navigate('KYCPersonalInfo');
                 }

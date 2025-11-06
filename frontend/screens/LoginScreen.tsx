@@ -81,18 +81,21 @@ export default function LoginScreen({ navigation }) {
         }
       }
 
-      // If biometric is enabled and we have saved credentials, show biometric login UI
-      // IMPORTANT: DON'T auto-trigger the authentication - wait for user to tap the button
+      // CRITICAL: Always check for biometric settings after token validation
+      // This ensures biometric UI shows up after logout or session expiry
       const saved = await AsyncStorage.getItem('savedEmail');
-      console.log('Saved email:', saved);
+      console.log('Saved email:', saved, 'Biometric enabled:', biometricEnabled);
       
       if (biometricEnabled && saved) {
-        console.log('Setting up biometric UI - NOT auto-triggering');
+        console.log('Setting up biometric UI - biometric login available');
         setBiometricConfigured(true);
         setSavedEmail(saved);
         setEmail(saved);
-        setShowPasswordLogin(false); // Make sure biometric UI shows
+        setShowPasswordLogin(false); // ALWAYS show biometric UI if configured
         // CRITICAL: Do NOT call handleBiometricLogin() here - let user tap the button
+      } else {
+        console.log('Showing password login - biometric not configured');
+        setShowPasswordLogin(true);
       }
     } catch (error) {
       console.error('Error in checkSessionReauth:', error);
