@@ -57,6 +57,9 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+  const { isDark } = useTheme();
+  const currentColors = isDark ? darkColors : lightColors;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -74,8 +77,17 @@ function MainTabs() {
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#6200ee',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: currentColors.primary.main,
+        tabBarInactiveTintColor: currentColors.text.secondary,
+        tabBarStyle: {
+          backgroundColor: currentColors.card.background,
+          borderTopColor: currentColors.border.default,
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

@@ -4,8 +4,10 @@ import { Appbar, TextInput, Button, Portal, Modal, Text, Card, Divider, IconButt
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import { API_BASE_URL } from '../constants/api';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 
 export default function WalletFundingScreen({ navigation }) {
+  const { tokens } = useAppTheme();
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [visible, setVisible] = useState(false);
@@ -297,15 +299,17 @@ export default function WalletFundingScreen({ navigation }) {
     }
   };
 
+  const styles = createStyles(tokens);
+
   if (loading && !virtualAccount) {
     return (
       <View style={styles.container}>
-        <Appbar.Header>
-          <Appbar.BackAction onPress={() => navigation.goBack()} />
-          <Appbar.Content title="Fund Wallet" />
+        <Appbar.Header style={styles.header}>
+          <Appbar.BackAction onPress={() => navigation.goBack()} color={tokens.colors.white} />
+          <Appbar.Content title="Fund Wallet" titleStyle={{ color: tokens.colors.white }} />
         </Appbar.Header>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color={tokens.colors.primary.main} />
           <Text style={styles.loadingText}>Loading payment details...</Text>
         </View>
       </View>
@@ -314,10 +318,10 @@ export default function WalletFundingScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Appbar.Header>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Fund Wallet" />
-        <Appbar.Action icon="refresh" onPress={checkPaymentStatus} />
+      <Appbar.Header style={styles.header}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} color={tokens.colors.white} />
+        <Appbar.Content title="Fund Wallet" titleStyle={{ color: tokens.colors.white }} />
+        <Appbar.Action icon="refresh" onPress={checkPaymentStatus} color={tokens.colors.white} />
       </Appbar.Header>
 
       <ScrollView style={styles.scrollView}>
@@ -514,10 +518,14 @@ export default function WalletFundingScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tokens: any) => StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#f5f5f5' 
+    backgroundColor: tokens.colors.background.default
+  },
+  header: {
+    backgroundColor: tokens.colors.primary.main,
+    elevation: 0,
   },
   loadingContainer: {
     flex: 1,
@@ -526,23 +534,23 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: tokens.colors.text.secondary,
   },
   scrollView: {
     flex: 1,
   },
   balanceCard: {
     margin: 16,
-    backgroundColor: '#6200ee',
+    backgroundColor: tokens.colors.primary.main,
     elevation: 4,
   },
   balanceLabel: {
-    color: '#fff',
+    color: tokens.colors.white,
     fontSize: 14,
     opacity: 0.9,
   },
   balanceAmount: {
-    color: '#fff',
+    color: tokens.colors.white,
     fontSize: 32,
     fontWeight: 'bold',
     marginTop: 4,
@@ -550,21 +558,22 @@ const styles = StyleSheet.create({
   card: {
     margin: 16,
     marginTop: 0,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.card.background,
     elevation: 2,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: tokens.colors.text.primary,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     marginTop: 4,
   },
   divider: {
     marginVertical: 16,
+    backgroundColor: tokens.colors.border.default,
   },
   accountRow: {
     flexDirection: 'row',
@@ -577,42 +586,42 @@ const styles = StyleSheet.create({
   },
   accountLabel: {
     fontSize: 12,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     marginBottom: 4,
   },
   accountValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: tokens.colors.text.primary,
   },
   infoBox: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: tokens.colors.success.light,
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
   },
   infoText: {
     fontSize: 13,
-    color: '#2e7d32',
+    color: tokens.colors.success.dark,
     marginBottom: 4,
   },
   input: { 
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.card.background,
   },
   button: { 
     marginVertical: 8,
-    backgroundColor: '#6200ee',
+    backgroundColor: tokens.colors.primary.main,
   },
   feeText: {
     fontSize: 12,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     textAlign: 'center',
     marginTop: 8,
   },
   instructionText: {
     fontSize: 14,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     lineHeight: 24,
     marginTop: 8,
   },
@@ -623,12 +632,12 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
-    color: '#333',
+    color: tokens.colors.text.primary,
     marginLeft: 8,
     flex: 1,
   },
   paymentModal: {
-    backgroundColor: 'white',
+    backgroundColor: tokens.colors.card.background,
     height: '80%',
     marginTop: 'auto',
     borderTopLeftRadius: 20,
@@ -641,12 +650,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: tokens.colors.border.default,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: tokens.colors.text.primary,
   },
   webview: {
     flex: 1,
@@ -659,7 +668,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: tokens.colors.card.background,
   },
   processingContainer: {
     flex: 1,
@@ -670,11 +679,11 @@ const styles = StyleSheet.create({
   processingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: tokens.colors.text.secondary,
   },
   processingSubtext: {
     marginTop: 8,
     fontSize: 14,
-    color: '#999',
+    color: tokens.colors.text.disabled,
   },
 });
