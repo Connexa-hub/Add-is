@@ -432,6 +432,23 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
+      // Handle rate limiting errors
+      if (err.response?.status === 429) {
+        const remainingTime = errorData?.remainingTime;
+        const timeMessage = remainingTime 
+          ? remainingTime > 60 
+            ? `${Math.ceil(remainingTime / 60)} minutes`
+            : `${remainingTime} seconds`
+          : 'a few minutes';
+        
+        Alert.alert(
+          'Too Many Attempts',
+          `Please wait ${timeMessage} before trying again. This is a security measure to protect your account.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
       setErrors({
         email: '',
         password: errorData?.message || 'Login failed. Please check your credentials.'

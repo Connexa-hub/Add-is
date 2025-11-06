@@ -3,8 +3,8 @@ const User = require('../models/User');
 
 const loginAttempts = new Map();
 
-const MAX_ATTEMPTS = 10;
-const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes
+const MAX_ATTEMPTS = 15; // Increased from 10 to 15
+const LOCKOUT_DURATION = 3 * 60 * 1000; // Reduced from 5 to 3 minutes
 
 const trackLoginAttempt = async (req, res, next) => {
   const { email } = req.body;
@@ -19,10 +19,15 @@ const trackLoginAttempt = async (req, res, next) => {
   // Check if account is locked
   if (attempts.lockedUntil && now < attempts.lockedUntil) {
     const minutesLeft = Math.ceil((attempts.lockedUntil - now) / 60000);
+    const secondsLeft = Math.ceil((attempts.lockedUntil - now) / 1000);
+    const timeMessage = minutesLeft > 1 
+      ? `${minutesLeft} minutes` 
+      : `${secondsLeft} seconds`;
     return res.status(429).json({
       success: false,
-      message: `Account temporarily locked due to too many failed login attempts. Try again in ${minutesLeft} minutes.`,
-      lockedUntil: new Date(attempts.lockedUntil).toISOString()
+      message: `Too many failed login attempts. Please try again in ${timeMessage}.`,
+      lockedUntil: new Date(attempts.lockedUntil).toISOString(),
+      remainingTime: secondsLeft
     });
   }
 

@@ -65,8 +65,8 @@ app.use(
 // Rate limiting - More lenient in development for testing
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProduction ? 10 : 100,
-  message: { success: false, message: 'Too many attempts, please try again later' },
+  max: isProduction ? 50 : 100, // Increased from 10 to 50 for production
+  message: { success: false, message: 'Too many login attempts, please try again in 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
 });
