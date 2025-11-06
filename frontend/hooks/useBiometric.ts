@@ -23,6 +23,9 @@ const CREDENTIALS_KEY_PREFIX = 'biometric_credentials_';
 
 const requestBiometricToken = async (authToken: string): Promise<string | null> => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/enable-biometric`,
       {},
@@ -30,15 +33,24 @@ const requestBiometricToken = async (authToken: string): Promise<string | null> 
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (response.data.success && response.data.data.biometricToken) {
       return response.data.data.biometricToken;
     }
     return null;
-  } catch (error) {
-    console.error('Error requesting biometric token:', error);
+  } catch (error: any) {
+    if (error.response?.status === 429) {
+      console.error('Rate limit error when requesting biometric token');
+    } else if (error.response?.status === 401) {
+      console.error('Authentication error when requesting biometric token');
+    } else {
+      console.error('Error requesting biometric token:', error.message);
+    }
     return null;
   }
 };
@@ -192,11 +204,16 @@ export const useBiometric = () => {
       // Request biometric token from server
       const biometricToken = await requestBiometricToken(authToken);
       if (!biometricToken) {
-        Alert.alert('Error', 'Failed to setup biometric authentication. Please try again.');
+        // CRITICAL: Don't save biometric settings if backend request fails
+        Alert.alert(
+          'Setup Failed', 
+          'Failed to setup biometric authentication with server. Please try again in a few moments.',
+          [{ text: 'OK' }]
+        );
         return false;
       }
 
-      // Save biometric settings ONLY after successful authentication
+      // Save biometric settings ONLY after successful backend token generation
       await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
       await AsyncStorage.setItem('biometric_user_id', userId);
       await SecureStore.setItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`, biometricToken);
@@ -205,7 +222,17 @@ export const useBiometric = () => {
       return true;
     } catch (error) {
       console.error('Error enabling biometric:', error);
-      Alert.alert('Error', 'Failed to enable biometric authentication');
+      
+      // CRITICAL: Clear any partial biometric settings on error
+      try {
+        await AsyncStorage.removeItem(BIOMETRIC_ENABLED_KEY);
+        await AsyncStorage.removeItem('biometric_user_id');
+        await SecureStore.deleteItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`);
+      } catch (cleanupError) {
+        console.error('Error cleaning up biometric settings:', cleanupError);
+      }
+      
+      Alert.alert('Error', 'Failed to enable biometric authentication. Please try again later.');
       return false;
     }
   };

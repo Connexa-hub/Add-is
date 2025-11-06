@@ -84,21 +84,34 @@ export default function LoginScreen({ navigation }) {
       // CRITICAL: Always check for biometric settings after token validation
       // This ensures biometric UI shows up after logout or session expiry
       const saved = await AsyncStorage.getItem('savedEmail');
-      console.log('Saved email:', saved, 'Biometric enabled:', biometricEnabled);
+      const biometricUserId = await AsyncStorage.getItem('biometric_user_id');
       
-      if (biometricEnabled && saved) {
-        console.log('Setting up biometric UI - biometric login available');
-        setBiometricConfigured(true);
-        setSavedEmail(saved);
-        setEmail(saved);
-        setShowPasswordLogin(false); // ALWAYS show biometric UI if configured
-        // CRITICAL: Do NOT call handleBiometricLogin() here - let user tap the button
+      console.log('Saved email:', saved, 'Biometric enabled:', biometricEnabled, 'Biometric userId:', biometricUserId);
+      
+      // Verify that we have BOTH the enabled flag AND actual credentials
+      if (biometricEnabled && saved && biometricUserId) {
+        // Double-check that biometric token exists in secure storage
+        const hasToken = await SecureStore.getItemAsync(`biometric_credentials_${biometricUserId}`);
+        
+        if (hasToken) {
+          console.log('Setting up biometric UI - biometric login available');
+          setBiometricConfigured(true);
+          setSavedEmail(saved);
+          setEmail(saved);
+          setShowPasswordLogin(false); // ALWAYS show biometric UI if configured
+        } else {
+          // Biometric is marked as enabled but token is missing - clear settings
+          console.log('Biometric token missing - clearing biometric settings');
+          await AsyncStorage.multiRemove(['biometricEnabled', 'biometric_user_id', 'savedEmail']);
+          setShowPasswordLogin(true);
+        }
       } else {
         console.log('Showing password login - biometric not configured');
         setShowPasswordLogin(true);
       }
     } catch (error) {
       console.error('Error in checkSessionReauth:', error);
+      setShowPasswordLogin(true);
     }
   };
 
