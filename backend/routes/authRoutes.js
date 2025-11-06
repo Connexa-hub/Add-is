@@ -27,7 +27,11 @@ router.get('/profile', verifyToken, async (req, res, next) => {
       });
     }
 
-    // Auto-create virtual account if not exists
+    // Auto-create virtual account if not exists - ALWAYS for sandbox/testing
+    console.log('Checking Monnify accounts for user:', user.email);
+    console.log('Current monnifyAccounts:', user.monnifyAccounts);
+    console.log('Current monnifyAccountReference:', user.monnifyAccountReference);
+
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
       console.log('User has no Monnify accounts, attempting to create/fetch for user:', user.email);
 
@@ -36,6 +40,8 @@ router.get('/profile', verifyToken, async (req, res, next) => {
         try {
           console.log('Fetching existing Monnify account:', user.monnifyAccountReference);
           const accountDetails = await monnifyClient.getReservedAccountDetails(user.monnifyAccountReference);
+          console.log('Account details response:', JSON.stringify(accountDetails, null, 2));
+          
           if (accountDetails.success && accountDetails.data && accountDetails.data.accounts) {
             user.monnifyAccounts = accountDetails.data.accounts.map(acc => ({
               accountNumber: acc.accountNumber,
@@ -48,30 +54,31 @@ router.get('/profile', verifyToken, async (req, res, next) => {
           }
         } catch (error) {
           console.error('❌ Failed to fetch existing account details:', error.message);
+          if (error.response?.data) {
+            console.error('Full error response:', JSON.stringify(error.response.data, null, 2));
+          }
         }
       }
 
-      // If still no accounts, try to create new ones
+      // If still no accounts, try to create new ones - WITHOUT KYC requirement for sandbox
       if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
         try {
           const accountReference = user.monnifyAccountReference || `USER_${user._id}_${Date.now()}`;
 
           console.log('Creating new Monnify virtual account for:', user.email);
+          console.log('Using accountReference:', accountReference);
 
           const result = await monnifyClient.createReservedAccount({
             accountReference,
             accountName: user.name,
             customerEmail: user.email,
             customerName: user.name,
-            bvn: user.kyc?.personal?.bvn || undefined,
-            nin: user.kyc?.personal?.nin || undefined
+            // Don't require BVN/NIN for sandbox testing
+            bvn: user.kyc?.personal?.bvn,
+            nin: user.kyc?.personal?.nin
           });
 
-          console.log('Monnify creation response:', {
-            success: result.success,
-            hasData: !!result.data,
-            hasAccounts: result.data?.accounts?.length > 0
-          });
+          console.log('Monnify creation full response:', JSON.stringify(result, null, 2));
 
           if (result.success && result.data && result.data.accounts && result.data.accounts.length > 0) {
             user.monnifyAccountReference = accountReference;
@@ -82,14 +89,15 @@ router.get('/profile', verifyToken, async (req, res, next) => {
               bankCode: acc.bankCode
             }));
             await user.save();
-            console.log('✅ Virtual accounts created successfully:', user.monnifyAccounts.length);
+            console.log('✅ Virtual accounts created successfully:', user.monnifyAccounts);
           } else {
-            console.error('❌ Monnify returned no accounts. Response:', JSON.stringify(result));
+            console.error('❌ Monnify returned no accounts. Full response:', JSON.stringify(result, null, 2));
           }
         } catch (error) {
           console.error('❌ Monnify account creation error:', error.message);
+          console.error('Error stack:', error.stack);
           if (error.response?.data) {
-            console.error('Monnify API error:', JSON.stringify(error.response.data, null, 2));
+            console.error('Monnify API error response:', JSON.stringify(error.response.data, null, 2));
           }
         }
       }

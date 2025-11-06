@@ -127,33 +127,38 @@ export default function AppNavigator() {
         console.log('Navigator auth check:', {
           hasOnboarded: !!hasSeenOnboarding,
           hasToken: !!token,
-          hasCompletedInitialSetup: !!hasCompletedInitialSetup
+          hasCompletedInitialSetup: !!hasCompletedInitialSetup,
+          tokenSource: secureToken ? 'SecureStore' : (asyncToken ? 'AsyncStorage' : 'none')
         });
 
         if (!hasSeenOnboarding) {
+          console.log('→ Route: Onboarding (first time user)');
           setInitialRoute('Onboarding');
         } else if (!hasCompletedInitialSetup && token) {
           // If user has token but not completed setup, redirect to setup
+          console.log('→ Route: InitialSetup (has token, no setup)');
           setInitialRoute('InitialSetup');
         } else if (token) {
           // Check if session timed out
           const hasTimedOut = await checkSessionTimeout(token);
 
           if (hasTimedOut) {
-            console.log('Session timed out - clearing and showing login');
+            console.log('→ Route: Login (session timeout)');
             await tokenService.clearToken();
             await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'lastActivityTime']);
             setInitialRoute('Login');
           } else {
-            // Try to validate token
+            // Try to validate token - BUT don't auto-navigate to Main
+            // Let LoginScreen handle biometric authentication
             try {
               const isValid = await validateToken(token);
               if (isValid) {
                 // Update last activity time
                 await AsyncStorage.setItem('lastActivityTime', Date.now().toString());
+                console.log('→ Route: Main (valid session)');
                 setInitialRoute('Main');
               } else {
-                console.log('Token validation failed - clearing session');
+                console.log('→ Route: Login (invalid token)');
                 await tokenService.clearToken();
                 await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName']);
                 setInitialRoute('Login');
@@ -161,10 +166,12 @@ export default function AppNavigator() {
             } catch (validationError) {
               // If validation fails due to network/rate limit, show login
               console.error('Token validation error:', validationError);
+              console.log('→ Route: Login (validation error)');
               setInitialRoute('Login');
             }
           }
         } else {
+          console.log('→ Route: Login (no token)');
           setInitialRoute('Login');
         }
       } catch (error) {

@@ -51,6 +51,8 @@ export default function LoginScreen({ navigation }) {
       const token = await SecureStore.getItemAsync('auth_token');
       const biometricEnabled = await isBiometricEnabled();
 
+      console.log('checkSessionReauth - Token exists:', !!token, 'Biometric enabled:', biometricEnabled);
+
       if (token) {
         // User has a token, verify if it's still valid
         try {
@@ -66,6 +68,7 @@ export default function LoginScreen({ navigation }) {
 
           if (response.data.success) {
             // Token is valid, navigate to main
+            console.log('Valid session found - navigating to Main');
             navigation.replace('Main');
             return;
           }
@@ -79,13 +82,17 @@ export default function LoginScreen({ navigation }) {
       }
 
       // If biometric is enabled and we have saved credentials, show biometric login UI
-      // But DON'T auto-trigger the authentication - wait for user to tap the button
+      // IMPORTANT: DON'T auto-trigger the authentication - wait for user to tap the button
       const saved = await AsyncStorage.getItem('savedEmail');
+      console.log('Saved email:', saved);
+      
       if (biometricEnabled && saved) {
+        console.log('Setting up biometric UI - NOT auto-triggering');
         setBiometricConfigured(true);
         setSavedEmail(saved);
         setEmail(saved);
-        // Do NOT call handleBiometricLogin() here - let user tap the button
+        setShowPasswordLogin(false); // Make sure biometric UI shows
+        // CRITICAL: Do NOT call handleBiometricLogin() here - let user tap the button
       }
     } catch (error) {
       console.error('Error in checkSessionReauth:', error);

@@ -125,7 +125,11 @@ class MonnifyClient {
 
   async createReservedAccount(params) {
     try {
+      console.log('🔄 Monnify createReservedAccount called with params:', JSON.stringify(params, null, 2));
+      
       const token = await this.getAccessToken();
+      console.log('✅ Got Monnify access token');
+      
       const { accountReference, accountName, customerEmail, customerName, bvn, nin } = params;
 
       const payload = {
@@ -145,6 +149,9 @@ class MonnifyClient {
         payload.nin = nin;
       }
 
+      console.log('📤 Sending Monnify request to:', `${this.baseUrl}/api/v2/bank-transfer/reserved-accounts`);
+      console.log('📤 Payload:', JSON.stringify(payload, null, 2));
+
       const response = await axios.post(
         `${this.baseUrl}/api/v2/bank-transfer/reserved-accounts`,
         payload,
@@ -156,16 +163,24 @@ class MonnifyClient {
         }
       );
 
+      console.log('📥 Monnify response status:', response.status);
+      console.log('📥 Monnify response data:', JSON.stringify(response.data, null, 2));
+
       if (response.data && response.data.responseBody) {
+        console.log('✅ Successfully created reserved account');
         return {
           success: true,
           data: response.data.responseBody
         };
       }
 
-      throw new Error('Failed to create reserved account');
+      throw new Error('Failed to create reserved account - no responseBody in response');
     } catch (error) {
-      console.error('Monnify reserved account error:', error.response?.data || error.message);
+      console.error('❌ Monnify reserved account error:', error.message);
+      if (error.response) {
+        console.error('❌ Response status:', error.response.status);
+        console.error('❌ Response data:', JSON.stringify(error.response.data, null, 2));
+      }
       throw new Error(error.response?.data?.responseMessage || 'Failed to create virtual account');
     }
   }
