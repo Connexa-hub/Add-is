@@ -5,15 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { tokenService } from '../utils/tokenService';
-
-// Placeholder for isBiometricEnabled and setShowBiometricModal, and setPendingBiometricData
-// In a real app, these would be imported or defined elsewhere.
-const isBiometricEnabled = async () => true;
-const setShowBiometricModal = () => {};
-const setPendingBiometricData = () => {};
-const capabilities = { isAvailable: false }; // Mock capabilities
 
 export default function RegisterScreen({ navigation }) {
   const { tokens } = useAppTheme();
@@ -113,31 +104,21 @@ export default function RegisterScreen({ navigation }) {
 
       clearTimeout(timeoutId);
 
-      const { token, userId, userEmail, userName } = res.data;
-
-      // Store auth data
-      await tokenService.setToken(token);
-      await AsyncStorage.multiSet([
-        ['userId', userId],
-        ['userEmail', userEmail],
-        ['userName', userName],
-        ['hasSeenOnboarding', 'true']  // Mark onboarding as completed
-      ]);
-
-      // After successful registration, redirect to login
-      // User should login to verify their credentials work
-      Alert.alert(
-        'Registration Successful!',
-        'Your account has been created. Please login to continue.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              navigation.replace('Login');
-            }
-          }
-        ]
-      );
+      // Registration successful - backend returns { success: true, data: { email, emailSent } }
+      if (res.data.success) {
+        const emailSent = res.data.data?.emailSent !== false;
+        
+        // Navigate to email verification screen
+        navigation.navigate('EmailVerification', { 
+          email: res.data.data.email,
+          emailSent: emailSent
+        });
+      } else {
+        setErrors({
+          ...errors,
+          email: 'Registration failed. Please try again.'
+        });
+      }
     } catch (err) {
       clearTimeout(timeoutId);
       const errorData = err.response?.data;

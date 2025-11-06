@@ -52,11 +52,12 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
     try {
       const res = await axios.post(`${API_BASE_URL}/api/auth/verify-email`, { email, otp });
 
-      if (res.data.success && res.data.data.token) {
+      if (res.data.success && res.data.data?.token) {
         // Validate token is a string
         const token = res.data.data.token;
         if (typeof token !== 'string' || !token) {
           setError('Invalid authentication token received. Please try again.');
+          setLoading(false);
           return;
         }
 
@@ -66,30 +67,22 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
           ['userId', res.data.data.user?.id || ''],
           ['userEmail', res.data.data.user?.email || ''],
           ['userName', res.data.data.user?.name || ''],
-          ['lastActivityTime', Date.now().toString()]
+          ['lastActivityTime', Date.now().toString()],
+          ['hasSeenOnboarding', 'true']
         ]);
 
-        // Check if initial setup is complete
-        AsyncStorage.getItem('initialSetupComplete').then((setupComplete) => {
-          if (!setupComplete) {
-            // New user - show setup screen
-            navigation.replace('InitialSetup', {
-              userId: res.data.data.user.id,
-              email: res.data.data.user.email,
-              token: res.data.data.token
-            });
-          } else {
-            // Existing user - go to main
-            if (navigation?.reset) {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Main' }],
-              });
-            }
-          }
-        });
+        // For new users after email verification, go directly to main app
+        // InitialSetup (PIN setup) will be prompted from within the app
+        if (navigation?.reset) {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Main' }],
+          });
+        } else {
+          navigation.replace('Main');
+        }
       } else {
-        navigation.navigate('Login');
+        setError('Verification failed. Please try again.');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid or expired verification code');
