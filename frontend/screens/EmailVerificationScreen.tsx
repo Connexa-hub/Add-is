@@ -53,8 +53,15 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
       const res = await axios.post(`${API_BASE_URL}/api/auth/verify-email`, { email, otp });
 
       if (res.data.success && res.data.data.token) {
+        // Validate token is a string
+        const token = res.data.data.token;
+        if (typeof token !== 'string' || !token) {
+          setError('Invalid authentication token received. Please try again.');
+          return;
+        }
+
         // Store auth data
-        await tokenService.setToken(res.data.data.token);
+        await tokenService.setToken(token);
         await AsyncStorage.multiSet([
           ['userId', res.data.data.user?.id || ''],
           ['userEmail', res.data.data.user?.email || ''],

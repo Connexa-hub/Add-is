@@ -46,6 +46,11 @@ class SecureTokenService implements TokenService {
 
   async setToken(token: string): Promise<void> {
     try {
+      // Validate token is a string
+      if (!token || typeof token !== 'string') {
+        throw new Error('Token must be a non-empty string');
+      }
+
       // Primary: Write to SecureStore (secure, encrypted)
       await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
       
