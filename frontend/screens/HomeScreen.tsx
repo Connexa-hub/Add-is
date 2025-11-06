@@ -9,8 +9,10 @@ import { API_BASE_URL } from '../constants/api';
 import { BannerCarousel } from '../src/components/molecules';
 import { SkeletonBalanceCard, SkeletonServiceGrid } from '../src/components/atoms';
 import { tokenService } from '../utils/tokenService';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 
 export default function HomeScreen({ navigation }) {
+  const { tokens } = useAppTheme();
   const [user, setUser] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -403,6 +405,8 @@ export default function HomeScreen({ navigation }) {
 
   const allServices = [...vtuServices, ...billsServices, ...educationServices];
 
+  const styles = createStyles(tokens);
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -711,10 +715,10 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA'
+    backgroundColor: tokens.colors.background.default
   },
   loadingContainer: {
     flex: 1,
@@ -722,11 +726,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: '#6366f1',
+    backgroundColor: tokens.colors.primary.main,
     elevation: 0,
   },
   headerTitle: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -746,12 +750,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   balanceLabel: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 13,
     fontWeight: '500',
   },
   historyText: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 12,
     marginRight: 4,
   },
@@ -762,13 +766,13 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   balanceAmount: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 28,
     fontWeight: 'bold',
     letterSpacing: 2,
   },
   addFundsBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.white,
     borderRadius: 20,
     marginTop: 12,
   },
@@ -787,7 +791,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 9,
     fontWeight: 'bold',
   },
@@ -799,7 +803,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
-    color: '#1A1A1A',
+    color: tokens.colors.text.primary,
   },
   servicesGrid: {
     flexDirection: 'row',
@@ -823,7 +827,7 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 12,
     textAlign: 'center',
-    color: '#333',
+    color: tokens.colors.text.primary,
     fontWeight: '500',
   },
   transactionsSection: {
@@ -839,7 +843,7 @@ const styles = StyleSheet.create({
   },
   transactionCard: {
     marginBottom: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.card.background,
     elevation: 1,
     borderRadius: 12,
   },
@@ -863,11 +867,11 @@ const styles = StyleSheet.create({
   transactionType: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: tokens.colors.text.primary,
   },
   transactionDate: {
     fontSize: 12,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     marginTop: 2,
   },
   transactionAmount: {
@@ -892,18 +896,18 @@ const styles = StyleSheet.create({
   kycBannerTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: tokens.colors.text.primary,
     marginBottom: 2,
   },
   kycBannerMessage: {
     fontSize: 13,
-    color: '#666',
+    color: tokens.colors.text.secondary,
   },
   notificationBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#FF3B30',
+    backgroundColor: tokens.colors.error.main,
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -912,7 +916,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   notificationBadgeText: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 10,
     fontWeight: 'bold',
   },
@@ -935,19 +939,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   accountText: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 11,
     marginLeft: 6,
     opacity: 0.9,
   },
   compactAccountText: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 11,
     opacity: 0.9,
     marginHorizontal: 2,
   },
   accountSeparator: {
-    color: '#FFFFFF',
+    color: tokens.colors.white,
     fontSize: 11,
     opacity: 0.6,
     marginHorizontal: 4,
@@ -961,7 +965,7 @@ const styles = StyleSheet.create({
   monnifyCard: {
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.card.background,
     elevation: 3,
     borderRadius: 16,
   },
@@ -974,7 +978,7 @@ const styles = StyleSheet.create({
   monnifyTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: tokens.colors.text.primary,
   },
   monnifyDetails: {
     gap: 12,
@@ -985,22 +989,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: tokens.colors.border.default,
   },
   monnifyLabel: {
     fontSize: 12,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     marginBottom: 4,
   },
   monnifyValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: tokens.colors.text.primary,
   },
   copyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8E9FE',
+    backgroundColor: tokens.colors.primary.light,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -1009,7 +1013,7 @@ const styles = StyleSheet.create({
   copyText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6366f1',
+    color: tokens.colors.primary.main,
   },
   monnifyFooter: {
     flexDirection: 'row',
@@ -1017,12 +1021,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: tokens.colors.border.default,
     gap: 6,
   },
   monnifyFooterText: {
     fontSize: 11,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     flex: 1,
   },
 });

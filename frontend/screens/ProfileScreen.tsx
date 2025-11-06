@@ -6,8 +6,10 @@ import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/api';
 import { tokenService } from '../utils/tokenService';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 
 export default function ProfileScreen({ navigation }) {
+  const { tokens } = useAppTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copiedAccount, setCopiedAccount] = useState(null);
@@ -134,10 +136,12 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const styles = createStyles(tokens);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6200ee" />
+        <ActivityIndicator size="large" color={tokens.colors.primary.main} />
       </View>
     );
   }
@@ -298,14 +302,14 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tokens) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: tokens.colors.background.default,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: tokens.colors.background.default,
   },
   loadingContainer: {
     flex: 1,
@@ -317,7 +321,7 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     margin: 16,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.card.background,
     elevation: 2,
   },
   profileContent: {
@@ -325,22 +329,22 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   avatar: {
-    backgroundColor: '#6200ee',
+    backgroundColor: tokens.colors.primary.main,
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
     marginTop: 12,
-    color: '#333',
+    color: tokens.colors.text.primary,
   },
   email: {
     fontSize: 16,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     marginTop: 4,
   },
   phone: {
     fontSize: 14,
-    color: '#999',
+    color: tokens.colors.text.secondary,
     marginTop: 4,
   },
   statsContainer: {
@@ -352,31 +356,31 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     marginHorizontal: 4,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.card.background,
     elevation: 2,
   },
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6200ee',
+    color: tokens.colors.primary.main,
     textAlign: 'center',
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: tokens.colors.text.secondary,
     textAlign: 'center',
     marginTop: 4,
   },
   card: {
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: tokens.colors.card.background,
     elevation: 2,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: tokens.colors.text.primary,
   },
   divider: {
     marginVertical: 12,
