@@ -139,6 +139,16 @@ export default function AppNavigator() {
           console.log('→ Route: InitialSetup (has token, no setup)');
           setInitialRoute('InitialSetup');
         } else if (token) {
+          // Check if user explicitly logged out (important for biometric flow)
+          const hasLoggedOut = await AsyncStorage.getItem('user_logged_out');
+          
+          if (hasLoggedOut === 'true') {
+            console.log('→ Route: Login (user logged out - requires re-authentication)');
+            await AsyncStorage.removeItem('user_logged_out');
+            setInitialRoute('Login');
+            return;
+          }
+
           // Check if session timed out
           const hasTimedOut = await checkSessionTimeout(token);
 

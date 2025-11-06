@@ -39,6 +39,16 @@ export default function HomeScreen({ navigation }) {
     try {
       setLoading(true);
 
+      // Check if user logged out
+      const userLoggedOut = await AsyncStorage.getItem('user_logged_out');
+      if (userLoggedOut === 'true') {
+        console.log('User logged out, clearing flag and redirecting to login');
+        await AsyncStorage.removeItem('user_logged_out');
+        navigation.replace('Login');
+        setLoading(false);
+        return;
+      }
+
       // Check both SecureStore and AsyncStorage
       const secureToken = await tokenService.getToken();
       const asyncToken = await AsyncStorage.getItem('token');
@@ -209,18 +219,42 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleLogout = async () => {
-    // Clear all auth data using tokenService
-    await tokenService.clearToken();
-    await AsyncStorage.multiRemove([
-      'userId',
-      'userEmail',
-      'userName',
-      'savedEmail',
-      'biometricEnabled',
-      'biometric_user_id',
-      'lastActivityTime'
-    ]);
-    navigation.replace('Login');
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Set logout flag BEFORE clearing tokens (critical for OPay flow)
+              await AsyncStorage.setItem('user_logged_out', 'true');
+
+              // Clear all auth-related data
+              await tokenService.clearToken();
+              await AsyncStorage.multiRemove([
+                'token',
+                'userId',
+                'userEmail',
+                'userName',
+                'lastActivityTime'
+              ]);
+
+              // Navigate to login
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCopyAccountNumber = async (accountNumber: string) => {
