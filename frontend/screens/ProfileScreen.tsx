@@ -10,9 +10,9 @@ import { useAppTheme } from '../src/hooks/useAppTheme';
 
 export default function ProfileScreen({ navigation }: any) {
   const { tokens } = useAppTheme();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [copiedAccount, setCopiedAccount] = useState(null);
+  const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalTransactions: 0,
     totalSpent: 0,

@@ -229,30 +229,15 @@ export default function LoginScreen({ navigation }) {
         console.error('Biometric login error:', loginError);
         setLoading(false);
 
-        // Check if it's a session timeout or token expiration
-        const isSessionExpired = loginError.response?.status === 401 || 
-                                 loginError.response?.status === 502 ||
-                                 loginError.code === 'ECONNABORTED';
-
-        // Clear invalid tokens
+        // Clear invalid tokens but KEEP biometric credentials
         await tokenService.clearToken();
         await AsyncStorage.removeItem('token');
 
-        if (isSessionExpired) {
-          // Clear biometric token as well since session expired
-          const userId = await AsyncStorage.getItem('biometric_user_id');
-          if (userId) {
-            await SecureStore.deleteItemAsync(`biometric_credentials_${userId}`);
-          }
-          await AsyncStorage.removeItem('biometricEnabled');
-          await AsyncStorage.removeItem('biometric_user_id');
-          setBiometricConfigured(false);
-        }
-
+        // User just needs to re-login, not re-setup biometric
         setShowPasswordLogin(true);
         Alert.alert(
           'Session Expired',
-          'Your biometric login session has expired. Please login with your email and password to re-enable biometric authentication.',
+          'Your session has expired. Please login with your email and password. You can use biometric login again after logging in.',
           [{ text: 'OK' }]
         );
       }
@@ -539,7 +524,7 @@ export default function LoginScreen({ navigation }) {
                   marginBottom: tokens.spacing['2xl'] 
                 }]}>
                   <TouchableOpacity onPress={async () => {
-                    // Clear biometric credentials when switching accounts (OPay flow)
+                    // ONLY clear biometric credentials when explicitly switching accounts
                     await AsyncStorage.multiRemove([
                       'savedEmail',
                       'biometricEnabled',

@@ -45,12 +45,12 @@ export default function HomeScreen({ navigation }: any) {
       // Only reload if data is stale (e.g., more than 30 seconds old)
       const now = Date.now();
       if (!lastLoadTime || now - lastLoadTime > 30000) {
-        loadUserData();
+        loadUserData(true); // Silent refresh
         loadUnreadNotifications();
       }
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, lastLoadTime]);
 
   const loadUserData = async (silentRefresh = false) => {
     try {
@@ -99,6 +99,12 @@ export default function HomeScreen({ navigation }: any) {
         return;
       }
 
+      if (response.status === 429) {
+        console.warn('Rate limit hit - using cached data');
+        setLoading(false);
+        return; // Don't crash, just use existing data
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -141,6 +147,9 @@ export default function HomeScreen({ navigation }: any) {
         await tokenService.clearToken();
         await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
+      } else if (error?.message?.includes('429')) {
+        // Rate limit - just log it, don't crash
+        console.warn('Rate limit error - will retry later');
       }
     } finally {
       setLoading(false);
@@ -148,56 +157,9 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const fetchBalance = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      console.log('Fetching balance with token:', token ? 'Token exists' : 'No token');
-
-      if (!token) {
-        console.log('No token found, redirecting to login');
-        await tokenService.clearToken();
-        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
-        navigation.replace('Login');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/auth/wallet`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('Balance response status:', response.status);
-
-      if (response.status === 401) {
-        console.log('Unauthorized - clearing session and redirecting to login');
-        await tokenService.clearToken();
-        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
-        navigation.replace('Login');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Balance data received:', data.success);
-
-      if (data.success) {
-        setBalance(data.data.balance);
-      } else {
-        console.error('Balance fetch failed:', data.message);
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch balance:', error);
-      // Don't redirect on network errors, only on auth errors
-      if (error?.message?.includes('401')) {
-        await tokenService.clearToken();
-        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
-        navigation.replace('Login');
-      }
-    }
+    // Balance is already fetched in loadUserData, no need for separate call
+    // This function is kept for backward compatibility but does nothing
+    return;
   };
 
   const loadRecentTransactions = async (token: string) => {
@@ -286,7 +248,8 @@ export default function HomeScreen({ navigation }: any) {
               // Set logout flag BEFORE clearing tokens (critical for OPay flow)
               await AsyncStorage.setItem('user_logged_out', 'true');
 
-              // Clear all auth-related data
+              // Clear auth tokens but KEEP biometric credentials
+              // User can still use fingerprint to login next time
               await tokenService.clearToken();
               await AsyncStorage.multiRemove([
                 'token',

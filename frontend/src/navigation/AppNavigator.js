@@ -163,20 +163,15 @@ export default function AppNavigator() {
             console.log('→ Route: Login (session timeout)');
             await tokenService.clearToken();
             
-            // Clear biometric session on timeout
-            const userId = await AsyncStorage.getItem('biometric_user_id');
-            if (userId) {
-              await SecureStore.deleteItemAsync(`biometric_credentials_${userId}`);
-            }
+            // DON'T clear biometric credentials on timeout
+            // User should still be able to use fingerprint after timeout
             
             await AsyncStorage.multiRemove([
               'token', 
               'userId', 
               'userEmail', 
               'userName', 
-              'lastActivityTime',
-              'biometricEnabled',
-              'biometric_user_id'
+              'lastActivityTime'
             ]);
             setInitialRoute('Login');
           } else {
