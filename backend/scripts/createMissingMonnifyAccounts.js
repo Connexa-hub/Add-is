@@ -23,26 +23,53 @@ async function createMissingMonnifyAccounts() {
     for (const user of usersWithoutAccounts) {
       try {
         const accountReference = `USER_${user._id}`;
-        console.log(`Creating Monnify account for ${user.email}...`);
+        console.log(`Processing Monnify account for ${user.email}...`);
 
-        const monnifyResult = await monnifyClient.createReservedAccount({
-          accountReference,
-          accountName: user.name,
-          customerEmail: user.email,
-          customerName: user.name,
-        });
+        let monnifyResult;
+        
+        try {
+          // Try to create new account first
+          console.log(`Attempting to create account...`);
+          monnifyResult = await monnifyClient.createReservedAccount({
+            accountReference,
+            accountName: user.name,
+            customerEmail: user.email,
+            customerName: user.name,
+          });
+        } catch (createError) {
+          // Check if error is because account already exists
+          if (createError.message.includes('cannot reserve more than') || 
+              createError.message.includes('already exists')) {
+            console.log(`Account already exists, fetching details...`);
+            
+            // Fetch existing account details
+            monnifyResult = await monnifyClient.getReservedAccountDetails(accountReference);
+            
+            if (!monnifyResult.success) {
+              throw new Error(`Failed to fetch existing account: ${monnifyResult.error || 'Unknown error'}`);
+            }
+          } else {
+            throw createError;
+          }
+        }
 
         if (monnifyResult.success && monnifyResult.data) {
           const accounts = monnifyResult.data.accounts || [];
-          user.monnifyAccountReference = accountReference;
-          user.monnifyAccounts = accounts.map(acc => ({
-            accountNumber: acc.accountNumber,
-            accountName: acc.accountName,
-            bankName: acc.bankName,
-            bankCode: acc.bankCode,
-          }));
-          await user.save();
-          console.log(`✓ Created accounts for ${user.email}:`, user.monnifyAccounts);
+          
+          if (accounts.length > 0) {
+            user.monnifyAccountReference = accountReference;
+            user.monnifyAccounts = accounts.map(acc => ({
+              accountNumber: acc.accountNumber,
+              accountName: acc.accountName,
+              bankName: acc.bankName,
+              bankCode: acc.bankCode,
+            }));
+            await user.save();
+            console.log(`✓ Saved ${accounts.length} account(s) for ${user.email}`);
+            console.log(`  Accounts:`, user.monnifyAccounts.map(a => `${a.bankName}: ${a.accountNumber}`).join(', '));
+          } else {
+            console.log(`✗ No accounts found in response for ${user.email}`);
+          }
         } else {
           console.log(`✗ Failed for ${user.email}:`, monnifyResult);
         }
@@ -50,7 +77,7 @@ async function createMissingMonnifyAccounts() {
         // Add delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error(`Error creating account for ${user.email}:`, error.message);
+        console.error(`Error processing account for ${user.email}:`, error.message);
       }
     }
 
