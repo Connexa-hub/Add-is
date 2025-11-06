@@ -6,7 +6,7 @@ require('dotenv').config();
 
 async function createMissingMonnifyAccounts() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
 
     // Find users without Monnify accounts
