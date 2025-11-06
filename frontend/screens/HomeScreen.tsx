@@ -49,9 +49,11 @@ export default function HomeScreen({ navigation }) {
     return unsubscribe;
   }, [navigation, lastLoadTime]); // Added lastLoadTime to dependency array
 
-  const loadUserData = async () => {
+  const loadUserData = async (silentRefresh = false) => {
     try {
-      setLoading(true);
+      if (!silentRefresh) {
+        setLoading(true);
+      }
 
       // Check if user logged out
       const userLoggedOut = await AsyncStorage.getItem('user_logged_out');
@@ -237,7 +239,7 @@ export default function HomeScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadUserData(), loadUnreadNotifications()]);
+    await Promise.all([loadUserData(true), loadUnreadNotifications()]);
     setRefreshing(false);
   };
 
