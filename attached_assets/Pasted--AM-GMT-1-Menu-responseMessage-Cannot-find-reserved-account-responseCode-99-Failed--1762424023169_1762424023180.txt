@@ -1,0 +1,128 @@
+ AM
+GMT+1
+
+Menu
+
+  responseMessage: 'Cannot find reserved account',
+  responseCode: '99'
+}
+❌ Failed to retrieve existing account
+❌ Monnify account processing error: Account exists in Monnify but could not retrieve details. Please contact support.
+   Monnify Reference: undefined
+   Monnify Accounts: 0
+[2025-11-06T09:39:41.638Z] GET /api/auth/profile - Status: 200 - 652ms
+[2025-11-06T09:39:45.885Z] GET /api/onboarding - Status: 304 - 11ms
+🔍 Checking Monnify accounts for user: connexaaddis@gmail.com
+Current monnifyAccounts: []
+Current monnifyAccountReference: undefined
+⚠️ User has no Monnify accounts, attempting to create/fetch for user: connexaaddis@gmail.com
+🔄 Processing Monnify account for connexaaddis@gmail.com
+🔄 Monnify createReservedAccount called with params: {
+  "accountReference": "USER_690c53b7ce5217c8121d45eb",
+  "accountName": "Lenient Israel",
+  "customerEmail": "connexaaddis@gmail.com",
+  "customerName": "Lenient Israel"
+}
+✅ Got Monnify access token
+📤 Sending Monnify request to: https://sandbox.monnify.com/api/v2/bank-transfer/reserved-accounts
+📤 Payload: {
+  "accountReference": "USER_690c53b7ce5217c8121d45eb",
+  "accountName": "Lenient Israel",
+  "currencyCode": "NGN",
+  "contractCode": "8652326301",
+  "customerEmail": "connexaaddis@gmail.com",
+  "customerName": "Lenient Israel",
+  "getAllAvailableBanks": false,
+  "preferredBanks": [
+    "035",
+    "50515"
+  ]
+}
+❌ Monnify reserved account error: Request failed with status code 422
+❌ Response status: 422
+❌ Response data: {
+  "requestSuccessful": false,
+  "responseMessage": "You cannot reserve more than 1 account(s) for a customer. Please contact support for assistance.",
+  "responseCode": "R42"
+}
+🔄 Account already exists in Monnify, attempting to retrieve existing account...
+Monnify get reserved account error: {
+  requestSuccessful: false,
+  responseMessage: 'Cannot find reserved account',
+  responseCode: '99'
+}
+❌ Failed to retrieve existing account
+❌ Monnify account processing error: Account exists in Monnify but could not retrieve details. Please contact support.
+📤 Sending profile for connexaaddis@gmail.com:
+   Monnify Reference: undefined
+   Monnify Accounts: 0
+[2025-11-06T09:39:46.197Z] GET /api/auth/profile - Status: 304 - 163ms
+[2025-11-06T09:39:47.509Z] GET /api/notifications/unread/count - Status: 304 - 11ms
+[2025-11-06T09:39:47.653Z] GET /api/notifications/unread/count - Status: 304 - 8ms
+🔍 Checking Monnify accounts for user: connexaaddis@gmail.com
+Current monnifyAccounts: []
+Current monnifyAccountReference: undefined
+⚠️ User has no Monnify accounts, attempting to create/fetch for user: connexaaddis@gmail.com
+🔄 Processing Monnify account for connexaaddis@gmail.com
+🔄 Monnify createReservedAccount called with params: {
+  "accountReference": "USER_690c53b7ce5217c8121d45eb",
+  "accountName": "Lenient Israel",
+  "customerEmail": "connexaaddis@gmail.com",
+  "customerName": "Lenient Israel"
+}
+✅ Got Monnify access token
+📤 Sending Monnify request to: https://sandbox.monnify.com/api/v2/bank-transfer/reserved-accounts
+📤 Payload: {
+  "accountReference": "USER_690c53b7ce5217c8121d45eb",
+  "accountName": "Lenient Israel",
+  "currencyCode": "NGN",
+  "contractCode": "8652326301",
+  "customerEmail": "connexaaddis@gmail.com",
+  "customerName": "Lenient Israel",
+  "getAllAvailableBanks": false,
+  "preferredBanks": [
+    "035",
+    "50515"
+  ]
+}
+🔍 Checking Monnify accounts for user: connexaaddis@gmail.com
+Current monnifyAccounts: []
+Current monnifyAccountReference: undefined
+⚠️ User has no Monnify accounts, attempting to create/fetch for user: connexaaddis@gmail.com
+🔄 Processing Monnify account for connexaaddis@gmail.com
+🔄 Monnify createReservedAccount called with params: {
+  "accountReference": "USER_690c53b7ce5217c8121d45eb",
+  "accountName": "Lenient Israel",
+  "customerEmail": "connexaaddis@gmail.com",
+  "customerName": "Lenient Israel"
+}
+✅ Got Monnify access token
+📤 Sending Monnify request to: https://sandbox.monnify.com/api/v2/bank-transfer/reserved-accounts
+📤 Payload: {
+  "accountReference": "USER_690c53b7ce5217c8121d45eb",
+  "accountName": "Lenient Israel",
+  "currencyCode": "NGN",
+  "contractCode": "8652326301",
+  "customerEmail": "connexaaddis@gmail.com",
+  "customerName": "Lenient Israel",
+  "getAllAvailableBanks": false,
+  "preferredBanks": [
+    "035",
+    "50515"
+  ]
+}
+❌ Monnify reserved account error: Request failed with status code 422
+❌ Response status: 422
+❌ Response data: {
+  "requestSuccessful": false,
+  "responseMessage": "You cannot reserve more than 1 account(s) for a customer. Please contact support for assistance.",
+  "responseCode": "R42"
+}
+🔄 Account already exists in Monnify, attempting to retrieve existing account...
+Monnify get reserved account error: {
+  requestSuccessful: false,
+  responseMessage: 'Cannot find reserved account',
+  responseCode: '99'
+}
+❌ Failed to retrieve existing account
+❌ Monnify account processing error: Account exists in Monnify but could not retrieve details. Please contact support.
