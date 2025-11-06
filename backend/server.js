@@ -12,7 +12,7 @@ require('./config/validateEnv')();
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 // Middlewar
 const logger = require('./middleware/logger');
