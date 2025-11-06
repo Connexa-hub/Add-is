@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { useTheme } from '../../contexts/ThemeContext';
+import { lightColors, darkColors } from '../theme/colors';
 import { API_BASE_URL } from '../../constants/api';
 import { tokenService } from '../../utils/tokenService';
 
@@ -85,6 +87,8 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  const { isDark } = useTheme();
+  const currentColors = isDark ? darkColors : lightColors;
   const [initialRoute, setInitialRoute] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // Added isLoading state
@@ -257,7 +261,13 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
+      <Stack.Navigator 
+        screenOptions={{ 
+          headerShown: false,
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+          cardStyle: { backgroundColor: currentColors.background.default },
+        }} 
+        initialRouteName={initialRoute}>
         {/* Onboarding */}
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
 

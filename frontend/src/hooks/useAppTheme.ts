@@ -1,14 +1,17 @@
-import { useTheme } from 'react-native-paper';
-import { AppTheme, theme as defaultTheme } from '../theme';
+import { useTheme as usePaperTheme } from 'react-native-paper';
+import { useTheme } from '../../contexts/ThemeContext';
+import { AppTheme, lightTheme, darkTheme } from '../theme';
 
-export const useAppTheme = (): AppTheme => {
-  const paperTheme = useTheme();
+export const useAppTheme = (): AppTheme & { isDark: boolean } => {
+  const paperTheme = usePaperTheme();
+  const { themeMode, isDark } = useTheme();
   
-  // Ensure the theme always has the tokens property
-  // by merging with our default theme
+  const currentTheme = isDark ? darkTheme : lightTheme;
+  
   return {
     ...paperTheme,
-    ...defaultTheme,
-    tokens: defaultTheme.tokens
-  } as AppTheme;
+    ...currentTheme,
+    tokens: currentTheme.tokens,
+    isDark,
+  } as AppTheme & { isDark: boolean };
 };

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert, Pressable } from 'react-native';
-import { Appbar, Card, Text, Avatar, Button, ActivityIndicator } from 'react-native-paper';
+import { Appbar, Card, Text, Avatar, Button } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
 import { API_BASE_URL } from '../constants/api';
 import { BannerCarousel } from '../src/components/molecules';
+import { SkeletonBalanceCard, SkeletonServiceGrid } from '../src/components/atoms';
 import { tokenService } from '../utils/tokenService';
 
 export default function HomeScreen({ navigation }) {
@@ -385,8 +386,16 @@ export default function HomeScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={styles.container}>
+        <Appbar.Header style={styles.header}>
+          <Appbar.Content title="Loading..." />
+        </Appbar.Header>
+        <ScrollView style={styles.scrollView}>
+          <SkeletonBalanceCard style={{ margin: 16 }} />
+          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
+            <SkeletonServiceGrid />
+          </View>
+        </ScrollView>
       </View>
     );
   }

@@ -7,10 +7,12 @@ import * as SecureStore from 'expo-secure-store';
 import { AppText, AppButton, AppDivider, AppInput } from '../src/components/atoms';
 import { AppModal } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
+import { useTheme } from '../contexts/ThemeContext';
 import { useBiometric } from '../hooks/useBiometric';
 
 export default function SettingsScreen({ navigation }: any) {
   const { tokens } = useAppTheme();
+  const { isDark, toggleTheme } = useTheme();
   const {
     capabilities,
     isLoading: isBiometricLoading,
@@ -21,7 +23,6 @@ export default function SettingsScreen({ navigation }: any) {
   } = useBiometric();
 
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -67,8 +68,7 @@ export default function SettingsScreen({ navigation }: any) {
         console.error('Error checking biometric status:', error);
       }
 
-      const [dark, notif, twoFA, id, email] = await Promise.all([
-        AsyncStorage.getItem('darkMode').catch(() => null),
+      const [notif, twoFA, id, email] = await Promise.all([
         AsyncStorage.getItem('notifications').catch(() => null),
         AsyncStorage.getItem('twoFactorAuth').catch(() => null),
         AsyncStorage.getItem('userId').catch(() => null),
@@ -76,7 +76,6 @@ export default function SettingsScreen({ navigation }: any) {
       ]);
 
       setBiometricEnabled(bio);
-      setDarkMode(dark === 'true');
       setNotifications(notif !== 'false');
       setTwoFactorAuth(twoFA === 'true');
       setUserId(id || '');
@@ -217,15 +216,13 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
-  const toggleDarkMode = async () => {
-    const newVal = !darkMode;
-    setDarkMode(newVal);
-    await AsyncStorage.setItem('darkMode', newVal.toString());
+  const toggleDarkMode = () => {
+    toggleTheme();
     showModal({
       visible: true,
-      type: 'info',
+      type: 'success',
       title: 'Theme Updated',
-      message: `Dark mode ${newVal ? 'enabled' : 'disabled'}. Restart the app to see changes.`,
+      message: `${isDark ? 'Light' : 'Dark'} mode has been enabled instantly.`,
     });
   };
 
@@ -458,7 +455,7 @@ export default function SettingsScreen({ navigation }: any) {
               subtitle="Switch to dark theme"
               rightComponent={
                 <Switch
-                  value={darkMode}
+                  value={isDark}
                   onValueChange={toggleDarkMode}
                   disabled={loading}
                   color={tokens.colors.primary.main}

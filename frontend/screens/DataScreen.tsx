@@ -5,7 +5,6 @@ import {
   ScrollView,
   Pressable,
   Alert,
-  ActivityIndicator,
   TextInput,
   Platform,
 } from 'react-native';
@@ -13,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { AppText, AppInput, AppButton } from '../src/components/atoms';
+import { AppText, AppInput, AppButton, SkeletonLoader, SkeletonList } from '../src/components/atoms';
 import { PaymentPreviewSheet, BannerCarousel } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
@@ -318,11 +317,13 @@ export default function DataScreen() {
             Select Network
           </AppText>
           {loadingNetworks ? (
-            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color={tokens.colors.primary.main} />
-              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
-                Loading networks...
-              </AppText>
+            <View style={styles.networkGrid}>
+              {[...Array(4)].map((_, i) => (
+                <View key={i} style={[styles.networkCard, { backgroundColor: tokens.colors.background.paper, borderRadius: tokens.radius.lg }]}>
+                  <SkeletonLoader width={48} height={48} borderRadius={24} style={{ marginBottom: 8 }} />
+                  <SkeletonLoader width="80%" height={14} />
+                </View>
+              ))}
             </View>
           ) : networks.length === 0 ? (
             <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
@@ -416,11 +417,8 @@ export default function DataScreen() {
           </ScrollView>
 
           {loading ? (
-            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color={tokens.colors.primary.main} />
-              <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.md }}>
-                Loading data plans...
-              </AppText>
+            <View style={styles.plansGrid}>
+              <SkeletonList count={4} />
             </View>
           ) : filteredPlans.length === 0 ? (
             <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>

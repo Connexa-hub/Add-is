@@ -5,13 +5,12 @@ import {
   ScrollView,
   Pressable,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { AppText, AppInput, AppButton } from '../src/components/atoms';
+import { AppText, AppInput, AppButton, SkeletonLoader } from '../src/components/atoms';
 import { PaymentPreviewSheet, BannerCarousel, ScreenContentDisplay } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
@@ -368,8 +367,12 @@ export default function AirtimeScreen() {
             Quick Amount
           </AppText>
           {loadingQuickAmounts ? (
-            <View style={{ paddingVertical: tokens.spacing.xl, alignItems: 'center' }}>
-              <ActivityIndicator size="small" color={tokens.colors.primary.main} />
+            <View style={[styles.quickAmountsGrid, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }]}>
+              {[...Array(6)].map((_, i) => (
+                <View key={i} style={{ width: '31%', marginBottom: tokens.spacing.sm }}>
+                  <SkeletonLoader height={48} borderRadius={tokens.radius.md} />
+                </View>
+              ))}
             </View>
           ) : (
             <View style={[styles.quickAmountsGrid, { 
