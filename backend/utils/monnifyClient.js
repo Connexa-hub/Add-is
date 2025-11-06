@@ -168,6 +168,16 @@ class MonnifyClient {
 
       if (response.data && response.data.responseBody) {
         console.log('✅ Successfully created reserved account');
+        console.log('📋 Account details:');
+        const body = response.data.responseBody;
+        console.log(`   Account Reference: ${body.accountReference}`);
+        console.log(`   Account Name: ${body.accountName}`);
+        console.log(`   Accounts Count: ${body.accounts?.length || 0}`);
+        if (body.accounts && body.accounts.length > 0) {
+          body.accounts.forEach((acc, idx) => {
+            console.log(`   ${idx + 1}. ${acc.bankName} - ${acc.accountNumber} (${acc.accountName})`);
+          });
+        }
         return {
           success: true,
           data: response.data.responseBody

@@ -102,6 +102,7 @@ export default function HomeScreen({ navigation }) {
 
       const data = await response.json();
       console.log('Profile data received:', !!data.data);
+      console.log('Full profile data:', JSON.stringify(data.data, null, 2));
       console.log('Monnify accounts:', data.data?.monnifyAccounts || []);
 
       // Log if Monnify accounts are missing
@@ -110,6 +111,12 @@ export default function HomeScreen({ navigation }) {
         console.error('User ID:', data.data?.id);
         console.error('User email:', data.data?.email);
         console.error('Monnify account reference:', data.data?.monnifyAccountReference);
+        console.log('🔄 Full user data structure:', JSON.stringify(data.data, null, 2));
+      } else {
+        console.log('✅ Monnify accounts found:', data.data.monnifyAccounts.length);
+        data.data.monnifyAccounts.forEach((acc, idx) => {
+          console.log(`   ${idx + 1}. ${acc.bankName}: ${acc.accountNumber} (${acc.accountName})`);
+        });
       }
 
       if (data.success && data.data) {
