@@ -180,6 +180,24 @@ class MonnifyClient {
       if (error.response) {
         console.error('❌ Response status:', error.response.status);
         console.error('❌ Response data:', JSON.stringify(error.response.data, null, 2));
+        
+        // Handle duplicate account error (422) - account already exists
+        if (error.response.status === 422 && 
+            (error.response.data?.responseCode === 'R42' || 
+             error.response.data?.responseMessage?.includes('cannot reserve more than'))) {
+          console.log('🔄 Account already exists in Monnify, attempting to retrieve existing account...');
+          
+          // Try to get the existing account details
+          const existingAccount = await this.getReservedAccountDetails(params.accountReference);
+          
+          if (existingAccount.success) {
+            console.log('✅ Successfully retrieved existing account from Monnify');
+            return existingAccount;
+          } else {
+            console.error('❌ Failed to retrieve existing account');
+            throw new Error('Account exists in Monnify but could not retrieve details. Please contact support.');
+          }
+        }
       }
       throw new Error(error.response?.data?.responseMessage || 'Failed to create virtual account');
     }

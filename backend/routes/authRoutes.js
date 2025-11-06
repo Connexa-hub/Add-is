@@ -255,9 +255,15 @@ router.post('/register', registerValidation, async (req, res, next) => {
           accountName: acc.accountName,
           bankName: acc.bankName,
           bankCode: acc.bankCode,
+          reservationReference: acc.reservationReference,
+          collectionChannel: acc.collectionChannel,
         }));
         await newUser.save();
-        console.log('Monnify accounts saved to user:', newUser.monnifyAccounts);
+        
+        // Verify save was successful
+        const savedUser = await User.findById(newUser._id);
+        console.log('Monnify accounts saved to user:', savedUser.monnifyAccounts.length, 'account(s)');
+        console.log('Account details:', savedUser.monnifyAccounts.map(a => `${a.bankName}: ${a.accountNumber}`).join(', '));
       } else {
         console.error('Monnify account creation failed:', monnifyResult);
       }

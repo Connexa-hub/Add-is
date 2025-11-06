@@ -1,11 +1,18 @@
-
+const path = require('path');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const monnifyClient = require('../utils/monnifyClient');
-require('dotenv').config();
+
+// Load environment variables from parent directory
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 async function createMissingMonnifyAccounts() {
   try {
+    // Check if MONGO_URI is defined
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable is not defined. Please check your .env file.');
+    }
+    
     await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
 
@@ -63,10 +70,16 @@ async function createMissingMonnifyAccounts() {
               accountName: acc.accountName,
               bankName: acc.bankName,
               bankCode: acc.bankCode,
+              reservationReference: acc.reservationReference,
+              collectionChannel: acc.collectionChannel,
             }));
             await user.save();
+            
+            // Verify the save was successful
+            const savedUser = await User.findById(user._id);
             console.log(`✓ Saved ${accounts.length} account(s) for ${user.email}`);
-            console.log(`  Accounts:`, user.monnifyAccounts.map(a => `${a.bankName}: ${a.accountNumber}`).join(', '));
+            console.log(`  Accounts:`, savedUser.monnifyAccounts.map(a => `${a.bankName}: ${a.accountNumber}`).join(', '));
+            console.log(`  Verification: ${savedUser.monnifyAccounts.length} account(s) confirmed in database`);
           } else {
             console.log(`✗ No accounts found in response for ${user.email}`);
           }

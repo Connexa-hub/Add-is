@@ -28,6 +28,8 @@ const UserSchema = new mongoose.Schema({
     accountName: String,
     bankName: String,
     bankCode: String,
+    reservationReference: String,
+    collectionChannel: String,
     createdAt: { type: Date, default: Date.now }
   }],
   resetPasswordOTP: String,
