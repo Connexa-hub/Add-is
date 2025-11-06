@@ -225,7 +225,7 @@ export default function ElectricityScreen() {
       
       // Check if user has PIN setup
       const pinStatusResponse = await axios.get(
-        `${API_BASE_URL}/pin/status`,
+        `${API_BASE_URL}/api/pin/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

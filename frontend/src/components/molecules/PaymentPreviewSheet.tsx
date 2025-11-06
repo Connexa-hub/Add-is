@@ -89,67 +89,52 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
       return;
     }
 
+    setLoading(true);
+
     // Check if PIN is set up before allowing payment
     try {
       const token = await AsyncStorage.getItem('token');
       const pinStatusResponse = await axios.get(
-        `${API_BASE_URL}/pin/status`,
+        `${API_BASE_URL}/api/pin/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
+        setLoading(false);
         onClose(); // Close payment preview
         Alert.alert(
           'Set Up Transaction PIN',
-          'For security, you need to set up a Transaction PIN before making purchases.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Set Up PIN',
-              onPress: () => {
-                // Navigation would need to be passed as prop or use navigation hook
-                // For now, just show message
-                Alert.alert('Info', 'Please set up your PIN in Settings > Security');
-              }
-            }
-          ]
+          'For security, you need to set up a Transaction PIN before making purchases. Please go to Settings > Security to set up your PIN.',
+          [{ text: 'OK' }]
         );
         return;
       }
+
+      // If biometric is enabled and available, use it
+      if (biometricEnabled && capabilities.isAvailable) {
+        const authResult = await authenticate(
+          `Authenticate to pay ₦${finalAmount.toLocaleString()}`,
+          'Cancel'
+        );
+
+        if (!authResult.success) {
+          setLoading(false);
+          Alert.alert(
+            'Authentication Failed',
+            authResult.error || 'Biometric authentication failed. Payment cancelled.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+      }
+
+      // Proceed with payment
+      onConfirm(cashbackUsed);
     } catch (error) {
+      setLoading(false);
       console.error('Failed to check PIN status:', error);
+      Alert.alert('Error', 'Failed to verify security settings. Please try again.');
     }
-
-    if (biometricEnabled && capabilities.isAvailable) {
-      setLoading(true);
-      const authResult = await authenticate(
-        `Authenticate to pay ₦${finalAmount.toLocaleString()}`,
-        'Cancel'
-      );
-
-      if (!authResult.success) {
-        setLoading(false);
-        Alert.alert(
-          'Authentication Failed',
-          authResult.error || 'Payment cancelled. Please try again or use PIN verification.',
-          [
-            {
-              text: 'Try Again',
-              onPress: handleConfirm,
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-              onPress: () => setLoading(false),
-            },
-          ]
-        );
-        return;
-      }
-    }
-
-    setLoading(true);
-    onConfirm(cashbackUsed);
   };
 
   return (
@@ -423,7 +408,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
                   disabled={loading}
                   icon={<Ionicons name={biometricEnabled ? 'finger-print' : 'lock-closed'} size={20} color="#FFFFFF" />}
                 >
-                  {biometricEnabled ? 'Pay with Fingerprint' : 'Pay with PIN'}
+                  {biometricEnabled ? 'Confirm Payment' : 'Confirm Payment'}
                 </AppButton>
                 <AppButton
                   onPress={onClose}

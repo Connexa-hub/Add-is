@@ -251,7 +251,7 @@ export default function TVScreen() {
       // Check if user has PIN setup
       const token = await AsyncStorage.getItem('token');
       const pinStatusResponse = await axios.get(
-        `${API_BASE_URL}/pin/status`,
+        `${API_BASE_URL}/api/pin/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

@@ -135,6 +135,7 @@ app.use('/api/kyc', kycRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/vtu', vtuRoutes);
+app.use('/pin', pinRoutes);
 app.use('/api/pin', pinRoutes);
 app.use('/api/cards', cardRoutes);
 app.use('/api/wallet/funding', walletFundingRoutes);
