@@ -1,17 +1,14 @@
 import { useTheme as usePaperTheme } from 'react-native-paper';
+import { lightTokens, darkTokens } from '../theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AppTheme, lightTheme, darkTheme } from '../theme';
+import type { AppTheme } from '../theme';
 
-export const useAppTheme = (): AppTheme & { isDark: boolean } => {
-  const paperTheme = usePaperTheme();
-  const { themeMode, isDark } = useTheme();
-  
-  const currentTheme = isDark ? darkTheme : lightTheme;
-  
+export const useAppTheme = () => {
+  const paperTheme = usePaperTheme() as AppTheme;
+  const { isDark } = useTheme();
+
   return {
-    ...paperTheme,
-    ...currentTheme,
-    tokens: currentTheme.tokens,
-    isDark,
-  } as AppTheme & { isDark: boolean };
+    theme: paperTheme,
+    tokens: isDark ? darkTokens : lightTokens,
+  };
 };

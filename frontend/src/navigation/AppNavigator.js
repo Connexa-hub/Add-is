@@ -162,7 +162,22 @@ export default function AppNavigator() {
           if (hasTimedOut) {
             console.log('→ Route: Login (session timeout)');
             await tokenService.clearToken();
-            await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'userName', 'lastActivityTime']);
+            
+            // Clear biometric session on timeout
+            const userId = await AsyncStorage.getItem('biometric_user_id');
+            if (userId) {
+              await SecureStore.deleteItemAsync(`biometric_credentials_${userId}`);
+            }
+            
+            await AsyncStorage.multiRemove([
+              'token', 
+              'userId', 
+              'userEmail', 
+              'userName', 
+              'lastActivityTime',
+              'biometricEnabled',
+              'biometric_user_id'
+            ]);
             setInitialRoute('Login');
           } else {
             // Try to validate token - BUT don't auto-navigate to Main

@@ -236,12 +236,31 @@ export default function HomeScreen({ navigation }) {
         },
       });
 
-      const data = await response.json();
+      // Handle potential non-JSON responses (e.g., HTML error pages)
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Notification fetch error (non-JSON response):', responseText);
+        // Treat as no unread notifications if response is not valid JSON
+        setUnreadNotifications(0);
+        return; // Exit early if parsing fails
+      }
+
+
       if (data.success) {
         setUnreadNotifications(data.count || 0);
+      } else {
+        console.error('Failed to load unread notification count:', data.message);
       }
     } catch (error) {
       console.error('Error loading unread notifications:', error);
+      // If the error is a parse error, the API might be down or returning HTML
+      if (error.message?.includes('JSON') || error.message?.includes('Parse')) {
+        console.warn('Notification API returned invalid JSON, skipping notification count');
+        setUnreadNotifications(0);
+      }
     }
   };
 
@@ -542,7 +561,7 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.compactAccountText}>{user.monnifyAccounts[0].accountNumber}</Text>
                   <Text style={styles.accountSeparator}>•</Text>
                   <Text style={styles.compactAccountText}>{user.monnifyAccounts[0].accountName}</Text>
-                  
+
                   <Pressable
                     onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
                     style={styles.compactCopyButton}
