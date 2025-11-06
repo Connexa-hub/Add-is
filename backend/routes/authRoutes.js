@@ -45,8 +45,11 @@ router.get('/profile', verifyToken, async (req, res, next) => {
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
       console.log('⚠️ User has no Monnify accounts, attempting to create/fetch for user:', user.email);
 
+      // Automatic Monnify account provisioning
+      const accountReference = `USER_${user._id}`;
+
       // Check if we have a monnifyAccountReference but no accounts array
-      if (user.monnifyAccountReference) {
+      if (user.monnifyAccountReference && (!user.monnifyAccounts || user.monnifyAccounts.length === 0)) {
         try {
           console.log('🔄 Fetching existing Monnify account:', user.monnifyAccountReference);
           const accountDetails = await monnifyClient.getReservedAccountDetails(user.monnifyAccountReference);
@@ -71,32 +74,40 @@ router.get('/profile', verifyToken, async (req, res, next) => {
         }
       }
 
-      // If still no accounts, try to create new ones - WITHOUT KYC requirement for sandbox
+      // If still no accounts, try to create or fetch existing ones
       if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
         try {
-          const accountReference = `USER_${user._id}_${Date.now()}`;
+          console.log('🔄 Processing Monnify account for', user.email);
+          let monnifyResult;
 
-          console.log('🆕 Creating new Monnify virtual account for:', user.email);
-          console.log('📝 Using accountReference:', accountReference);
-          console.log('📋 Account details:', {
-            accountReference,
-            accountName: user.name,
-            customerEmail: user.email,
-            customerName: user.name
-          });
+          try {
+            // Try to create new account first
+            console.log('Attempting to create account...');
+            monnifyResult = await monnifyClient.createReservedAccount({
+              accountReference,
+              accountName: user.name,
+              customerEmail: user.email,
+              customerName: user.name
+            });
+          } catch (createError) {
+            // Check if error is because account already exists
+            if (createError.message.includes('cannot reserve more than') ||
+                createError.message.includes('already exists')) {
+              console.log('Account already exists, fetching details...');
 
-          const result = await monnifyClient.createReservedAccount({
-            accountReference,
-            accountName: user.name,
-            customerEmail: user.email,
-            customerName: user.name
-          });
+              // Fetch existing account details
+              monnifyResult = await monnifyClient.getReservedAccountDetails(accountReference);
 
-          console.log('📤 Monnify creation response:', JSON.stringify(result, null, 2));
+              if (!monnifyResult.success) {
+                throw new Error(`Failed to fetch existing account: ${monnifyResult.error || 'Unknown error'}`);
+              }
+            } else {
+              throw createError;
+            }
+          }
 
-          if (result.success && result.data) {
-            const accounts = result.data.accounts || [];
-            console.log('📊 Accounts in response:', accounts.length);
+          if (monnifyResult.success && monnifyResult.data) {
+            const accounts = monnifyResult.data.accounts || [];
 
             if (accounts.length > 0) {
               user.monnifyAccountReference = accountReference;
@@ -107,24 +118,23 @@ router.get('/profile', verifyToken, async (req, res, next) => {
                 bankCode: acc.bankCode
               }));
               await user.save();
-              console.log('✅ Virtual accounts created and saved:', user.monnifyAccounts);
+              console.log(`✅ Saved ${accounts.length} account(s) for ${user.email}`);
+              console.log('Accounts:', user.monnifyAccounts.map(a => `${a.bankName}: ${a.accountNumber}`).join(', '));
             } else {
-              console.error('❌ Monnify response successful but no accounts in data');
-              console.error('Full data:', JSON.stringify(result.data, null, 2));
+              console.error('❌ No accounts found in response');
             }
           } else {
-            console.error('❌ Monnify creation failed. Response:', JSON.stringify(result, null, 2));
+            console.error('❌ Monnify operation failed:', monnifyResult);
           }
         } catch (error) {
-          console.error('❌ Monnify account creation error:', error.message);
-          console.error('Error stack:', error.stack);
+          console.error('❌ Monnify account processing error:', error.message);
           if (error.response?.data) {
-            console.error('Monnify API error response:', JSON.stringify(error.response.data, null, 2));
+            console.error('Monnify API error:', JSON.stringify(error.response.data, null, 2));
           }
         }
+      } else {
+        console.log('✅ User has existing Monnify accounts:', user.monnifyAccounts.length);
       }
-    } else {
-      console.log('✅ User has existing Monnify accounts:', user.monnifyAccounts.length);
     }
 
     res.json({
