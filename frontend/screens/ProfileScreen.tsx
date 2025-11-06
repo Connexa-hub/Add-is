@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../constants/api';
 import { tokenService } from '../utils/tokenService';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen({ navigation }: any) {
   const { tokens } = useAppTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,7 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const loadUserStats = async (token) => {
+  const loadUserStats = async (token: string) => {
     try {
       // Fetch user's transactions to calculate stats with timeout
       const controller = new AbortController();
@@ -104,11 +104,11 @@ export default function ProfileScreen({ navigation }) {
         // Calculate stats from transactions
         const totalTransactions = transactions.length;
         const totalSpent = transactions
-          .filter(t => t.type === 'debit' && t.status === 'completed')
-          .reduce((sum, t) => sum + (t.amount || 0), 0);
+          .filter((t: any) => t.type === 'debit' && t.status === 'completed')
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
         const totalCashback = transactions
-          .filter(t => t.type === 'cashback')
-          .reduce((sum, t) => sum + (t.amount || 0), 0);
+          .filter((t: any) => t.type === 'cashback')
+          .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
         setStats({
           totalTransactions,
@@ -201,7 +201,7 @@ export default function ProfileScreen({ navigation }) {
             <List.Item
               title="Wallet Balance"
               description={`₦${(user?.walletBalance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`}
-              left={props => <List.Icon {...props} icon="wallet" />}
+              left={(props: any) => <List.Icon {...props} icon="wallet" />}
             />
 
             {user?.monnifyAccounts && user.monnifyAccounts.length > 0 && (
@@ -209,8 +209,8 @@ export default function ProfileScreen({ navigation }) {
                 <List.Item
                   title="Virtual Account Number"
                   description={user.monnifyAccounts[0].accountNumber}
-                  left={props => <List.Icon {...props} icon="bank" />}
-                  right={props => (
+                  left={(props: any) => <List.Icon {...props} icon="bank" />}
+                  right={(props: any) => (
                     <Pressable 
                       onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
                       style={styles.copyIconButton}
@@ -226,12 +226,12 @@ export default function ProfileScreen({ navigation }) {
                 <List.Item
                   title="Bank Name"
                   description={user.monnifyAccounts[0].bankName}
-                  left={props => <List.Icon {...props} icon="office-building" />}
+                  left={(props: any) => <List.Icon {...props} icon="office-building" />}
                 />
                 <List.Item
                   title="Account Name"
                   description={user.monnifyAccounts[0].accountName}
-                  left={props => <List.Icon {...props} icon="account" />}
+                  left={(props: any) => <List.Icon {...props} icon="account" />}
                 />
               </>
             )}
@@ -239,7 +239,7 @@ export default function ProfileScreen({ navigation }) {
             <List.Item
               title="Account Status"
               description={user?.isVerified ? 'Verified' : 'Not Verified'}
-              left={props => <List.Icon {...props} icon="check-circle" />}
+              left={(props: any) => <List.Icon {...props} icon="check-circle" />}
             />
           </Card.Content>
         </Card>
@@ -252,31 +252,31 @@ export default function ProfileScreen({ navigation }) {
 
             <List.Item
               title="Transaction History"
-              left={props => <List.Icon {...props} icon="history" />}
-              right={props => <List.Icon {...props} icon="chevron-right" />}
+              left={(props: any) => <List.Icon {...props} icon="history" />}
+              right={(props: any) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => navigation.navigate('History')}
             />
 
             <List.Item
               title="Fund Wallet"
-              left={props => <List.Icon {...props} icon="cash-plus" />}
-              right={props => <List.Icon {...props} icon="chevron-right" />}
+              left={(props: any) => <List.Icon {...props} icon="cash-plus" />}
+              right={(props: any) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => navigation.navigate('Wallet')}
             />
 
             <List.Item
               title="Edit Profile"
               description="Update your information"
-              left={props => <List.Icon {...props} icon="account-edit" />}
-              right={props => <List.Icon {...props} icon="chevron-right" />}
+              left={(props: any) => <List.Icon {...props} icon="account-edit" />}
+              right={(props: any) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => Alert.alert('Coming Soon', 'Profile editing will be available soon')}
             />
 
             <List.Item
               title="Verify Account (KYC)"
               description={user?.kyc?.status === 'approved' ? 'Verified ✓' : user?.kyc?.status === 'pending' ? 'Under review' : 'Not verified - Tap to verify'}
-              left={props => <List.Icon {...props} icon="shield-check" />}
-              right={props => <List.Icon {...props} icon="chevron-right" />}
+              left={(props: any) => <List.Icon {...props} icon="shield-check" />}
+              right={(props: any) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => {
                 if (user?.kyc?.status === 'approved') {
                   Alert.alert('Account Verified', 'Your account is already verified.');
@@ -290,8 +290,8 @@ export default function ProfileScreen({ navigation }) {
 
             <List.Item
               title="Settings"
-              left={props => <List.Icon {...props} icon="cog" />}
-              right={props => <List.Icon {...props} icon="chevron-right" />}
+              left={(props: any) => <List.Icon {...props} icon="cog" />}
+              right={(props: any) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => navigation.navigate('Settings')}
             />
           </Card.Content>
@@ -302,7 +302,7 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const createStyles = (tokens) => StyleSheet.create({
+const createStyles = (tokens: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: tokens.colors.background.default,

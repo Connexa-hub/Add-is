@@ -11,7 +11,7 @@ import { SkeletonBalanceCard, SkeletonServiceGrid } from '../src/components/atom
 import { tokenService } from '../utils/tokenService';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation }: any) {
   const { tokens } = useAppTheme();
   const [user, setUser] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -24,7 +24,7 @@ export default function HomeScreen({ navigation }) {
   const [copiedAccount, setCopiedAccount] = useState(null);
 
   // Placeholder for setBalance function as it was used in the changes but not defined in original
-  const setBalance = (balance) => {
+  const setBalance = (balance: number) => {
     setWalletBalance(balance);
   };
 
@@ -50,7 +50,7 @@ export default function HomeScreen({ navigation }) {
       }
     });
     return unsubscribe;
-  }, [navigation, lastLoadTime]); // Added lastLoadTime to dependency array
+  }, [navigation]);
 
   const loadUserData = async (silentRefresh = false) => {
     try {
@@ -94,7 +94,7 @@ export default function HomeScreen({ navigation }) {
       if (response.status === 401) {
         console.log('Session expired - clearing and redirecting');
         await tokenService.clearToken();
-        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
         return;
       }
@@ -117,7 +117,7 @@ export default function HomeScreen({ navigation }) {
         console.log('🔄 Full user data structure:', JSON.stringify(data.data, null, 2));
       } else {
         console.log('✅ Monnify accounts found:', data.data.monnifyAccounts.length);
-        data.data.monnifyAccounts.forEach((acc, idx) => {
+        data.data.monnifyAccounts.forEach((acc: any, idx: number) => {
           console.log(`   ${idx + 1}. ${acc.bankName}: ${acc.accountNumber} (${acc.accountName})`);
         });
       }
@@ -135,9 +135,9 @@ export default function HomeScreen({ navigation }) {
       } else {
         console.error('Failed to load profile:', data.message);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading user data:', error);
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
         await tokenService.clearToken();
         await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
@@ -172,7 +172,7 @@ export default function HomeScreen({ navigation }) {
       if (response.status === 401) {
         console.log('Unauthorized - clearing session and redirecting to login');
         await tokenService.clearToken();
-        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName', 'biometricToken', 'savedEmail']);
+        await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
         return;
       }
@@ -189,10 +189,10 @@ export default function HomeScreen({ navigation }) {
       } else {
         console.error('Balance fetch failed:', data.message);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch balance:', error);
       // Don't redirect on network errors, only on auth errors
-      if (error.message.includes('401')) {
+      if (error?.message?.includes('401')) {
         await tokenService.clearToken();
         await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
         navigation.replace('Login');
@@ -200,7 +200,7 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const loadRecentTransactions = async (token) => {
+  const loadRecentTransactions = async (token: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/transactions/mine?limit=5`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -256,10 +256,10 @@ export default function HomeScreen({ navigation }) {
       } else {
         console.error('Failed to load unread notification count:', data.message);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading unread notifications:', error);
       // If the error is a parse error, the API might be down or returning HTML
-      if (error.message?.includes('JSON') || error.message?.includes('Parse')) {
+      if (error?.message?.includes('JSON') || error?.message?.includes('Parse')) {
         console.warn('Notification API returned invalid JSON, skipping notification count');
         setUnreadNotifications(0);
       }
@@ -677,7 +677,7 @@ export default function HomeScreen({ navigation }) {
                 See All
               </Button>
             </View>
-            {recentTransactions.map((transaction, index) => (
+            {recentTransactions.map((transaction: any, index: number) => (
               <Card key={index} style={styles.transactionCard}>
                 <Card.Content>
                   <View style={styles.transactionRow}>
@@ -715,7 +715,7 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const createStyles = (tokens) => StyleSheet.create({
+const createStyles = (tokens: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: tokens.colors.background.default
