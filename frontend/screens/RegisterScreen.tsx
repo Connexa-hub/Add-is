@@ -330,7 +330,11 @@ export default function RegisterScreen({ navigation }) {
                     I agree to the{' '}
                   </AppText>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                <TouchableOpacity onPress={() => {
+                  if (navigation && typeof navigation.navigate === 'function') {
+                    navigation.navigate('PrivacyPolicy');
+                  }
+                }}>
                   <AppText variant="body2" color={tokens.colors.primary.main} style={{ textDecorationLine: 'underline' }}>
                     Privacy Policy & Terms
                   </AppText>

@@ -7,7 +7,7 @@ import { AppText } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { GITHUB_URL } from '../constants/api';
 
-export default function PrivacyPolicyScreen({ navigation }: any) {
+function PrivacyPolicyScreen({ navigation }: any) {
   const { tokens } = useAppTheme();
 
   const handleGitHubPress = () => {
@@ -241,3 +241,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+export default PrivacyPolicyScreen;
