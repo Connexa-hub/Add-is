@@ -116,8 +116,8 @@ export default function AppNavigator() {
         // Preload onboarding slides immediately
         preloadOnboardingSlides();
 
-        const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
-        const hasCompletedInitialSetup = await AsyncStorage.getItem('hasCompletedInitialSetup');
+        const hasSeenOnboarding = await AsyncStorage.getItem('onboarding_completed');
+        const hasCompletedInitialSetup = await AsyncStorage.getItem('initialSetupComplete');
 
         // Check token from both sources
         const secureToken = await tokenService.getToken();

@@ -38,12 +38,12 @@ export default function HomeScreen({ navigation }) {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      
+
       // Check both SecureStore and AsyncStorage
       const secureToken = await tokenService.getToken();
       const asyncToken = await AsyncStorage.getItem('token');
       const token = secureToken || asyncToken;
-      
+
       console.log('Loading user data with token:', token ? 'Token exists' : 'No token');
 
       if (!token) {

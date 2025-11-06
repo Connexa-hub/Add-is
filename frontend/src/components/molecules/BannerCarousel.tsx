@@ -53,14 +53,11 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
   const fetchBanners = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(
-        `${API_BASE_URL}/api/banners?section=${section}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/banners?section=${section}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
