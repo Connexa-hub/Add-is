@@ -318,7 +318,9 @@ exports.createVirtualAccount = async (req, res) => {
         accountNumber: acc.accountNumber,
         accountName: acc.accountName,
         bankName: acc.bankName,
-        bankCode: acc.bankCode
+        bankCode: acc.bankCode,
+        reservationReference: acc.reservationReference,
+        collectionChannel: acc.collectionChannel
       }));
       await user.save();
 

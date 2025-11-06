@@ -42,33 +42,28 @@ async function syncExistingMonnifyAccounts() {
         let monnifyResult;
         let wasRetrieved = false;
         
-        try {
-          // First, try to retrieve existing account from Monnify
-          console.log('   Step 1: Checking if account exists in Monnify...');
-          monnifyResult = await monnifyClient.getReservedAccountDetails(accountReference);
+        // First, try to retrieve existing account from Monnify
+        console.log('   Step 1: Checking if account exists in Monnify...');
+        monnifyResult = await monnifyClient.getReservedAccountDetails(accountReference);
+        
+        if (monnifyResult.success && monnifyResult.data) {
+          console.log('   ✅ Found existing account in Monnify!');
+          wasRetrieved = true;
+          retrievedCount++;
+        } else {
+          // If not found, try to create (will auto-retrieve if R42 duplicate error)
+          console.log('   ⚠️  No existing account found, creating new account...');
+          monnifyResult = await monnifyClient.createReservedAccount({
+            accountReference,
+            accountName: user.name,
+            customerEmail: user.email,
+            customerName: user.name,
+          });
           
-          if (monnifyResult.success && monnifyResult.data) {
-            console.log('   ✅ Found existing account in Monnify!');
-            wasRetrieved = true;
-            retrievedCount++;
-          } else {
-            // If not found, try to create new account
-            console.log('   ⚠️  No existing account found, creating new account...');
-            monnifyResult = await monnifyClient.createReservedAccount({
-              accountReference,
-              accountName: user.name,
-              customerEmail: user.email,
-              customerName: user.name,
-            });
-            
-            if (monnifyResult.success) {
-              console.log('   ✅ New account created successfully!');
-              createdCount++;
-            }
+          if (monnifyResult.success) {
+            console.log('   ✅ New account created successfully!');
+            createdCount++;
           }
-        } catch (error) {
-          console.error(`   ❌ Error: ${error.message}`);
-          throw error;
         }
 
         // Save account details to database

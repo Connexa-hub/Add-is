@@ -12,6 +12,30 @@ The project aims to provide a robust, user-friendly, and secure platform for dig
 - RESTful API design
 
 ## Recent Changes
+
+**November 6, 2025 - CRITICAL: Monnify Account Sync Fix & Replit Setup**
+- **✅ Fixed Monnify Account Database Sync Issues**: Resolved critical bug where virtual accounts created in Monnify weren't being saved to MongoDB
+  - Updated User model schema to include reservationReference and collectionChannel fields
+  - Enhanced monnifyClient.js with automatic duplicate account recovery (handles R42 errors)
+  - Fixed all save locations (registration, login, profile, payment controller) to capture ALL Monnify response fields
+  - Added database save verification in all critical paths
+  - Fixed environment variable loading in maintenance scripts
+- **✅ Created Account Recovery Scripts**:
+  - `syncExistingMonnifyAccounts.js` - Comprehensive script to retrieve existing Monnify accounts and sync to database
+  - `testSpecificUser.js` - Diagnostic tool for testing individual users
+  - `findMonnifyReference.js` - Tries multiple reference formats to locate accounts
+- **✅ Replit Environment Setup Complete**:
+  - Installed all backend dependencies
+  - Configured workflow for backend server on port 5000
+  - Set up deployment configuration (VM mode with admin-web build)
+  - Environment secrets configured (MongoDB, JWT, Monnify credentials)
+  - Server running successfully with MongoDB connection verified
+- **⚠️ Known Issue - akinadeisrael5@gmail.com**:
+  - Account exists in Monnify (confirmed by R42 error) but reference format is unknown
+  - Cannot retrieve with standard formats (USER_[id], email, etc.)
+  - Requires Monnify dashboard access to find actual account reference OR Monnify support to delete orphaned account
+  - Once reference is found or account recreated, all fixes will work automatically
+
 **November 3, 2025 - Monnify Account Display & UI Improvements**
 - **✅ Monnify Virtual Account Display on Dashboard**: Added account details to HomeScreen for quick access
   - Displays Bank Name, Account Number, and Account Name in wallet card

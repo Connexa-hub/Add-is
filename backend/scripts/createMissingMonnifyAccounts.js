@@ -32,33 +32,13 @@ async function createMissingMonnifyAccounts() {
         const accountReference = `USER_${user._id}`;
         console.log(`Processing Monnify account for ${user.email}...`);
 
-        let monnifyResult;
-        
-        try {
-          // Try to create new account first
-          console.log(`Attempting to create account...`);
-          monnifyResult = await monnifyClient.createReservedAccount({
-            accountReference,
-            accountName: user.name,
-            customerEmail: user.email,
-            customerName: user.name,
-          });
-        } catch (createError) {
-          // Check if error is because account already exists
-          if (createError.message.includes('cannot reserve more than') || 
-              createError.message.includes('already exists')) {
-            console.log(`Account already exists, fetching details...`);
-            
-            // Fetch existing account details
-            monnifyResult = await monnifyClient.getReservedAccountDetails(accountReference);
-            
-            if (!monnifyResult.success) {
-              throw new Error(`Failed to fetch existing account: ${monnifyResult.error || 'Unknown error'}`);
-            }
-          } else {
-            throw createError;
-          }
-        }
+        // createReservedAccount now handles R42 duplicate errors internally
+        const monnifyResult = await monnifyClient.createReservedAccount({
+          accountReference,
+          accountName: user.name,
+          customerEmail: user.email,
+          customerName: user.name,
+        });
 
         if (monnifyResult.success && monnifyResult.data) {
           const accounts = monnifyResult.data.accounts || [];
