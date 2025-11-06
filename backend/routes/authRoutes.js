@@ -789,13 +789,40 @@ router.delete('/delete-account', verifyToken, async (req, res, next) => {
       Cashback.deleteMany({ userId: req.userId })
     ]);
 
-    // Note: Monnify virtual accounts cannot be deleted via API
-    // They are automatically deactivated when not used
-    // Log the account reference for manual deactivation if needed
+    // Deallocate Monnify reserved account if exists
     if (user.monnifyAccountReference) {
-      console.log(`Monnify account reference for deleted user: ${user.monnifyAccountReference}`);
-      console.log(`User email: ${user.email}`);
-      console.log('Note: Monnify virtual accounts are automatically deactivated after 90 days of inactivity');
+      try {
+        console.log(`Attempting to deallocate Monnify account: ${user.monnifyAccountReference}`);
+        const deallocateResult = await monnifyClient.deallocateReservedAccount(user.monnifyAccountReference);
+        
+        if (deallocateResult.success) {
+          console.log(`✅ Successfully deallocated Monnify account for ${user.email}`);
+          logSecurityEvent('MONNIFY_ACCOUNT_DEALLOCATED', {
+            userId: user._id,
+            email: user.email,
+            accountReference: user.monnifyAccountReference,
+            timestamp: new Date()
+          });
+        } else {
+          console.log(`⚠️ Failed to deallocate Monnify account: ${deallocateResult.message}`);
+          logSecurityEvent('MONNIFY_DEALLOCATION_FAILED', {
+            userId: user._id,
+            email: user.email,
+            accountReference: user.monnifyAccountReference,
+            error: deallocateResult.message,
+            timestamp: new Date()
+          });
+        }
+      } catch (monnifyError) {
+        console.error(`❌ Error deallocating Monnify account:`, monnifyError.message);
+        logSecurityEvent('MONNIFY_DEALLOCATION_ERROR', {
+          userId: user._id,
+          email: user.email,
+          accountReference: user.monnifyAccountReference,
+          error: monnifyError.message,
+          timestamp: new Date()
+        });
+      }
     }
 
     // Send account deletion confirmation email (non-critical - don't fail deletion if it fails)
@@ -820,7 +847,7 @@ router.delete('/delete-account', verifyToken, async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Account and all associated data deleted successfully. Monnify virtual accounts will be automatically deactivated.'
+      message: 'Account and all associated data deleted successfully. Monnify virtual account has been deallocated.'
     });
   } catch (error) {
     logSecurityEvent('ACCOUNT_DELETION_FAILED', {

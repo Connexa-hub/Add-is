@@ -263,6 +263,51 @@ class MonnifyClient {
     }
   }
 
+  async deallocateReservedAccount(accountReference) {
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await axios.delete(
+        `${this.baseUrl}/api/v1/bank-transfer/reserved-accounts/reference/${encodeURIComponent(accountReference)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data && response.data.responseBody) {
+        return {
+          success: true,
+          message: 'Reserved account deallocated successfully',
+          data: response.data.responseBody
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Failed to deallocate reserved account'
+      };
+    } catch (error) {
+      console.error('Monnify deallocate account error:', error.response?.data || error.message);
+      
+      // If account doesn't exist or already deallocated, consider it a success
+      if (error.response?.status === 404 || error.response?.data?.responseCode === 'R404') {
+        return {
+          success: true,
+          message: 'Account already deallocated or does not exist'
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.response?.data?.responseMessage || 'Failed to deallocate reserved account',
+        error: error.message
+      };
+    }
+  }
+
   verifyWebhookSignature(payload, signature) {
     const hash = crypto
       .createHmac('sha512', this.secretKey)

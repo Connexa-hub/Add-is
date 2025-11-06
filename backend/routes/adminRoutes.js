@@ -728,9 +728,38 @@ router.delete('/users/:userId', verifyToken, isAdmin, async (req, res, next) => 
       Cashback.deleteMany({ userId })
     ]);
 
-    // Log Monnify account reference for records
+    // Deallocate Monnify reserved account if exists
     if (user.monnifyAccountReference) {
-      console.log(`Deleted user Monnify account reference: ${user.monnifyAccountReference}`);
+      try {
+        const monnifyClient = require('../utils/monnifyClient');
+        const { logSecurityEvent } = require('../middleware/securityLogger');
+        
+        console.log(`Attempting to deallocate Monnify account: ${user.monnifyAccountReference}`);
+        const deallocateResult = await monnifyClient.deallocateReservedAccount(user.monnifyAccountReference);
+        
+        if (deallocateResult.success) {
+          console.log(`✅ Successfully deallocated Monnify account for ${user.email}`);
+          logSecurityEvent('ADMIN_MONNIFY_ACCOUNT_DEALLOCATED', {
+            adminId: req.userId,
+            deletedUserId: user._id,
+            deletedUserEmail: user.email,
+            accountReference: user.monnifyAccountReference,
+            timestamp: new Date()
+          });
+        } else {
+          console.log(`⚠️ Failed to deallocate Monnify account: ${deallocateResult.message}`);
+          logSecurityEvent('ADMIN_MONNIFY_DEALLOCATION_FAILED', {
+            adminId: req.userId,
+            deletedUserId: user._id,
+            deletedUserEmail: user.email,
+            accountReference: user.monnifyAccountReference,
+            error: deallocateResult.message,
+            timestamp: new Date()
+          });
+        }
+      } catch (monnifyError) {
+        console.error(`❌ Error deallocating Monnify account:`, monnifyError.message);
+      }
     }
 
     // Delete user account
@@ -738,7 +767,7 @@ router.delete('/users/:userId', verifyToken, isAdmin, async (req, res, next) => 
 
     res.json({
       success: true,
-      message: 'User account and all associated data deleted successfully'
+      message: 'User account and all associated data deleted successfully. Monnify virtual account has been deallocated.'
     });
   } catch (error) {
     next(error);
