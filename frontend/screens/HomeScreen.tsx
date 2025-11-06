@@ -26,6 +26,8 @@ export default function HomeScreen({ navigation }) {
   };
 
   const hasLoadedRef = useRef(false);
+  const [lastLoadTime, setLastLoadTime] = React.useState(0);
+
 
   useEffect(() => {
     if (!hasLoadedRef.current) {
@@ -34,6 +36,18 @@ export default function HomeScreen({ navigation }) {
       loadUnreadNotifications();
     }
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Only reload if data is stale (e.g., more than 30 seconds old)
+      const now = Date.now();
+      if (!lastLoadTime || now - lastLoadTime > 30000) {
+        loadUserData();
+        loadUnreadNotifications();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, lastLoadTime]); // Added lastLoadTime to dependency array
 
   const loadUserData = async () => {
     try {
@@ -88,6 +102,14 @@ export default function HomeScreen({ navigation }) {
       console.log('Profile data received:', !!data.data);
       console.log('Monnify accounts:', data.data?.monnifyAccounts || []);
 
+      // Log if Monnify accounts are missing
+      if (!data.data?.monnifyAccounts || data.data.monnifyAccounts.length === 0) {
+        console.error('⚠️ WARNING: User has no Monnify accounts!');
+        console.error('User ID:', data.data?.id);
+        console.error('User email:', data.data?.email);
+        console.error('Monnify account reference:', data.data?.monnifyAccountReference);
+      }
+
       if (data.success && data.data) {
         const userData = data.data;
         setUser(userData);
@@ -97,6 +119,7 @@ export default function HomeScreen({ navigation }) {
         await AsyncStorage.setItem('userName', userData.name || '');
         await AsyncStorage.setItem('userEmail', userData.email || '');
         await AsyncStorage.setItem('userId', userData.id || '');
+        setLastLoadTime(Date.now()); // Update last load time on successful fetch
       } else {
         console.error('Failed to load profile:', data.message);
       }
@@ -269,37 +292,37 @@ export default function HomeScreen({ navigation }) {
 
   // VTU Services organized by VTPass categories
   const vtuServices = [
-    { 
-      id: 'airtime', 
-      name: 'Airtime', 
-      icon: 'call', 
+    {
+      id: 'airtime',
+      name: 'Airtime',
+      icon: 'call',
       color: '#10b981',
       gradient: ['#10b981', '#34d399'],
       screen: 'Airtime',
       category: 'airtime'
     },
-    { 
-      id: 'data', 
-      name: 'Data Bundle', 
-      icon: 'wifi', 
+    {
+      id: 'data',
+      name: 'Data Bundle',
+      icon: 'wifi',
       color: '#3b82f6',
       gradient: ['#3b82f6', '#60a5fa'],
       screen: 'Data',
       category: 'data'
     },
-    { 
-      id: 'electricity', 
-      name: 'Electricity', 
-      icon: 'flash', 
+    {
+      id: 'electricity',
+      name: 'Electricity',
+      icon: 'flash',
       color: '#f59e0b',
       gradient: ['#f59e0b', '#fbbf24'],
       screen: 'Electricity',
       category: 'electricity-bill'
     },
-    { 
-      id: 'tv', 
-      name: 'Cable TV', 
-      icon: 'tv', 
+    {
+      id: 'tv',
+      name: 'Cable TV',
+      icon: 'tv',
       color: '#8b5cf6',
       gradient: ['#8b5cf6', '#a78bfa'],
       screen: 'TV',
@@ -308,19 +331,19 @@ export default function HomeScreen({ navigation }) {
   ];
 
   const billsServices = [
-    { 
-      id: 'internet', 
-      name: 'Internet', 
-      icon: 'globe-outline', 
+    {
+      id: 'internet',
+      name: 'Internet',
+      icon: 'globe-outline',
       color: '#14b8a6',
       gradient: ['#14b8a6', '#2dd4bf'],
       screen: 'Internet',
       category: 'other-services'
     },
-    { 
-      id: 'betting', 
-      name: 'Betting', 
-      icon: 'football', 
+    {
+      id: 'betting',
+      name: 'Betting',
+      icon: 'football',
       color: '#06b6d4',
       gradient: ['#06b6d4', '#22d3ee'],
       screen: 'Betting',
@@ -329,19 +352,19 @@ export default function HomeScreen({ navigation }) {
   ];
 
   const educationServices = [
-    { 
-      id: 'education', 
-      name: 'Education', 
-      icon: 'school', 
+    {
+      id: 'education',
+      name: 'Education',
+      icon: 'school',
       color: '#ef4444',
       gradient: ['#ef4444', '#f87171'],
       screen: 'Education',
       category: 'education'
     },
-    { 
-      id: 'insurance', 
-      name: 'Insurance', 
-      icon: 'shield-checkmark', 
+    {
+      id: 'insurance',
+      name: 'Insurance',
+      icon: 'shield-checkmark',
       color: '#ec4899',
       gradient: ['#ec4899', '#f472b6'],
       screen: 'Insurance',
@@ -362,18 +385,18 @@ export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Appbar.Header style={styles.header}>
-        <Appbar.Content 
+        <Appbar.Content
           title={`Hello, ${user?.name?.split(' ')[0] || 'User'}`}
           titleStyle={styles.headerTitle}
         />
-        <Appbar.Action 
-          icon="magnify" 
-          onPress={() => setSearchQuery('')} 
+        <Appbar.Action
+          icon="magnify"
+          onPress={() => setSearchQuery('')}
         />
         <View style={{ position: 'relative' }}>
-          <Appbar.Action 
-            icon="bell-outline" 
-            onPress={() => navigation.navigate('Notifications')} 
+          <Appbar.Action
+            icon="bell-outline"
+            onPress={() => navigation.navigate('Notifications')}
           />
           {unreadNotifications > 0 && (
             <View style={styles.notificationBadge}>
@@ -551,14 +574,14 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.monnifyLabel}>Account Number</Text>
                     <Text style={styles.monnifyValue}>{user.monnifyAccounts[0].accountNumber}</Text>
                   </View>
-                  <Pressable 
+                  <Pressable
                     onPress={() => handleCopyAccountNumber(user.monnifyAccounts[0].accountNumber)}
                     style={[styles.copyButton, copiedAccount === user.monnifyAccounts[0].accountNumber && styles.copiedButton]}
                   >
-                    <Ionicons 
-                      name={copiedAccount === user.monnifyAccounts[0].accountNumber ? "checkmark-circle" : "copy-outline"} 
-                      size={20} 
-                      color={copiedAccount === user.monnifyAccounts[0].accountNumber ? "#10b981" : "#6366f1"} 
+                    <Ionicons
+                      name={copiedAccount === user.monnifyAccounts[0].accountNumber ? "checkmark-circle" : "copy-outline"}
+                      size={20}
+                      color={copiedAccount === user.monnifyAccounts[0].accountNumber ? "#10b981" : "#6366f1"}
                     />
                     <Text style={[styles.copyText, copiedAccount === user.monnifyAccounts[0].accountNumber && { color: '#10b981' }]}>
                       {copiedAccount === user.monnifyAccounts[0].accountNumber ? 'Copied!' : 'Copy'}
@@ -666,13 +689,13 @@ export default function HomeScreen({ navigation }) {
                 <Card.Content>
                   <View style={styles.transactionRow}>
                     <View style={styles.transactionLeft}>
-                      <View style={[styles.transactionIcon, { 
-                        backgroundColor: transaction.transactionType === 'credit' ? '#E8F5E9' : '#FFEBEE' 
+                      <View style={[styles.transactionIcon, {
+                        backgroundColor: transaction.transactionType === 'credit' ? '#E8F5E9' : '#FFEBEE'
                       }]}>
-                        <Ionicons 
-                          name={transaction.transactionType === 'credit' ? 'arrow-down' : 'arrow-up'} 
-                          size={20} 
-                          color={transaction.transactionType === 'credit' ? '#2e7d32' : '#d32f2f'} 
+                        <Ionicons
+                          name={transaction.transactionType === 'credit' ? 'arrow-down' : 'arrow-up'}
+                          size={20}
+                          color={transaction.transactionType === 'credit' ? '#2e7d32' : '#d32f2f'}
                         />
                       </View>
                       <View>

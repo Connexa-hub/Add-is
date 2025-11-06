@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '../../constants/api';
 import { tokenService } from '../../utils/tokenService';
 
@@ -85,6 +86,7 @@ function MainTabs() {
 export default function AppNavigator() {
   const [initialRoute, setInitialRoute] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Added isLoading state
 
   const hasCheckedAuth = useRef(false);
 
@@ -141,7 +143,7 @@ export default function AppNavigator() {
         } else if (token) {
           // Check if user explicitly logged out (important for biometric flow)
           const hasLoggedOut = await AsyncStorage.getItem('user_logged_out');
-          
+
           if (hasLoggedOut === 'true') {
             console.log('→ Route: Login (user logged out - requires re-authentication)');
             await AsyncStorage.removeItem('user_logged_out');

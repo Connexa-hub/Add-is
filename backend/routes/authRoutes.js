@@ -16,6 +16,16 @@ const {
 } = require('../controllers/walletController');
 const { registerValidation, loginValidation, profileUpdateValidation, walletFundValidation, transactionQueryValidation } = require('../middleware/validation');
 
+// Verify token endpoint
+router.get('/verify-token', verifyToken, async (req, res) => {
+  try {
+    res.json({ valid: true, userId: req.user.userId });
+  } catch (error) {
+    res.status(401).json({ valid: false, error: error.message });
+  }
+});
+
+// Get user profile
 router.get('/profile', verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select('-password');
@@ -41,7 +51,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
           console.log('🔄 Fetching existing Monnify account:', user.monnifyAccountReference);
           const accountDetails = await monnifyClient.getReservedAccountDetails(user.monnifyAccountReference);
           console.log('📥 Account details response:', JSON.stringify(accountDetails, null, 2));
-          
+
           if (accountDetails.success && accountDetails.data && accountDetails.data.accounts) {
             user.monnifyAccounts = accountDetails.data.accounts.map(acc => ({
               accountNumber: acc.accountNumber,
@@ -87,7 +97,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
           if (result.success && result.data) {
             const accounts = result.data.accounts || [];
             console.log('📊 Accounts in response:', accounts.length);
-            
+
             if (accounts.length > 0) {
               user.monnifyAccountReference = accountReference;
               user.monnifyAccounts = accounts.map(acc => ({
