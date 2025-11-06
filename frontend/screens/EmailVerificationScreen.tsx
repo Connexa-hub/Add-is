@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
-import tokenService from '../src/services/tokenService';
+import { tokenService } from '../utils/tokenService';
 
 export default function EmailVerificationScreen({ route, navigation }: any) {
   const { tokens } = useAppTheme();
