@@ -85,28 +85,31 @@ export default function LoginScreen({ navigation }) {
       // This ensures biometric UI shows up after logout or session expiry
       const saved = await AsyncStorage.getItem('savedEmail');
       const biometricUserId = await AsyncStorage.getItem('biometric_user_id');
+      const biometricEnabledFlag = await AsyncStorage.getItem('biometricEnabled');
       
-      console.log('Saved email:', saved, 'Biometric enabled:', biometricEnabled, 'Biometric userId:', biometricUserId);
+      console.log('Biometric check - Saved email:', saved, 'Enabled:', biometricEnabledFlag, 'UserId:', biometricUserId);
       
       // Verify that we have BOTH the enabled flag AND actual credentials
-      if (biometricEnabled && saved && biometricUserId) {
+      if (biometricEnabledFlag === 'true' && saved && biometricUserId) {
         // Double-check that biometric token exists in secure storage
         const hasToken = await SecureStore.getItemAsync(`biometric_credentials_${biometricUserId}`);
         
         if (hasToken) {
-          console.log('Setting up biometric UI - biometric login available');
+          console.log('✅ Biometric credentials found - showing biometric login UI');
           setBiometricConfigured(true);
           setSavedEmail(saved);
           setEmail(saved);
           setShowPasswordLogin(false); // ALWAYS show biometric UI if configured
         } else {
           // Biometric is marked as enabled but token is missing - clear settings
-          console.log('Biometric token missing - clearing biometric settings');
+          console.log('❌ Biometric token missing - clearing biometric settings');
           await AsyncStorage.multiRemove(['biometricEnabled', 'biometric_user_id', 'savedEmail']);
+          setBiometricConfigured(false);
           setShowPasswordLogin(true);
         }
       } else {
-        console.log('Showing password login - biometric not configured');
+        console.log('ℹ️ Biometric not configured - showing password login');
+        setBiometricConfigured(false);
         setShowPasswordLogin(true);
       }
     } catch (error) {
@@ -119,7 +122,16 @@ export default function LoginScreen({ navigation }) {
     if (!isBiometricLoading) {
       setBiometricAvailable(capabilities.isAvailable);
       const enabled = await isBiometricEnabled();
-      setBiometricConfigured(enabled);
+      const saved = await AsyncStorage.getItem('savedEmail');
+      const userId = await AsyncStorage.getItem('biometric_user_id');
+      
+      // Only mark as configured if we have all required data
+      if (enabled && saved && userId) {
+        const hasToken = await SecureStore.getItemAsync(`biometric_credentials_${userId}`);
+        setBiometricConfigured(!!hasToken);
+      } else {
+        setBiometricConfigured(false);
+      }
     }
   };
 

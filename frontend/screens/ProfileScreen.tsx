@@ -137,7 +137,7 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
@@ -148,7 +148,11 @@ export default function ProfileScreen({ navigation }: any) {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear only session data, KEEP biometric credentials
+              setLoading(true);
+
+              // Clear ONLY auth tokens and session data
+              // PRESERVE biometric settings so user can use fingerprint to login again
+              await tokenService.clearToken();
               await AsyncStorage.multiRemove([
                 'token',
                 'userId',
@@ -157,19 +161,23 @@ export default function ProfileScreen({ navigation }: any) {
                 'lastActivityTime'
               ]);
 
-              await SecureStore.deleteItemAsync('auth_token');
+              // IMPORTANT: DO NOT clear these on logout:
+              // - 'biometricEnabled' (user wants to keep using biometric)
+              // - 'biometric_user_id' (identifies which user's biometric to use)
+              // - 'savedEmail' (shows which account to login to)
+              // These are only cleared when user explicitly chooses "Switch Account"
 
-              // DO NOT clear biometric settings on logout
-              // Keep: savedEmail, biometricEnabled, biometric_user_id, biometric_credentials_*
-              // These should only be cleared when user explicitly switches accounts
+              console.log('Logout completed - biometric settings preserved');
 
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'Login' }],
               });
             } catch (error) {
-              console.error('Error during logout:', error);
+              console.error('Error logging out:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
+            } finally {
+              setLoading(false);
             }
           },
         },
