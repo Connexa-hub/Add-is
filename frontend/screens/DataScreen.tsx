@@ -233,15 +233,26 @@ export default function DataScreen() {
   };
 
   const handlePurchase = async () => {
+    let hasError = false;
+    const newErrors = { phoneNumber: '', amount: '' };
+
     if (!validatePhoneNumber(phoneNumber)) {
-      setErrors({ phoneNumber: 'Please enter a valid 11-digit phone number' });
-      return;
+      newErrors.phoneNumber = 'Please enter a valid 11-digit phone number';
+      hasError = true;
+    }
+
+    if (!selectedNetwork) {
+      newErrors.phoneNumber = 'Network not detected. Please check the number';
+      hasError = true;
     }
 
     if (!selectedPlan) {
       Alert.alert('Error', 'Please select a data plan');
-      return;
+      hasError = true;
     }
+
+    setErrors(newErrors);
+    if (hasError) return;
 
     try {
       setLoading(true);
@@ -277,11 +288,9 @@ export default function DataScreen() {
 
       setShowPaymentPreview(true);
     } catch (error: any) {
+      Alert.alert('Error', 'An error occurred while verifying your PIN status. Please try again.');
+    } finally {
       setLoading(false);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to initiate purchase. Please check your connection and try again.'
-      );
     }
   };
 

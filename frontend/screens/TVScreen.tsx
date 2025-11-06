@@ -173,19 +173,7 @@ export default function TVScreen() {
     return smartcardRegex.test(number);
   };
 
-  const handleSubscribe = () => {
-    if (!validateSmartcardNumber(smartcardNumber)) {
-      setErrors({ smartcardNumber: 'Please enter a valid 10-11 digit smartcard number' });
-      return;
-    }
-
-    if (!selectedPackage) {
-      Alert.alert('Error', 'Please select a TV package');
-      return;
-    }
-
-    setShowPaymentPreview(true);
-  };
+  
 
   const confirmSubscription = async (usedCashback: number) => {
     setShowPaymentPreview(false);
@@ -244,7 +232,17 @@ export default function TVScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
-  const handlePurchase = async () => {
+  const handleSubscribe = async () => {
+    if (!validateSmartcardNumber(smartcardNumber)) {
+      setErrors({ smartcardNumber: 'Please enter a valid 10-11 digit smartcard number' });
+      return;
+    }
+
+    if (!selectedPackage) {
+      Alert.alert('Error', 'Please select a TV package');
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -276,11 +274,12 @@ export default function TVScreen() {
         );
         return;
       }
+
+      setShowPaymentPreview(true);
     } catch (error) {
-      console.error('Error checking PIN status:', error);
-      Alert.alert('Error', 'Could not verify transaction PIN status. Please try again.');
+      Alert.alert('Error', 'An error occurred while verifying your PIN status. Please try again.');
+    } finally {
       setLoading(false);
-      return;
     }
   };
 
