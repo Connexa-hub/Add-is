@@ -208,6 +208,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
               backgroundColor: tokens.colors.background.paper,
               borderTopLeftRadius: tokens.radius.xl,
               borderTopRightRadius: tokens.radius.xl,
+              maxHeight: '90%',
             },
           ]}
         >
@@ -499,8 +500,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sheet: {
-    maxHeight: '70%',
-    minHeight: '50%',
+    maxHeight: '90%',
+    minHeight: '60%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   handleContainer: {
     alignItems: 'center',

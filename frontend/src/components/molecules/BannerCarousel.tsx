@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, Image, TouchableOpacity, Linking, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PromoBanner } from './PromoBanner';
 import { API_BASE_URL } from '../../../constants/api';
-import { TouchableOpacity, Linking } from 'react-native';
 import axios from 'axios';
 
 const { width } = Dimensions.get('window');
+
+// Standard banner dimensions following OPay/Google Play mini banner style
+const BANNER_WIDTH = width - 32; // 16px padding on each side
+const BANNER_HEIGHT = 120; // Standard compact height
+const BANNER_ASPECT_RATIO = BANNER_WIDTH / BANNER_HEIGHT;
 
 interface Banner {
   _id: string;
@@ -17,7 +21,8 @@ interface Banner {
   backgroundColor?: string;
   section: string;
   isActive: boolean;
-  targetUrl?: string; // Added targetUrl to the interface
+  targetUrl?: string;
+  weight?: number;
 }
 
 interface BannerCarouselProps {
@@ -29,6 +34,16 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const autoSlideInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Shuffle array using Fisher-Yates algorithm
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
   useEffect(() => {
     fetchBanners();
@@ -63,7 +78,9 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
 
       if (data.success && data.data && Array.isArray(data.data)) {
         const activeBanners = data.data.filter((banner: Banner) => banner.isActive);
-        setBanners(activeBanners);
+        // Auto-shuffle banners on fetch to randomize display order
+        const shuffledBanners = shuffleArray(activeBanners);
+        setBanners(shuffledBanners);
       }
     } catch (error) {
       console.error('Error fetching banners:', error);
@@ -115,16 +132,23 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
   // Handle banner press for clicks and URL opening
   const handleBannerPress = async (banner: Banner) => {
     try {
-      // Track click
-      await axios.post(`${API_BASE_URL}/api/banners/${banner._id}/click`);
+      // Track click asynchronously (don't block user interaction)
+      axios.post(`${API_BASE_URL}/api/banners/${banner._id}/click`).catch(err => 
+        console.warn('Failed to track banner click:', err)
+      );
 
-      // Open URL if exists
-      if (banner.targetUrl) {
-        const supported = await Linking.canOpenURL(banner.targetUrl);
-        if (supported) {
-          await Linking.openURL(banner.targetUrl);
-        } else {
-          console.error(`Cannot open URL: ${banner.targetUrl}`);
+      // Open URL if exists and valid
+      if (banner.targetUrl && banner.targetUrl.trim()) {
+        try {
+          const supported = await Linking.canOpenURL(banner.targetUrl);
+          if (supported) {
+            await Linking.openURL(banner.targetUrl);
+          } else {
+            Alert.alert('Invalid Link', 'This banner link cannot be opened on your device.');
+          }
+        } catch (linkError) {
+          console.error('URL opening error:', linkError);
+          Alert.alert('Error', 'Could not open the link. Please try again later.');
         }
       }
     } catch (error) {
@@ -156,13 +180,24 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
             activeOpacity={banner.targetUrl ? 0.7 : 1}
             disabled={!banner.targetUrl}
           >
-            <PromoBanner
-              title={banner.title}
-              description={banner.description}
-              backgroundColor={banner.backgroundColor}
-              mediaUrl={banner.mediaUrl} // Pass mediaUrl to PromoBanner if it's used there
-              mediaType={banner.mediaType} // Pass mediaType if needed
-            />
+            <View style={styles.bannerContainer}>
+              {/* Display banner image if available */}
+              {banner.mediaUrl && banner.mediaType === 'image' && (
+                <Image
+                  source={{ uri: banner.mediaUrl }}
+                  style={styles.bannerImage}
+                  resizeMode="cover"
+                />
+              )}
+              {/* Overlay text content */}
+              <View style={styles.bannerTextOverlay}>
+                <PromoBanner
+                  title={banner.title}
+                  description={banner.description}
+                  backgroundColor={banner.mediaUrl ? 'transparent' : (banner.backgroundColor || '#6366f1')}
+                />
+              </View>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -195,8 +230,26 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   bannerWrapper: {
-    width: width - 32,
+    width: BANNER_WIDTH,
+    height: BANNER_HEIGHT,
     marginRight: 0,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bannerContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  bannerTextOverlay: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
   },
   pagination: {
     flexDirection: 'row',

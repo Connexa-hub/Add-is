@@ -574,7 +574,7 @@ const BannerManagement = () => {
                     <input
                       type="text"
                       value={activeTab === 'banners' ? bannerFormData.title : onboardingFormData.title}
-                      onChange={(e) => activeTab === 'banners' 
+                      onChange={(e) => activeTab === 'banners'
                         ? setBannerFormData({...bannerFormData, title: e.target.value})
                         : setOnboardingFormData({...onboardingFormData, title: e.target.value})
                       }
@@ -606,6 +606,9 @@ const BannerManagement = () => {
                       placeholder="https://example.com/image.jpg"
                       required
                     />
+                    <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '0.25rem' }}>
+                      Recommended: 1200x400px for home banners (3:1 ratio), max 5MB
+                    </p>
                     <div style={{ marginTop: '0.5rem' }}>
                       <label style={{ fontSize: '0.875rem', color: 'var(--gray-600)', display: 'block', marginBottom: '0.5rem' }}>Or upload a file:</label>
                       <input
@@ -635,6 +638,20 @@ const BannerManagement = () => {
 
                   {activeTab === 'banners' && (
                     <>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label className="label">Target URL (Optional)</label>
+                        <input
+                          type="url"
+                          value={bannerFormData.targetUrl || ''}
+                          onChange={(e) => setBannerFormData({...bannerFormData, targetUrl: e.target.value})}
+                          className="input"
+                          placeholder="https://example.com/promotion"
+                        />
+                        <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '0.25rem' }}>
+                          {bannerFormData.targetUrl ? '✓ Banner will be clickable' : 'Leave empty for non-clickable banners'}
+                        </p>
+                      </div>
+
                       <div style={{ marginBottom: '1rem' }}>
                         <label className="label">Target Sections *</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>

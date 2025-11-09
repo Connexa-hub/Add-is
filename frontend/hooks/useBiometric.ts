@@ -273,6 +273,47 @@ export const useBiometric = () => {
     }
   };
 
+  const savePINForBiometric = async (
+    userId: string,
+    encryptedPIN: string
+  ): Promise<boolean> => {
+    try {
+      if (!capabilities.isAvailable) {
+        return false;
+      }
+
+      // Store encrypted PIN securely for biometric access
+      await SecureStore.setItemAsync(`biometric_pin_${userId}`, encryptedPIN);
+      await AsyncStorage.setItem('biometric_pin_enabled', 'true');
+
+      return true;
+    } catch (error) {
+      console.error('Error saving PIN for biometric:', error);
+      return false;
+    }
+  };
+
+  const getPINForBiometric = async (userId: string): Promise<string | null> => {
+    try {
+      const pin = await SecureStore.getItemAsync(`biometric_pin_${userId}`);
+      return pin;
+    } catch (error) {
+      console.error('Error retrieving PIN for biometric:', error);
+      return null;
+    }
+  };
+
+  const clearBiometricPIN = async (userId: string): Promise<boolean> => {
+    try {
+      await SecureStore.deleteItemAsync(`biometric_pin_${userId}`);
+      await AsyncStorage.removeItem('biometric_pin_enabled');
+      return true;
+    } catch (error) {
+      console.error('Error clearing biometric PIN:', error);
+      return false;
+    }
+  };
+
   const getStoredBiometricToken = async (userId: string): Promise<string | null> => {
     try {
       const biometricToken = await SecureStore.getItemAsync(
@@ -386,6 +427,9 @@ export const useBiometric = () => {
     authenticateForLogin,
     promptEnableBiometric,
     checkBiometricCapabilities,
+    savePINForBiometric,
+    getPINForBiometric,
+    clearBiometricPIN,
   };
 };
 
