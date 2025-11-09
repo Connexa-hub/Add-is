@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText, AppButton, AppDivider } from '../atoms';
+import NetworkErrorCard from './NetworkErrorCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_BASE_URL } from '../../../constants/api';
 import { useBiometric } from '../../../hooks/useBiometric';
+import { useNetwork } from '../../../contexts/NetworkContext';
 
 export interface PaymentPreviewSheetProps {
   visible: boolean;
@@ -33,12 +35,14 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   onAddFunds,
 }) => {
   const { tokens } = useAppTheme();
+  const { isOnline } = useNetwork();
   const { capabilities, authenticate, isBiometricEnabled } = useBiometric();
   const [availableCashback, setAvailableCashback] = useState(0);
   const [useCashback, setUseCashback] = useState(true);
   const [cashbackToEarn, setCashbackToEarn] = useState(0);
   const [loading, setLoading] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [networkError, setNetworkError] = useState({ visible: false, message: '', type: 'network_error' as const });
 
   useEffect(() => {
     if (visible) {
@@ -77,6 +81,39 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
     setBiometricEnabled(enabled && capabilities.isAvailable);
   };
 
+  const isNetworkError = (error: any) => {
+    if (error.code === 'ECONNABORTED' || error.message === 'canceled') {
+      return { isNetwork: true, type: 'timeout' as const };
+    }
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+      return { isNetwork: true, type: 'network_error' as const };
+    }
+    if (!error.response && error.request) {
+      return { isNetwork: true, type: 'network_error' as const };
+    }
+    if (error.response && error.response.status >= 500) {
+      return { isNetwork: true, type: 'server_error' as const };
+    }
+    return { isNetwork: false, type: undefined };
+  };
+
+  const showNetworkError = (errorType: 'network_error' | 'timeout' | 'server_error' = 'network_error', customMessage: string = '') => {
+    setNetworkError({
+      visible: true,
+      message: customMessage,
+      type: errorType,
+    });
+  };
+
+  const handleRetryPayment = async () => {
+    setNetworkError({ visible: false, message: '', type: 'network_error' });
+    await handleConfirm();
+  };
+
+  const handleDismissError = () => {
+    setNetworkError({ visible: false, message: '', type: 'network_error' });
+  };
+
   const finalAmount = useCashback && availableCashback > 0
     ? Math.max(0, amount - Math.min(availableCashback, amount))
     : amount;
@@ -86,6 +123,12 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
 
   const handleConfirm = async () => {
     if (insufficientFunds) {
+      return;
+    }
+
+    // Check network connectivity before proceeding
+    if (!isOnline) {
+      showNetworkError('network_error', 'You are currently offline. Please check your internet connection and try again.');
       return;
     }
 
@@ -133,6 +176,14 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
     } catch (error) {
       setLoading(false);
       console.error('Failed to check PIN status:', error);
+      
+      // Check if it's a network error
+      const networkErrorCheck = isNetworkError(error);
+      if (networkErrorCheck.isNetwork) {
+        showNetworkError(networkErrorCheck.type);
+        return;
+      }
+      
       Alert.alert('Error', 'Failed to verify security settings. Please try again.');
     }
   };
@@ -422,6 +473,16 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
               </>
             )}
           </ScrollView>
+
+          {/* Network Error Card */}
+          <NetworkErrorCard
+            visible={networkError.visible}
+            message={networkError.message}
+            errorType={networkError.type}
+            onRetry={handleRetryPayment}
+            onDismiss={handleDismissError}
+            position="bottom"
+          />
         </View>
       </View>
     </Modal>

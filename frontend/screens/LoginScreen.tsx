@@ -7,13 +7,15 @@ import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
-import { BiometricModal } from '../src/components/molecules';
+import { BiometricModal, NetworkErrorCard } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 import { tokenService } from '../utils/tokenService';
+import { useNetwork } from '../contexts/NetworkContext';
 
 export default function LoginScreen({ navigation }) {
   const { tokens } = useAppTheme();
+  const { isOnline, checkConnection } = useNetwork();
   const {
     capabilities,
     isLoading: isBiometricLoading,
@@ -34,6 +36,8 @@ export default function LoginScreen({ navigation }) {
   const [showBiometricModal, setShowBiometricModal] = useState(false);
   const [pendingBiometricData, setPendingBiometricData] = useState(null);
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [networkError, setNetworkError] = useState({ visible: false, message: '', type: 'network_error' });
+  const [pendingAction, setPendingAction] = useState(null);
   const hasCheckedSession = useRef(false);
 
   useEffect(() => {
@@ -152,6 +156,47 @@ export default function LoginScreen({ navigation }) {
     return emailRegex.test(email);
   };
 
+  const isNetworkError = (error: any) => {
+    // Check if it's a network-related error
+    if (error.code === 'ECONNABORTED' || error.message === 'canceled') {
+      return { isNetwork: true, type: 'timeout' as const };
+    }
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+      return { isNetwork: true, type: 'network_error' as const };
+    }
+    if (!error.response && error.request) {
+      return { isNetwork: true, type: 'network_error' as const };
+    }
+    if (error.response && error.response.status >= 500) {
+      return { isNetwork: true, type: 'server_error' as const };
+    }
+    return { isNetwork: false, type: undefined };
+  };
+
+  const showNetworkError = (errorType: 'network_error' | 'timeout' | 'server_error' = 'network_error', customMessage: string = '') => {
+    setNetworkError({
+      visible: true,
+      message: customMessage,
+      type: errorType,
+    });
+  };
+
+  const handleRetryLogin = async () => {
+    setNetworkError({ visible: false, message: '', type: 'network_error' });
+    
+    // Retry the pending action
+    if (pendingAction === 'biometric') {
+      await handleBiometricLogin();
+    } else if (pendingAction === 'password') {
+      await handleLogin();
+    }
+  };
+
+  const handleDismissError = () => {
+    setNetworkError({ visible: false, message: '', type: 'network_error' });
+    setPendingAction(null);
+  };
+
   const handleBiometricLogin = async () => {
     if (!savedEmail) {
       Alert.alert('Error', 'No saved credentials found');
@@ -257,6 +302,14 @@ export default function LoginScreen({ navigation }) {
         console.error('Biometric login error:', loginError);
         setLoading(false);
 
+        // Check if it's a network error
+        const networkErrorCheck = isNetworkError(loginError);
+        if (networkErrorCheck.isNetwork) {
+          setPendingAction('biometric');
+          showNetworkError(networkErrorCheck.type);
+          return;
+        }
+
         // Clear invalid tokens but KEEP biometric credentials
         await tokenService.clearToken();
         await AsyncStorage.removeItem('token');
@@ -272,6 +325,15 @@ export default function LoginScreen({ navigation }) {
     } catch (error) {
       console.error('Biometric login error:', error);
       setLoading(false);
+      
+      // Check if it's a network error
+      const networkErrorCheck = isNetworkError(error);
+      if (networkErrorCheck.isNetwork) {
+        setPendingAction('biometric');
+        showNetworkError(networkErrorCheck.type);
+        return;
+      }
+      
       Alert.alert('Error', 'An error occurred during biometric login');
     }
   };
@@ -419,6 +481,15 @@ export default function LoginScreen({ navigation }) {
         }
       }
     } catch (err) {
+      // Check if it's a network error first
+      const networkErrorCheck = isNetworkError(err);
+      if (networkErrorCheck.isNetwork) {
+        setPendingAction('password');
+        showNetworkError(networkErrorCheck.type);
+        setLoading(false);
+        return;
+      }
+
       const errorData = err.response?.data;
 
       if (errorData?.requiresVerification && errorData?.email) {
@@ -718,6 +789,16 @@ export default function LoginScreen({ navigation }) {
         onEnable={handleEnableBiometric}
         onSkip={handleSkipBiometric}
         biometricType={capabilities.biometricType || 'Biometric'}
+      />
+
+      {/* Network Error Card */}
+      <NetworkErrorCard
+        visible={networkError.visible}
+        message={networkError.message}
+        errorType={networkError.type}
+        onRetry={handleRetryLogin}
+        onDismiss={handleDismissError}
+        position="top"
       />
     </SafeAreaView>
   );
