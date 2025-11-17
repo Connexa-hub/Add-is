@@ -299,7 +299,7 @@ export default function DataScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await axios.post(
-        `${API_BASE_URL}/services/buy-data`,
+        `${API_BASE_URL}/api/services/buy-data`,
         {
           phoneNumber,
           plan: selectedPlan!.id,

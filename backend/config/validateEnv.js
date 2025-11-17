@@ -5,8 +5,8 @@ const validateEnv = () => {
   ];
 
   const optionalEnvVars = [
-    'VTPASS_USERNAME',
     'VTPASS_API_KEY',
+    'VTPASS_SECRET_KEY',
     'VTPASS_BASE_URL',
   ];
 

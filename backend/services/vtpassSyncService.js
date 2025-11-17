@@ -2,9 +2,9 @@ const axios = require('axios');
 const VTUProduct = require('../models/VTUProduct');
 
 const getAuthHeaders = () => {
-  const token = Buffer.from(`${process.env.VTPASS_USERNAME}:${process.env.VTPASS_API_KEY}`).toString('base64');
   return {
-    Authorization: `Basic ${token}`,
+    'api-key': process.env.VTPASS_API_KEY,
+    'secret-key': process.env.VTPASS_SECRET_KEY,
     'Content-Type': 'application/json'
   };
 };

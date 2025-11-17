@@ -221,7 +221,7 @@ export default function InternetScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await axios.post(
-        `${API_BASE_URL}/services/internet`,
+        `${API_BASE_URL}/api/services/internet`,
         {
           accountNumber,
           variation_code: selectedPlan!.id,

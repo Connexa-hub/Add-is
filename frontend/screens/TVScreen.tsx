@@ -183,7 +183,7 @@ export default function TVScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await axios.post(
-        `${API_BASE_URL}/services/subscribe-tv`,
+        `${API_BASE_URL}/api/services/subscribe-tv`,
         {
           smartcardNumber,
           variation_code: selectedPackage!.id,

@@ -239,7 +239,7 @@ export default function BettingScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await axios.post(
-        `${API_BASE_URL}/services/betting`,
+        `${API_BASE_URL}/api/services/betting`,
         {
           customerId: userId,
           serviceID: selectedProvider,

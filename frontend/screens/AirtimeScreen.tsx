@@ -272,7 +272,7 @@ export default function AirtimeScreen() {
       const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
 
       const response = await axios.post(
-        `${API_BASE_URL}/services/buy-airtime`,
+        `${API_BASE_URL}/api/services/buy-airtime`,
         {
           phoneNumber,
           network: serviceID,

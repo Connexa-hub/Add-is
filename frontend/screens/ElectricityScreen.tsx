@@ -260,7 +260,7 @@ export default function ElectricityScreen() {
       setPaymentStatus('processing');
 
       const response = await axios.post(
-        `${API_BASE_URL}/services/pay-electricity`,
+        `${API_BASE_URL}/api/services/pay-electricity`,
         {
           meterNumber,
           variation_code: selectedMeterType,
