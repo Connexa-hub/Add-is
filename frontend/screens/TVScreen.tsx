@@ -469,33 +469,6 @@ export default function TVScreen() {
           )}
         </View>
 
-        {selectedPackage && smartcardNumber && (
-          <View
-            style={{
-              backgroundColor: tokens.colors.primary.light,
-              padding: tokens.spacing.md,
-              borderRadius: tokens.radius.lg,
-              marginBottom: tokens.spacing.lg,
-            }}
-          >
-            <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.xs }}>
-              Subscription Summary
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Provider: {providers.find(p => p.id === selectedProvider)?.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Package: {selectedPackage.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Smartcard: {smartcardNumber}
-            </AppText>
-            <AppText variant="h3" weight="bold" color={tokens.colors.primary.main} style={{ marginTop: tokens.spacing.xs }}>
-              Total: ₦{selectedPackage.price.toLocaleString()}
-            </AppText>
-          </View>
-        )}
-
         <AppButton
           onPress={handleSubscribe}
           loading={loading}

@@ -61,7 +61,8 @@ export default function DataScreen() {
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
   const [showProcessing, setShowProcessing] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'failed' | ''>('');
+  const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'pending' | 'failed'>('processing');
+  const [transactionReference, setTransactionReference] = useState('');
   const [balance, setBalance] = useState(0); // Assuming balance is for wallet
 
   useEffect(() => {
@@ -339,8 +340,8 @@ export default function DataScreen() {
       );
 
       if (response.data.success) {
+        setTransactionReference(response.data.transaction?.reference || '');
         setPaymentStatus('success');
-        setWalletBalance(response.data.newBalance || walletBalance);
         await fetchWalletBalance();
 
         // Don't auto-close, let user dismiss
@@ -615,7 +616,7 @@ export default function DataScreen() {
         amount={selectedPlan?.price || 0}
         serviceName={`${networks.find(n => n.id === selectedNetwork)?.name || ''} Data`}
         recipient={phoneNumber}
-        reference=""
+        reference={transactionReference}
         onClose={() => {
           setShowProcessing(false);
           if (paymentStatus === 'success' || paymentStatus === 'pending') {
@@ -626,6 +627,8 @@ export default function DataScreen() {
           setShowProcessing(false);
           setShowPaymentPreview(true);
         }}
+        walletBalanceBefore={walletBalance}
+        walletBalanceAfter={walletBalance - (selectedPlan?.price || 0)}
       />
     </View>
   );

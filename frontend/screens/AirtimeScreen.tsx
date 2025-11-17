@@ -553,11 +553,10 @@ export default function AirtimeScreen() {
         }}
         onRetry={() => {
           setShowProcessing(false);
-          setShowPaymentPreview(true)
+          setShowPaymentPreview(true);
         }}
         walletBalanceBefore={walletBalance}
-        walletBalanceAfter={walletBalance - parseFloat(amount || '0')};
-        }}
+        walletBalanceAfter={walletBalance - parseFloat(amount || '0')}
       />
     </View>
   );

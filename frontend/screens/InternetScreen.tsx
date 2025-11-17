@@ -482,6 +482,8 @@ export default function InternetScreen() {
         reference={transactionReference}
         onClose={handleProcessingClose}
         onRetry={handleRetry}
+        walletBalanceBefore={walletBalance}
+        walletBalanceAfter={walletBalance - (selectedPlan?.price || 0)}
       />
     </View>
   );

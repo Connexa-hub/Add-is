@@ -499,6 +499,8 @@ export default function BettingScreen() {
         reference={transactionReference}
         onClose={handleProcessingClose}
         onRetry={handleRetry}
+        walletBalanceBefore={walletBalance}
+        walletBalanceAfter={walletBalance - parseFloat(amount || '0')}
       />
     </View>
   );

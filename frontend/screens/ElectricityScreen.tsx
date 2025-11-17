@@ -514,9 +514,9 @@ export default function ElectricityScreen() {
         recipient={meterNumber}
         reference={transactionReference}
         onClose={handleProcessingClose}
+        onRetry={handleRetry}
         walletBalanceBefore={walletBalance}
         walletBalanceAfter={walletBalance - parseFloat(amount || '0')}
-        onRetry={handleRetry}
       />
 
       <BottomSheet
