@@ -53,6 +53,26 @@ Connexa is a full-featured VTU bill payment platform with React Native mobile ap
   - All color tokens properly contrasted for accessibility
   - Fintech-grade fluent experience matching industry leaders
 
+**November 17, 2025 - REPLIT ENVIRONMENT SETUP**
+- **✅ Backend & Admin Dashboard Configured**:
+  - Installed all backend dependencies (Express, MongoDB, JWT, etc.)
+  - Installed admin dashboard dependencies (React 19, Vite, TailwindCSS)
+  - Backend API running on port 3001 (localhost)
+  - Admin Dashboard running on port 5000 (0.0.0.0 for Replit proxy)
+  - Vite configured with `allowedHosts: true` for Replit environment
+  - Vite proxy configured to forward /api and /uploads to backend on port 3001
+- **✅ Environment Variables Configured**:
+  - MONGO_URI: MongoDB Atlas connection
+  - JWT_SECRET: Secure token encryption
+  - VTPASS_API_KEY & VTPASS_SECRET_KEY: Bill payment API
+  - MONNIFY_API_KEY, MONNIFY_SECRET_KEY, MONNIFY_CONTRACT_CODE: Payment gateway
+  - EMAIL_USER & EMAIL_PASS: Gmail for notifications
+- **✅ Workflow & Deployment**:
+  - Development workflow: `bash start-all.sh` (runs backend + admin)
+  - Deployment configured for VM (always-on server)
+  - Build step: Builds admin dashboard into backend/admin-web/dist
+  - Production: Single server on port 5000 serves both API and admin UI
+
 **November 6, 2025 - CRITICAL PRODUCTION FIXES: Biometric Authentication & Homescreen UI**
 - **✅ Fixed Biometric Authentication System Prompt** (PRODUCTION BLOCKER RESOLVED):
   - Updated `useBiometric.ts` `enableBiometric()` function to trigger system biometric authentication BEFORE saving credentials
