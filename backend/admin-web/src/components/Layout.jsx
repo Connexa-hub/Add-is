@@ -67,8 +67,8 @@ export default function Layout({ children }) {
           <div className="flex items-center justify-between">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center shadow-lg">
-                  <Building2 size={24} className="text-white" />
+                <div className="w-12 h-12 flex items-center justify-center">
+                  <img src="/logo.png" alt="Connexa Logo" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <p className="text-white font-bold text-lg">Admin Portal</p>
@@ -76,8 +76,8 @@ export default function Layout({ children }) {
                 </div>
               </div>
             ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center mx-auto shadow-lg">
-                <Building2 size={24} className="text-white" />
+              <div className="w-12 h-12 flex items-center justify-center mx-auto">
+                <img src="/logo.png" alt="Connexa Logo" className="w-full h-full object-contain" />
               </div>
             )}
             <button
