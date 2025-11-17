@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Modal, Animated, Easing, Alert } from 'react-native';
+import { View, StyleSheet, Modal, Animated, Easing, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText, AppButton } from '../atoms';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -204,7 +204,10 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
                   transform: [{ rotate: spin }, { scale: pulseValue }],
                 }}
               >
-                <Ionicons name={config.icon as any} size={80} color={config.color} />
+                <Image
+                  source={require('../../../assets/images/splash-icon.png')}
+                  style={{ width: 100, height: 100, resizeMode: 'contain' }}
+                />
               </Animated.View>
             ) : (
               <Animated.View
