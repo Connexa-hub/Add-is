@@ -8,6 +8,7 @@ import axios from 'axios';
 import AppNavigator from './src/navigation/AppNavigator';
 import { lightTheme, darkTheme } from './src/theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { NetworkProvider } from './contexts/NetworkContext';
 import { tokenService } from './utils/tokenService';
 import { API_BASE_URL } from './constants/api';
 
@@ -143,7 +144,9 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <AppContent />
+      <NetworkProvider>
+        <AppContent />
+      </NetworkProvider>
     </ThemeProvider>
   );
 }
