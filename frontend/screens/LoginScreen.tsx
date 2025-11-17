@@ -228,7 +228,8 @@ export default function LoginScreen({ navigation }) {
         setLoading(false);
         Alert.alert(
           'Re-authentication Required',
-          'Your biometric credentials have expired. Please login with your email and password.'
+          'Your biometric credentials have expired. Please login with your email and password.',
+          [{ text: 'OK' }]
         );
         return;
       }
@@ -282,19 +283,18 @@ export default function LoginScreen({ navigation }) {
           console.log('Token verified, navigating to Main...');
 
           // Small delay to ensure storage is complete
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 200));
 
-          setLoading(false);
+          // Clear any login flags
+          await AsyncStorage.removeItem('user_logged_out');
           
           // Use reset to prevent back navigation to login
-          if (navigation?.reset) {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Main' }],
-            });
-          } else {
-            navigation.replace('Main');
-          }
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Main' }],
+          });
+          
+          setLoading(false);
         } else {
           throw new Error('Login failed - invalid response');
         }

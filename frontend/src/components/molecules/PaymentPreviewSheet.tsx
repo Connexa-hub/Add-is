@@ -55,11 +55,18 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   }, [visible, amount]);
 
   useEffect(() => {
-    if (previousVisible && !visible && onCleanup) {
-      onCleanup();
+    if (previousVisible && !visible) {
+      // Always cleanup when modal closes
+      if (onCleanup) {
+        onCleanup();
+      }
+      // Reset internal states
+      setUseCashback(true);
+      setLoading(false);
+      setNetworkError({ visible: false, message: '', type: 'network_error' });
     }
     setPreviousVisible(visible);
-  }, [visible]);
+  }, [visible, onCleanup]);
 
   const fetchCashbackData = async () => {
     try {
@@ -155,33 +162,27 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
       if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
         setLoading(false);
         onClose(); // Close payment preview
+        
+        // Navigate to PIN setup from the parent navigation
         Alert.alert(
           'Set Up Transaction PIN',
-          'For security, you need to set up a Transaction PIN before making purchases. Please go to Settings > Security to set up your PIN.',
-          [{ text: 'OK' }]
+          'For security, you need to set up a Transaction PIN before making purchases.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Set Up PIN',
+              onPress: () => {
+                // Parent component should handle navigation
+                onClose();
+              }
+            }
+          ]
         );
         return;
       }
 
-      // If biometric is enabled and available, use it
-      if (biometricEnabled && capabilities.isAvailable) {
-        const authResult = await authenticate(
-          `Authenticate to pay ₦${finalAmount.toLocaleString()}`,
-          'Cancel'
-        );
-
-        if (!authResult.success) {
-          setLoading(false);
-          Alert.alert(
-            'Authentication Failed',
-            authResult.error || 'Biometric authentication failed. Payment cancelled.',
-            [{ text: 'OK' }]
-          );
-          return;
-        }
-      }
-
-      // Proceed with payment
+      // Proceed with payment (authentication will be handled by PINVerify screen)
+      setLoading(false);
       onConfirm(cashbackUsed);
     } catch (error) {
       setLoading(false);
@@ -218,7 +219,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
               backgroundColor: tokens.colors.background.paper,
               borderTopLeftRadius: tokens.radius.xl,
               borderTopRightRadius: tokens.radius.xl,
-              maxHeight: '55%',
+              height: '50%',
             },
           ]}
         >
@@ -467,7 +468,6 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
                 fullWidth
                 loading={loading}
                 disabled={loading}
-                icon={<Ionicons name={biometricEnabled ? 'finger-print' : 'lock-closed'} size={20} color="#FFFFFF" />}
               >
                 Pay
               </AppButton>
@@ -499,8 +499,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sheet: {
-    maxHeight: '55%',
-    minHeight: '50%',
+    height: '50%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },

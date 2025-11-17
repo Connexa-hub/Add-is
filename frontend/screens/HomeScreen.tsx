@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
 import { API_BASE_URL } from '../constants/api';
-import { BannerCarousel } from '../src/components/molecules';
+import { BannerCarousel, NetworkErrorCard } from '../src/components/molecules';
 import { SkeletonBalanceCard, SkeletonServiceGrid } from '../src/components/atoms';
 import { tokenService } from '../utils/tokenService';
 import { useAppTheme } from '../src/hooks/useAppTheme';
@@ -22,6 +22,7 @@ export default function HomeScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceVisible, setBalanceVisible] = useState(false);
   const [copiedAccount, setCopiedAccount] = useState(null);
+  const [networkError, setNetworkError] = useState({ visible: false, message: '', type: 'network_error' as const });
 
   // Placeholder for setBalance function as it was used in the changes but not defined in original
   const setBalance = (balance: number) => {
@@ -143,6 +144,14 @@ export default function HomeScreen({ navigation }: any) {
       }
     } catch (error: any) {
       console.error('Error loading user data:', error);
+      
+      // Check for network errors
+      if (!error.response && error.request) {
+        showNetworkError('network_error', 'No internet connection. Please check your network and try again.');
+        setLoading(false);
+        return;
+      }
+      
       if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
         await tokenService.clearToken();
         await AsyncStorage.multiRemove(['userId', 'userEmail', 'userName']);
@@ -282,6 +291,23 @@ export default function HomeScreen({ navigation }: any) {
     } catch (error) {
       console.error('Failed to copy account number:', error);
     }
+  };
+
+  const showNetworkError = (errorType: 'network_error' | 'timeout' | 'server_error' = 'network_error', customMessage: string = '') => {
+    setNetworkError({
+      visible: true,
+      message: customMessage,
+      type: errorType,
+    });
+  };
+
+  const handleRetryLoad = async () => {
+    setNetworkError({ visible: false, message: '', type: 'network_error' });
+    await loadUserData();
+  };
+
+  const handleDismissError = () => {
+    setNetworkError({ visible: false, message: '', type: 'network_error' });
   };
 
   // VTU Services organized by VTPass categories
@@ -674,6 +700,16 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         )}
       </ScrollView>
+
+      {/* Network Error Card */}
+      <NetworkErrorCard
+        visible={networkError.visible}
+        message={networkError.message}
+        errorType={networkError.type}
+        onRetry={handleRetryLoad}
+        onDismiss={handleDismissError}
+        position="top"
+      />
     </View>
   );
 }
