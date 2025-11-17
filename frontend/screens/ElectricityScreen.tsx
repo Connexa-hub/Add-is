@@ -224,80 +224,55 @@ export default function ElectricityScreen() {
 
   const confirmPayment = async (usedCashback: number) => {
     setShowPaymentPreview(false);
-    setLoading(true); // Set loading state here
 
-    try {
-      const token = await AsyncStorage.getItem('token');
-      
-      // Check if user has PIN setup
-      const pinStatusResponse = await axios.get(
-        `${API_BASE_URL}/api/pin/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    navigation.navigate('PINVerify', {
+      title: 'Confirm Payment',
+      message: `Enter your PIN to pay ₦${amount} for electricity`,
+      onSuccess: async () => {
+        setShowProcessing(true);
+        setPaymentStatus('processing');
 
-      if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
-        setLoading(false); // Ensure loading is false if PIN is not set
-        Alert.alert(
-          'Set Up Transaction PIN',
-          'For security, you need to set up a Transaction PIN before making purchases.',
-          [
-            { text: 'Cancel', style: 'cancel' },
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const response = await axios.post(
+            `${API_BASE_URL}/api/services/pay-electricity`,
             {
-              text: 'Set Up PIN',
-              onPress: () => {
-                // Assuming 'PINSetup' is a screen name in your navigation
-                navigation.navigate('PINSetup', {
-                  // You might need to pass a callback to handle success or failure
-                  onSuccess: () => {
-                    // After PIN setup, re-trigger the payment process or navigate back
-                    // For now, we'll just navigate back and let the user try again
-                    navigation.goBack(); 
-                  }
-                });
-              }
+              meterNumber,
+              variation_code: selectedMeterType,
+              serviceID: selectedProvider,
+              amount: parseFloat(amount),
+              usedCashback,
+            },
+            { 
+              headers: { Authorization: `Bearer ${token}` },
+              timeout: 30000,
             }
-          ]
-        );
-        return; // Stop execution if PIN setup is required
-      }
+          );
 
-      // If PIN is set, proceed with the actual payment
-      setShowProcessing(true);
-      setPaymentStatus('processing');
+          if (response.data.success) {
+            setTransactionReference(response.data.data.transaction.reference);
+            setPaymentStatus('success');
+            await fetchWalletBalance();
+          } else {
+            setPaymentStatus('failed');
+            setTimeout(() => {
+              Alert.alert('Transaction Failed', response.data.message || 'Failed to process payment.');
+            }, 2000);
+          }
+        } catch (error: any) {
+          console.error('Payment error:', error);
 
-      const response = await axios.post(
-        `${API_BASE_URL}/api/services/pay-electricity`,
-        {
-          meterNumber,
-          variation_code: selectedMeterType,
-          serviceID: selectedProvider,
-          amount: parseFloat(amount),
-          usedCashback,
-        },
-        { 
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 30000,
+          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+            setPaymentStatus('pending');
+          } else {
+            setPaymentStatus('failed');
+            setTimeout(() => {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to process payment.');
+            }, 2000);
+          }
         }
-      );
-
-      if (response.data.success) {
-        setTransactionReference(response.data.data.transaction.reference);
-        setPaymentStatus('success');
-        await fetchWalletBalance();
-      } else {
-        setPaymentStatus('failed');
       }
-    } catch (error: any) {
-      console.error('Payment error:', error);
-
-      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network')) {
-        setPaymentStatus('pending');
-      } else {
-        setPaymentStatus('failed');
-      }
-    } finally {
-      setLoading(false); // Ensure loading is reset after the entire process
-    }
+    });
   };
 
   const handleProcessingClose = () => {

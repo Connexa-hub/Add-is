@@ -13,7 +13,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton, SkeletonLoader, SkeletonList } from '../src/components/atoms';
-import { PaymentPreviewSheet, BannerCarousel } from '../src/components/molecules';
+import { PaymentPreviewSheet, BannerCarousel, PaymentProcessingScreen } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 import { ScreenContentDisplay } from '../src/components/molecules';
@@ -322,38 +322,53 @@ export default function DataScreen() {
               amount: selectedPlan!.price,
               usedCashback
             },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { 
+              headers: { Authorization: `Bearer ${token}` },
+              timeout: 30000
+            }
           );
 
           if (response.data.success) {
             setPaymentStatus('success');
-            setBalance(response.data.balance);
-            // Assuming fetchTransactionHistory exists and is relevant
-            // fetchTransactionHistory(); 
+            setWalletBalance(response.data.newBalance || walletBalance);
+            await fetchWalletBalance();
 
             setTimeout(() => {
               setShowProcessing(false);
               setPhoneNumber('');
-              setAmount('');
               setSelectedPlan(null);
-              navigation.goBack(); // Navigate back after successful purchase
+              navigation.goBack();
             }, 2000);
           } else {
             setPaymentStatus('failed');
             setTimeout(() => {
-              setShowProcessing(false); // Close processing modal on failure
+              setShowProcessing(false);
+              Alert.alert('Transaction Failed', response.data.message || 'Failed to purchase data. Please try again.');
             }, 2000);
           }
         } catch (error: any) {
           console.error('Data purchase error:', error);
-          setPaymentStatus('failed');
-          setTimeout(() => {
-            setShowProcessing(false); // Close processing modal on error
-          }, 2000);
-          Alert.alert(
-            'Error',
-            error.response?.data?.message || 'Failed to purchase data. Please try again.'
-          );
+          
+          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+            setPaymentStatus('pending');
+            setTimeout(() => {
+              setShowProcessing(false);
+              Alert.alert(
+                'Transaction Pending',
+                'Your transaction is being processed. Please check your transaction history in a few moments.',
+                [{ text: 'OK', onPress: () => navigation.goBack() }]
+              );
+            }, 2000);
+          } else {
+            setPaymentStatus('failed');
+            setTimeout(() => {
+              setShowProcessing(false);
+              Alert.alert(
+                'Error',
+                error.response?.data?.message || 'Failed to purchase data. Please try again.'
+              );
+            }, 2000);
+          }
         }
       }
     });
@@ -589,6 +604,25 @@ export default function DataScreen() {
         balance={walletBalance}
         onAddFunds={handleAddFunds}
         onCleanup={handlePaymentCleanup}
+      />
+
+      <PaymentProcessingScreen
+        visible={showProcessing}
+        status={paymentStatus}
+        amount={selectedPlan?.price || 0}
+        serviceName={`${networks.find(n => n.id === selectedNetwork)?.name || ''} Data`}
+        recipient={phoneNumber}
+        reference=""
+        onClose={() => {
+          setShowProcessing(false);
+          if (paymentStatus === 'success' || paymentStatus === 'pending') {
+            navigation.goBack();
+          }
+        }}
+        onRetry={() => {
+          setShowProcessing(false);
+          setShowPaymentPreview(true);
+        }}
       />
     </View>
   );

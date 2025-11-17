@@ -11,7 +11,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton, SkeletonLoader } from '../src/components/atoms';
-import { PaymentPreviewSheet, BannerCarousel, ScreenContentDisplay } from '../src/components/molecules';
+import { PaymentPreviewSheet, BannerCarousel, ScreenContentDisplay, PaymentProcessingScreen } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -55,6 +55,9 @@ export default function AirtimeScreen() {
   const [loadingQuickAmounts, setLoadingQuickAmounts] = useState(true);
   const [gridLayout, setGridLayout] = useState({ columns: 3, rows: 2 });
   const [allowCustomInput, setAllowCustomInput] = useState(true);
+  const [showProcessing, setShowProcessing] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'pending' | 'failed'>('processing');
+  const [transactionReference, setTransactionReference] = useState('');
 
   useEffect(() => {
     fetchWalletBalance();
@@ -272,39 +275,74 @@ export default function AirtimeScreen() {
   };
 
   const confirmPurchase = async (usedCashback: number) => {
-    setLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      // Determine the correct network ID for the API call
-      const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
+    setShowPaymentPreview(false);
 
-      const response = await axios.post(
-        `${API_BASE_URL}/api/services/buy-airtime`,
-        {
-          phoneNumber,
-          network: serviceID,
-          amount: parseFloat(amount),
-          usedCashback
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    navigation.navigate('PINVerify', {
+      title: 'Confirm Purchase',
+      message: `Enter your PIN to purchase ₦${amount} airtime`,
+      onSuccess: async () => {
+        setShowProcessing(true);
+        setPaymentStatus('processing');
 
-      setShowPaymentPreview(false);
-      Alert.alert(
-        'Success',
-        `Airtime purchase successful! ₦${amount} has been sent to ${phoneNumber}`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-      await fetchWalletBalance();
-    } catch (error) {
-      setShowPaymentPreview(false);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to purchase airtime. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
+
+          const response = await axios.post(
+            `${API_BASE_URL}/api/services/buy-airtime`,
+            {
+              phoneNumber,
+              network: serviceID,
+              amount: parseFloat(amount),
+              usedCashback
+            },
+            { 
+              headers: { Authorization: `Bearer ${token}` },
+              timeout: 30000
+            }
+          );
+
+          if (response.data.success) {
+            setPaymentStatus('success');
+            setTransactionReference(response.data.transaction?.reference || '');
+            await fetchWalletBalance();
+
+            setTimeout(() => {
+              setShowProcessing(false);
+              setPhoneNumber('');
+              setAmount('');
+              navigation.goBack();
+            }, 2000);
+          } else {
+            setPaymentStatus('failed');
+            setTimeout(() => {
+              setShowProcessing(false);
+              Alert.alert('Transaction Failed', response.data.message || 'Failed to purchase airtime.');
+            }, 2000);
+          }
+        } catch (error: any) {
+          console.error('Airtime purchase error:', error);
+          
+          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+            setPaymentStatus('pending');
+            setTimeout(() => {
+              setShowProcessing(false);
+              Alert.alert(
+                'Transaction Pending',
+                'Your transaction is being processed. Please check your transaction history.',
+                [{ text: 'OK', onPress: () => navigation.goBack() }]
+              );
+            }, 2000);
+          } else {
+            setPaymentStatus('failed');
+            setTimeout(() => {
+              setShowProcessing(false);
+              Alert.alert('Error', error.response?.data?.message || 'Failed to purchase airtime.');
+            }, 2000);
+          }
+        }
+      }
+    });
   };
 
   const handleAddFunds = () => {
@@ -495,6 +533,25 @@ export default function AirtimeScreen() {
         balance={walletBalance}
         onAddFunds={handleAddFunds}
         onCleanup={handlePaymentCleanup}
+      />
+
+      <PaymentProcessingScreen
+        visible={showProcessing}
+        status={paymentStatus}
+        amount={parseFloat(amount || '0')}
+        serviceName={`${providers.find(n => n.id === selectedNetwork)?.name || ''} Airtime`}
+        recipient={phoneNumber}
+        reference={transactionReference}
+        onClose={() => {
+          setShowProcessing(false);
+          if (paymentStatus === 'success' || paymentStatus === 'pending') {
+            navigation.goBack();
+          }
+        }}
+        onRetry={() => {
+          setShowProcessing(false);
+          setShowPaymentPreview(true);
+        }}
       />
     </View>
   );

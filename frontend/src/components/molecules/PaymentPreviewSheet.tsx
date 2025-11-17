@@ -182,9 +182,27 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
         return;
       }
 
-      // Proceed with payment - pass cashback amount to parent for PIN verification
-      onConfirm(cashbackUsed);
+      // Close payment preview and proceed with authentication
       onClose();
+
+      // If biometric is enabled, try biometric first
+      if (biometricEnabled) {
+        const authResult = await authenticate(
+          'Confirm Payment',
+          'Cancel'
+        );
+
+        if (authResult.success) {
+          // Biometric success - proceed with payment
+          onConfirm(cashbackUsed);
+        } else {
+          // Biometric failed or cancelled - user can choose to use PIN instead
+          // The navigation to PINVerify will be handled by the parent screen
+        }
+      } else {
+        // No biometric - proceed with PIN verification
+        onConfirm(cashbackUsed);
+      }
     } catch (error) {
       setLoading(false);
       console.error('Failed to check PIN status:', error);

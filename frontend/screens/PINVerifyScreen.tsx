@@ -22,14 +22,30 @@ export default function PINVerifyScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [showBiometricModal, setShowBiometricModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'biometric' | 'pin'>('biometric');
 
   useEffect(() => {
     checkBiometricAvailability();
   }, []);
 
+  useEffect(() => {
+    // Auto-show biometric if available
+    if (biometricAvailable && authMode === 'biometric') {
+      setShowBiometricModal(true);
+      handleBiometricAuth();
+    }
+  }, [biometricAvailable]);
+
   const checkBiometricAvailability = async () => {
     const enabled = await isBiometricEnabled();
-    setBiometricAvailable(enabled && capabilities.isAvailable);
+    const isAvailable = enabled && capabilities.isAvailable;
+    setBiometricAvailable(isAvailable);
+    
+    // If biometric not available, go straight to PIN
+    if (!isAvailable) {
+      setAuthMode('pin');
+    }
   };
 
   const handlePINInput = (digit: string) => {
@@ -56,28 +72,36 @@ export default function PINVerifyScreen({ navigation, route }) {
 
       const authResult = await authenticate(
         title || 'Verify Your Identity',
-        'Cancel'
+        'Use PIN'
       );
 
       if (authResult.success) {
+        setShowBiometricModal(false);
         if (onSuccess) {
           onSuccess();
         }
         navigation.goBack();
       } else {
-        setError(authResult.error || 'Authentication failed');
-        Alert.alert(
-          'Authentication Failed',
-          authResult.error || 'Please try again or enter your PIN',
-          [{ text: 'OK' }]
-        );
+        // User cancelled or failed - close modal, let them use PIN
+        setShowBiometricModal(false);
+        setAuthMode('pin');
+        if (authResult.error && !authResult.error.includes('cancel')) {
+          setError('Biometric authentication failed. Please use PIN.');
+        }
       }
     } catch (error) {
       console.error('Biometric auth error:', error);
-      setError('Biometric authentication failed');
+      setShowBiometricModal(false);
+      setAuthMode('pin');
+      setError('Biometric authentication failed. Please use PIN.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const switchToPIN = () => {
+    setShowBiometricModal(false);
+    setAuthMode('pin');
   };
 
   const verifyPIN = async (finalPin: string) => {
@@ -226,45 +250,78 @@ export default function PINVerifyScreen({ navigation, route }) {
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
           <AppText variant="h2" weight="bold">
-            Enter PIN
+            {authMode === 'biometric' ? 'Biometric Authentication' : 'Enter PIN'}
           </AppText>
         </View>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.topSection}>
-          <View style={[styles.iconContainer, { backgroundColor: tokens.colors.primary.light }]}>
-            <Ionicons name="lock-closed" size={48} color={tokens.colors.primary.main} />
+      {authMode === 'pin' && (
+        <View style={styles.content}>
+          <View style={styles.topSection}>
+            <View style={[styles.iconContainer, { backgroundColor: tokens.colors.primary.light }]}>
+              <Ionicons name="lock-closed" size={48} color={tokens.colors.primary.main} />
+            </View>
+
+            <AppText variant="h3" weight="semibold" style={{ marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.sm }}>
+              {title || 'Verify Your Identity'}
+            </AppText>
+
+            <AppText variant="body2" color={tokens.colors.text.secondary} style={{ textAlign: 'center', paddingHorizontal: tokens.spacing.xl }}>
+              {message || 'Enter your 4-digit transaction PIN'}
+            </AppText>
+
+            {renderPINDots()}
+
+            {error && (
+              <AppText variant="body2" color={tokens.colors.error.main} style={{ marginTop: tokens.spacing.base, textAlign: 'center' }}>
+                {error}
+              </AppText>
+            )}
           </View>
 
-          <AppText variant="h3" weight="semibold" style={{ marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.sm }}>
+          {renderKeypad()}
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: tokens.spacing.lg }}>
+            {biometricAvailable && (
+              <TouchableOpacity onPress={() => setAuthMode('biometric')}>
+                <AppText variant="body2" color={tokens.colors.primary.main}>
+                  Use {capabilities.biometricType}
+                </AppText>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => navigation.navigate('PINForgot')}>
+              <AppText variant="body2" color={tokens.colors.primary.main}>
+                Forgot PIN?
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {showBiometricModal && authMode === 'biometric' && (
+        <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[styles.iconContainer, { backgroundColor: tokens.colors.primary.light, width: 120, height: 120 }]}>
+            <Ionicons name="finger-print" size={64} color={tokens.colors.primary.main} />
+          </View>
+
+          <AppText variant="h3" weight="semibold" style={{ marginTop: tokens.spacing.xl }}>
             {title || 'Verify Your Identity'}
           </AppText>
 
-          <AppText variant="body2" color={tokens.colors.text.secondary} style={{ textAlign: 'center', paddingHorizontal: tokens.spacing.xl }}>
-            {message || 'Enter your 4-digit transaction PIN'}
+          <AppText variant="body2" color={tokens.colors.text.secondary} style={{ marginTop: tokens.spacing.sm, textAlign: 'center', paddingHorizontal: tokens.spacing.xl }}>
+            Use your {capabilities.biometricType?.toLowerCase() || 'biometric'} to authenticate
           </AppText>
 
-          {renderPINDots()}
-
-          {error && (
-            <AppText variant="body2" color={tokens.colors.error.main} style={{ marginTop: tokens.spacing.base, textAlign: 'center' }}>
-              {error}
+          <TouchableOpacity
+            onPress={switchToPIN}
+            style={{ marginTop: tokens.spacing.xl, padding: tokens.spacing.md }}
+          >
+            <AppText variant="body1" color={tokens.colors.primary.main}>
+              Use PIN Instead
             </AppText>
-          )}
+          </TouchableOpacity>
         </View>
-
-        {renderKeypad()}
-
-        <TouchableOpacity
-          style={{ marginTop: tokens.spacing.lg, alignItems: 'center' }}
-          onPress={() => navigation.navigate('PINForgot')}
-        >
-          <AppText variant="body2" color={tokens.colors.primary.main}>
-            Forgot PIN?
-          </AppText>
-        </TouchableOpacity>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
