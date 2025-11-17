@@ -263,13 +263,8 @@ export default function ElectricityScreen() {
         setTransactionReference(response.data.data.transaction.reference);
         setPaymentStatus('success');
         await fetchWalletBalance();
-
-        setTimeout(() => {
-          setShowProcessing(false);
-          setMeterNumber('');
-          setAmount('');
-          navigation.goBack();
-        }, 2000);
+        
+        // Don't auto-close, let user dismiss
       } else {
         setPaymentStatus('failed');
         setTimeout(() => {
@@ -519,6 +514,8 @@ export default function ElectricityScreen() {
         recipient={meterNumber}
         reference={transactionReference}
         onClose={handleProcessingClose}
+        walletBalanceBefore={walletBalance}
+        walletBalanceAfter={walletBalance - parseFloat(amount || '0')}
         onRetry={handleRetry}
       />
 

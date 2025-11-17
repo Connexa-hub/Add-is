@@ -343,12 +343,7 @@ export default function DataScreen() {
         setWalletBalance(response.data.newBalance || walletBalance);
         await fetchWalletBalance();
 
-        setTimeout(() => {
-          setShowProcessing(false);
-          setPhoneNumber('');
-          setSelectedPlan(null);
-          navigation.goBack();
-        }, 2000);
+        // Don't auto-close, let user dismiss
       } else {
         setPaymentStatus('failed');
         setTimeout(() => {

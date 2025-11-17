@@ -1,4 +1,3 @@
-
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const { requestVTPass } = require('../utils/vtpassClient');
@@ -39,7 +38,7 @@ exports.payElectricity = async (req, res, next) => {
       serviceType: 'Electricity', 
       isActive: true 
     });
-    
+
     let cashbackAmount = 0;
     if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
       cashbackAmount = (amount * cashbackConfig.percentage) / 100;
@@ -64,11 +63,11 @@ exports.payElectricity = async (req, res, next) => {
 
     if (result.code === '000') {
       user.walletBalance -= amount;
-      
+
       // Add cashback to wallet
       if (cashbackAmount > 0) {
         user.walletBalance += cashbackAmount;
-        
+
         // Create notification for cashback
         const Notification = require('../models/Notification');
         await Notification.create({
@@ -78,7 +77,7 @@ exports.payElectricity = async (req, res, next) => {
           type: 'cashback'
         });
       }
-      
+
       await user.save();
     }
 
@@ -144,8 +143,57 @@ exports.subscribeTV = async (req, res, next) => {
       details: result 
     });
 
-    if (result.code === '000' && amount) {
+    if (result.code === '000') {
       user.walletBalance -= amount;
+
+      const Notification = require('../models/Notification');
+
+      // Create transaction success notification
+      await Notification.create({
+        userId: req.userId,
+        title: 'TV Subscription Successful',
+        message: `Your ${serviceID} subscription was successful. ₦${amount.toLocaleString()} has been deducted from your wallet.`,
+        type: 'success',
+        actionType: 'transaction',
+        actionData: {
+          reference,
+          amount,
+          service: serviceID,
+          recipient: smartcardNumber
+        }
+      });
+
+      // Calculate cashback
+      const Cashback = require('../models/Cashback');
+      const cashbackConfig = await Cashback.findOne({ 
+        serviceType: 'TV', // Assuming 'TV' is a valid service type for cashback
+        isActive: true 
+      });
+
+      let cashbackAmount = 0;
+      if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
+        cashbackAmount = (amount * cashbackConfig.percentage) / 100;
+        if (cashbackConfig.maxCashback && cashbackAmount > cashbackConfig.maxCashback) {
+          cashbackAmount = cashbackConfig.maxCashback;
+        }
+      }
+
+      if (cashbackAmount > 0) {
+        user.walletBalance += cashbackAmount;
+
+        await Notification.create({
+          userId: req.userId,
+          title: 'Cashback Earned!',
+          message: `You've earned ₦${cashbackAmount.toFixed(2)} cashback on your TV subscription`,
+          type: 'success',
+          actionType: 'cashback',
+          actionData: {
+            cashbackAmount,
+            reference
+          }
+        });
+      }
+
       await user.save();
     }
 
@@ -172,7 +220,7 @@ exports.subscribeTV = async (req, res, next) => {
 exports.getDataPlans = async (req, res) => {
   try {
     const { serviceID } = req.params;
-    
+
     const axios = require('axios');
     const getAuthHeaders = () => {
       const token = Buffer.from(`${process.env.VTPASS_USERNAME}:${process.env.VTPASS_API_KEY}`).toString('base64');
@@ -414,7 +462,7 @@ exports.buyEducation = async (req, res, next) => {
       serviceType: 'Education', 
       isActive: true 
     });
-    
+
     let cashbackAmount = 0;
     if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
       cashbackAmount = (amount * cashbackConfig.percentage) / 100;
@@ -439,10 +487,10 @@ exports.buyEducation = async (req, res, next) => {
 
     if (result.code === '000') {
       user.walletBalance -= amount;
-      
+
       if (cashbackAmount > 0) {
         user.walletBalance += cashbackAmount;
-        
+
         const Notification = require('../models/Notification');
         await Notification.create({
           userId: req.userId,
@@ -451,7 +499,7 @@ exports.buyEducation = async (req, res, next) => {
           type: 'cashback'
         });
       }
-      
+
       await user.save();
     }
 
@@ -509,7 +557,7 @@ exports.buyInsurance = async (req, res, next) => {
       serviceType: 'Insurance', 
       isActive: true 
     });
-    
+
     let cashbackAmount = 0;
     if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
       cashbackAmount = (amount * cashbackConfig.percentage) / 100;
@@ -534,10 +582,10 @@ exports.buyInsurance = async (req, res, next) => {
 
     if (result.code === '000') {
       user.walletBalance -= amount;
-      
+
       if (cashbackAmount > 0) {
         user.walletBalance += cashbackAmount;
-        
+
         const Notification = require('../models/Notification');
         await Notification.create({
           userId: req.userId,
@@ -546,7 +594,7 @@ exports.buyInsurance = async (req, res, next) => {
           type: 'cashback'
         });
       }
-      
+
       await user.save();
     }
 
@@ -604,7 +652,7 @@ exports.buyOtherService = async (req, res, next) => {
       serviceType: 'Internet', 
       isActive: true 
     });
-    
+
     let cashbackAmount = 0;
     if (cashbackConfig && result.code === '000' && amount >= cashbackConfig.minAmount) {
       cashbackAmount = (amount * cashbackConfig.percentage) / 100;
@@ -635,10 +683,10 @@ exports.buyOtherService = async (req, res, next) => {
 
     if (result.code === '000') {
       user.walletBalance -= amount;
-      
+
       if (cashbackAmount > 0) {
         user.walletBalance += cashbackAmount;
-        
+
         const Notification = require('../models/Notification');
         await Notification.create({
           userId: req.userId,
@@ -647,7 +695,7 @@ exports.buyOtherService = async (req, res, next) => {
           type: 'cashback'
         });
       }
-      
+
       await user.save();
     }
 

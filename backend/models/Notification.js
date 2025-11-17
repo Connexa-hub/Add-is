@@ -28,7 +28,7 @@ const notificationSchema = new mongoose.Schema({
   actionType: {
     type: String,
     enum: ['transaction', 'promotion', 'system', 'cashback', 'wallet'],
-    required: true
+    default: 'system'
   },
   actionData: {
     type: mongoose.Schema.Types.Mixed

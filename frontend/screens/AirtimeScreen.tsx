@@ -317,12 +317,7 @@ export default function AirtimeScreen() {
         setTransactionReference(response.data.transaction?.reference || '');
         await fetchWalletBalance();
 
-        setTimeout(() => {
-          setShowProcessing(false);
-          setPhoneNumber('');
-          setAmount('');
-          navigation.goBack();
-        }, 2000);
+        // Don't auto-close, let user dismiss
       } else {
         setPaymentStatus('failed');
         setTimeout(() => {
@@ -558,7 +553,10 @@ export default function AirtimeScreen() {
         }}
         onRetry={() => {
           setShowProcessing(false);
-          setShowPaymentPreview(true);
+          setShowPaymentPreview(true)
+        }}
+        walletBalanceBefore={walletBalance}
+        walletBalanceAfter={walletBalance - parseFloat(amount || '0')};
         }}
       />
     </View>

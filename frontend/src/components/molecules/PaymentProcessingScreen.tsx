@@ -321,9 +321,64 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
             </View>
           )}
 
-          {/* Actions */}
+          {/* Action Buttons */}
           {config.showActions && (
             <View style={styles.actions}>
+              {status === 'success' && reference && (
+                <>
+                  <AppButton
+                    onPress={() => {
+                      const details = `
+Transaction Successful ✅
+
+Service: ${serviceName}
+${recipient ? `Recipient: ${recipient}\n` : ''}Amount: ₦${amount.toLocaleString()}
+Reference: ${reference}
+Date: ${new Date().toLocaleString()}
+${walletBalanceBefore !== undefined ? `\nPrevious Balance: ₦${walletBalanceBefore.toLocaleString()}` : ''}
+${walletBalanceAfter !== undefined ? `New Balance: ₦${walletBalanceAfter.toLocaleString()}` : ''}
+                      `.trim();
+
+                      Alert.alert(
+                        'Transaction Details',
+                        details,
+                        [
+                          { text: 'Close', style: 'cancel' },
+                        ]
+                      );
+                    }}
+                    variant="ghost"
+                    size="lg"
+                    fullWidth
+                    style={{ marginBottom: tokens.spacing.sm }}
+                    icon={<Ionicons name="document-text" size={20} color={tokens.colors.primary.main} />}
+                  >
+                    View Full Details
+                  </AppButton>
+                  <AppButton
+                    onPress={async () => {
+                      const { Share } = require('react-native');
+                      const details = `Transaction Successful ✅\n\nService: ${serviceName}\n${recipient ? `Recipient: ${recipient}\n` : ''}Amount: ₦${amount.toLocaleString()}\nReference: ${reference}\nDate: ${new Date().toLocaleString()}`;
+
+                      try {
+                        await Share.share({
+                          message: details,
+                        });
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to share transaction details');
+                      }
+                    }}
+                    variant="ghost"
+                    size="lg"
+                    fullWidth
+                    style={{ marginBottom: tokens.spacing.sm }}
+                    icon={<Ionicons name="share-social" size={20} color={tokens.colors.primary.main} />}
+                  >
+                    Share Receipt
+                  </AppButton>
+                </>
+              )}
+
               {status === 'failed' && onRetry && (
                 <AppButton
                   onPress={onRetry}

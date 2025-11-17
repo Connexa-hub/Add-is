@@ -215,14 +215,12 @@ export default function TVScreen() {
       if (response.data.success) {
         setTransactionReference(response.data.data.transaction.reference);
         setPaymentStatus('success');
+        
+        // Store old balance before updating
+        const oldBalance = walletBalance;
         await fetchWalletBalance();
-
-        setTimeout(() => {
-          setShowProcessing(false);
-          setSmartcardNumber('');
-          setSelectedPackage(null);
-          navigation.goBack();
-        }, 2000);
+        
+        // Don't auto-close, let user dismiss
       } else {
         setPaymentStatus('failed');
         setTimeout(() => {
@@ -530,6 +528,8 @@ export default function TVScreen() {
         reference={transactionReference}
         onClose={handleProcessingClose}
         onRetry={handleRetry}
+        walletBalanceBefore={walletBalance}
+        walletBalanceAfter={walletBalance - (selectedPackage?.price || 0)}
       />
     </View>
   );
