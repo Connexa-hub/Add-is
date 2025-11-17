@@ -182,25 +182,25 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
         return;
       }
 
-      // Close payment preview and proceed with authentication
-      onClose();
-
-      // If biometric is enabled, try biometric first
+      // If biometric is enabled, show biometric modal OVERLAYING the payment preview
       if (biometricEnabled) {
         const authResult = await authenticate(
-          'Confirm Payment',
+          'Authenticate to confirm payment',
           'Cancel'
         );
 
         if (authResult.success) {
-          // Biometric success - proceed with payment
+          // Biometric success - close preview and proceed directly to payment processing
+          onClose();
           onConfirm(cashbackUsed);
         } else {
-          // Biometric failed or cancelled - user can choose to use PIN instead
-          // The navigation to PINVerify will be handled by the parent screen
+          // Biometric cancelled - fallback to PIN input
+          onClose();
+          onConfirm(cashbackUsed);
         }
       } else {
-        // No biometric - proceed with PIN verification
+        // No biometric - close preview and proceed with PIN verification
+        onClose();
         onConfirm(cashbackUsed);
       }
     } catch (error) {
@@ -521,6 +521,7 @@ const styles = StyleSheet.create({
     height: '50%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    marginBottom: 0,
   },
   handleContainer: {
     alignItems: 'center',

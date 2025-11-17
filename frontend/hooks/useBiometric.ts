@@ -121,8 +121,8 @@ export const useBiometric = () => {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: promptMessage || `Authenticate with ${capabilities.biometricType || 'biometric'}`,
         cancelLabel: cancelLabel || 'Cancel',
-        fallbackLabel: 'Use Password',
-        disableDeviceFallback: false,
+        fallbackLabel: '',
+        disableDeviceFallback: true,
       });
 
       if (result.success) {

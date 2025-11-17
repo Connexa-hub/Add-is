@@ -564,12 +564,12 @@ export default function LoginScreen({ navigation }) {
           <View style={[styles.container, { padding: tokens.spacing.lg }]}>
             {/* Logo */}
             <View style={[styles.logoContainer, { 
-              marginTop: tokens.spacing.md, 
-              marginBottom: tokens.spacing.lg 
+              marginTop: tokens.spacing.lg, 
+              marginBottom: tokens.spacing.xl 
             }]}>
               <Image
                 source={require('../assets/images/splash-icon.png')}
-                style={{ width: 60, height: 60 }}
+                style={{ width: 100, height: 100 }}
                 resizeMode="contain"
               />
             </View>

@@ -304,74 +304,79 @@ export default function DataScreen() {
   const confirmPurchase = async (usedCashback: number) => {
     setShowPaymentPreview(false);
 
+    // Navigate to PIN verification (biometric auth already happened in PaymentPreviewSheet)
     navigation.navigate('PINVerify', {
       title: 'Confirm Purchase',
       message: `Enter your PIN to purchase ${selectedPlan?.name}`,
       onSuccess: async () => {
-        setShowProcessing(true);
-        setPaymentStatus('processing');
-
-        try {
-          const token = await AsyncStorage.getItem('token');
-          const response = await axios.post(
-            `${API_BASE_URL}/api/services/buy-data`,
-            {
-              phoneNumber,
-              plan: selectedPlan!.id,
-              network: selectedNetwork,
-              amount: selectedPlan!.price,
-              usedCashback
-            },
-            { 
-              headers: { Authorization: `Bearer ${token}` },
-              timeout: 30000
-            }
-          );
-
-          if (response.data.success) {
-            setPaymentStatus('success');
-            setWalletBalance(response.data.newBalance || walletBalance);
-            await fetchWalletBalance();
-
-            setTimeout(() => {
-              setShowProcessing(false);
-              setPhoneNumber('');
-              setSelectedPlan(null);
-              navigation.goBack();
-            }, 2000);
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              setShowProcessing(false);
-              Alert.alert('Transaction Failed', response.data.message || 'Failed to purchase data. Please try again.');
-            }, 2000);
-          }
-        } catch (error: any) {
-          console.error('Data purchase error:', error);
-          
-          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
-            setPaymentStatus('pending');
-            setTimeout(() => {
-              setShowProcessing(false);
-              Alert.alert(
-                'Transaction Pending',
-                'Your transaction is being processed. Please check your transaction history in a few moments.',
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
-              );
-            }, 2000);
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              setShowProcessing(false);
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'Failed to purchase data. Please try again.'
-              );
-            }, 2000);
-          }
-        }
+        await processPurchase(usedCashback);
       }
     });
+  };
+
+  const processPurchase = async (usedCashback: number) => {
+    setShowProcessing(true);
+    setPaymentStatus('processing');
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/services/buy-data`,
+        {
+          phoneNumber,
+          plan: selectedPlan!.id,
+          network: selectedNetwork,
+          amount: selectedPlan!.price,
+          usedCashback
+        },
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000
+        }
+      );
+
+      if (response.data.success) {
+        setPaymentStatus('success');
+        setWalletBalance(response.data.newBalance || walletBalance);
+        await fetchWalletBalance();
+
+        setTimeout(() => {
+          setShowProcessing(false);
+          setPhoneNumber('');
+          setSelectedPlan(null);
+          navigation.goBack();
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Transaction Failed', response.data.message || 'Failed to purchase data. Please try again.');
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('Data purchase error:', error);
+      
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+        setPaymentStatus('pending');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert(
+            'Transaction Pending',
+            'Your transaction is being processed. Please check your transaction history in a few moments.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert(
+            'Error',
+            error.response?.data?.message || 'Failed to purchase data. Please try again.'
+          );
+        }, 2000);
+      }
+    }
   };
 
   const handleAddFunds = () => {

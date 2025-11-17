@@ -19,12 +19,6 @@ export interface PaymentProcessingScreenProps {
   onRetry?: () => void;
   walletBalanceBefore?: number;
   walletBalanceAfter?: number;
-  token: string; // Assuming token is passed for authentication
-  endpoint: string; // Assuming endpoint is passed for API call
-  payload: any; // Assuming payload is passed for API call
-  onCancel: () => void; // Callback for when user cancels PIN setup
-  processPayment: () => void; // Function to retry payment after PIN setup
-  navigation: any; // Assuming navigation object is passed
 }
 
 export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = ({
@@ -38,12 +32,6 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
   onRetry,
   walletBalanceBefore,
   walletBalanceAfter,
-  token,
-  endpoint,
-  payload,
-  onCancel,
-  processPayment,
-  navigation,
 }) => {
   const { tokens } = useAppTheme();
   const [spinValue] = useState(new Animated.Value(0));
@@ -52,27 +40,19 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
 
   useEffect(() => {
     if (status === 'processing') {
-      // Spinning animation for processing
-      Animated.loop(
-        Animated.timing(spinValue, {
-          toValue: 1,
-          duration: 1500,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      ).start();
-
-      // Pulsing animation
+      // Fade in/out animation for processing (OPay style)
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseValue, {
-            toValue: 1.1,
+            toValue: 0.4,
             duration: 800,
+            easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.timing(pulseValue, {
             toValue: 1,
             duration: 800,
+            easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
         ])
@@ -140,44 +120,6 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
 
   const config = getStatusConfig();
 
-  const handlePaymentRequest = async () => {
-    try {
-      const response = await axios.post(endpoint, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(async (error) => {
-        // Check if PIN setup is required (HTTP 428)
-        if (error.response?.status === 428 && error.response?.data?.requiresPinSetup) {
-          Alert.alert(
-            'PIN Setup Required',
-            'You need to set up a transaction PIN before making your first transaction.',
-            [
-              {
-                text: 'Set PIN Now',
-                onPress: () => {
-                  navigation.navigate('PINSetup', {
-                    onSuccess: () => {
-                      // Retry transaction after PIN setup
-                      processPayment();
-                    },
-                  });
-                },
-              },
-              { text: 'Cancel', style: 'cancel', onPress: onCancel },
-            ]
-          );
-          throw error;
-        }
-        throw error;
-      });
-      // Handle successful payment response here if needed
-      return response;
-    } catch (error) {
-      console.error('Payment processing error:', error);
-      // The error is already handled by the catch block above or by the caller
-      throw error; // Re-throw to be caught by the caller if necessary
-    }
-  };
-
   return (
     <Modal
       visible={visible}
@@ -201,12 +143,12 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
             {status === 'processing' ? (
               <Animated.View
                 style={{
-                  transform: [{ rotate: spin }, { scale: pulseValue }],
+                  opacity: pulseValue,
                 }}
               >
                 <Image
                   source={require('../../../assets/images/splash-icon.png')}
-                  style={{ width: 100, height: 100, resizeMode: 'contain' }}
+                  style={{ width: 120, height: 120, resizeMode: 'contain' }}
                 />
               </Animated.View>
             ) : (
@@ -384,7 +326,7 @@ export const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = (
             <View style={styles.actions}>
               {status === 'failed' && onRetry && (
                 <AppButton
-                  onPress={handlePaymentRequest} // Call the new handler
+                  onPress={onRetry}
                   variant="primary"
                   size="lg"
                   fullWidth

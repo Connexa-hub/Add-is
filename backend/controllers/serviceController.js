@@ -50,14 +50,16 @@ exports.payElectricity = async (req, res, next) => {
 
     const transaction = await Transaction.create({ 
       userId: req.userId, 
-      type: 'Electricity', 
-      transactionType: 'debit', 
+      type: 'debit',
+      category: 'electricity', 
+      transactionType: 'Electricity Payment', 
       amount, 
       reference,
       recipient: meterNumber,
-      status: result.code === '000' ? 'success' : 'failed', 
+      status: result.code === '000' ? 'completed' : 'failed',
+      paymentGateway: 'vtpass', 
       details: result,
-      cashbackAmount
+      metadata: { cashbackAmount }
     });
 
     if (result.code === '000') {
@@ -131,12 +133,14 @@ exports.subscribeTV = async (req, res, next) => {
 
     const transaction = await Transaction.create({ 
       userId: req.userId, 
-      type: 'TV Subscription', 
-      transactionType: 'debit', 
+      type: 'debit',
+      category: 'tv', 
+      transactionType: 'TV Subscription', 
       amount: amount || 0, 
       reference,
       recipient: smartcardNumber,
-      status: result.code === '000' ? 'success' : 'failed', 
+      status: result.code === '000' ? 'completed' : 'failed',
+      paymentGateway: 'vtpass', 
       details: result 
     });
 
@@ -250,12 +254,14 @@ exports.buyAirtime = async (req, res) => {
 
     const transaction = new Transaction({
       userId,
-      type: 'airtime',
+      type: 'debit',
+      category: 'airtime',
       transactionType: `${network.toUpperCase()} Airtime Purchase`,
       amount,
       recipient: phoneNumber,
-      status: isSuccess ? 'success' : 'failed',
-      reference: vtpassResponse?.requestId || `REF${Date.now()}`,
+      status: isSuccess ? 'completed' : 'failed',
+      reference: vtpassResponse?.requestId || `AIRTIME-${Date.now()}`,
+      paymentGateway: 'vtpass',
       metadata: {
         network,
         phoneNumber,
@@ -335,12 +341,14 @@ exports.buyData = async (req, res) => {
 
     const transaction = new Transaction({
       userId,
-      type: 'data',
+      type: 'debit',
+      category: 'data',
       transactionType: `${network.toUpperCase()} Data Purchase`,
       amount,
       recipient: phoneNumber,
-      status: isSuccess ? 'success' : 'failed',
-      reference: vtpassResponse?.requestId || `REF${Date.now()}`,
+      status: isSuccess ? 'completed' : 'failed',
+      reference: vtpassResponse?.requestId || `DATA-${Date.now()}`,
+      paymentGateway: 'vtpass',
       metadata: {
         network,
         plan,

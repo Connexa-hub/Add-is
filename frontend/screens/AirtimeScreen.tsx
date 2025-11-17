@@ -277,72 +277,77 @@ export default function AirtimeScreen() {
   const confirmPurchase = async (usedCashback: number) => {
     setShowPaymentPreview(false);
 
+    // Navigate to PIN verification (biometric auth already happened in PaymentPreviewSheet)
     navigation.navigate('PINVerify', {
       title: 'Confirm Purchase',
-      message: `Enter your PIN to purchase ₦${amount} airtime`,
+      message: `Enter your PIN to purchase ₦${parseFloat(amount).toLocaleString()} airtime`,
       onSuccess: async () => {
-        setShowProcessing(true);
-        setPaymentStatus('processing');
-
-        try {
-          const token = await AsyncStorage.getItem('token');
-          const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
-
-          const response = await axios.post(
-            `${API_BASE_URL}/api/services/buy-airtime`,
-            {
-              phoneNumber,
-              network: serviceID,
-              amount: parseFloat(amount),
-              usedCashback
-            },
-            { 
-              headers: { Authorization: `Bearer ${token}` },
-              timeout: 30000
-            }
-          );
-
-          if (response.data.success) {
-            setPaymentStatus('success');
-            setTransactionReference(response.data.transaction?.reference || '');
-            await fetchWalletBalance();
-
-            setTimeout(() => {
-              setShowProcessing(false);
-              setPhoneNumber('');
-              setAmount('');
-              navigation.goBack();
-            }, 2000);
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              setShowProcessing(false);
-              Alert.alert('Transaction Failed', response.data.message || 'Failed to purchase airtime.');
-            }, 2000);
-          }
-        } catch (error: any) {
-          console.error('Airtime purchase error:', error);
-          
-          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
-            setPaymentStatus('pending');
-            setTimeout(() => {
-              setShowProcessing(false);
-              Alert.alert(
-                'Transaction Pending',
-                'Your transaction is being processed. Please check your transaction history.',
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
-              );
-            }, 2000);
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              setShowProcessing(false);
-              Alert.alert('Error', error.response?.data?.message || 'Failed to purchase airtime.');
-            }, 2000);
-          }
-        }
+        await processPurchase(usedCashback);
       }
     });
+  };
+
+  const processPurchase = async (usedCashback: number) => {
+    setShowProcessing(true);
+    setPaymentStatus('processing');
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/services/buy-airtime`,
+        {
+          phoneNumber,
+          network: serviceID,
+          amount: parseFloat(amount),
+          usedCashback
+        },
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000
+        }
+      );
+
+      if (response.data.success) {
+        setPaymentStatus('success');
+        setTransactionReference(response.data.transaction?.reference || '');
+        await fetchWalletBalance();
+
+        setTimeout(() => {
+          setShowProcessing(false);
+          setPhoneNumber('');
+          setAmount('');
+          navigation.goBack();
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Transaction Failed', response.data.message || 'Failed to purchase airtime.');
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('Airtime purchase error:', error);
+      
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+        setPaymentStatus('pending');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert(
+            'Transaction Pending',
+            'Your transaction is being processed. Please check your transaction history.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Error', error.response?.data?.message || 'Failed to purchase airtime.');
+        }, 2000);
+      }
+    }
   };
 
   const handleAddFunds = () => {
