@@ -90,14 +90,14 @@ export default function LoginScreen({ navigation }) {
       const saved = await AsyncStorage.getItem('savedEmail');
       const biometricUserId = await AsyncStorage.getItem('biometric_user_id');
       const biometricEnabledFlag = await AsyncStorage.getItem('biometricEnabled');
-      
+
       console.log('Biometric check - Saved email:', saved, 'Enabled:', biometricEnabledFlag, 'UserId:', biometricUserId);
-      
+
       // Verify that we have BOTH the enabled flag AND actual credentials
       if (biometricEnabledFlag === 'true' && saved && biometricUserId) {
         // Double-check that biometric token exists in secure storage
         const hasToken = await SecureStore.getItemAsync(`biometric_credentials_${biometricUserId}`);
-        
+
         if (hasToken) {
           console.log('✅ Biometric credentials found - showing biometric login UI');
           setBiometricConfigured(true);
@@ -128,7 +128,7 @@ export default function LoginScreen({ navigation }) {
       const enabled = await isBiometricEnabled();
       const saved = await AsyncStorage.getItem('savedEmail');
       const userId = await AsyncStorage.getItem('biometric_user_id');
-      
+
       // Only mark as configured if we have all required data
       if (enabled && saved && userId) {
         const hasToken = await SecureStore.getItemAsync(`biometric_credentials_${userId}`);
@@ -183,7 +183,7 @@ export default function LoginScreen({ navigation }) {
 
   const handleRetryLogin = async () => {
     setNetworkError({ visible: false, message: '', type: 'network_error' });
-    
+
     // Retry the pending action
     if (pendingAction === 'biometric') {
       await handleBiometricLogin();
@@ -287,13 +287,13 @@ export default function LoginScreen({ navigation }) {
 
           // Clear any login flags
           await AsyncStorage.removeItem('user_logged_out');
-          
+
           // Use reset to prevent back navigation to login
           navigation.reset({
             index: 0,
             routes: [{ name: 'Main' }],
           });
-          
+
           setLoading(false);
         } else {
           throw new Error('Login failed - invalid response');
@@ -325,7 +325,7 @@ export default function LoginScreen({ navigation }) {
     } catch (error) {
       console.error('Biometric login error:', error);
       setLoading(false);
-      
+
       // Check if it's a network error
       const networkErrorCheck = isNetworkError(error);
       if (networkErrorCheck.isNetwork) {
@@ -333,7 +333,7 @@ export default function LoginScreen({ navigation }) {
         showNetworkError(networkErrorCheck.type);
         return;
       }
-      
+
       Alert.alert('Error', 'An error occurred during biometric login');
     }
   };
@@ -387,7 +387,7 @@ export default function LoginScreen({ navigation }) {
     console.log('User skipped biometric setup');
     setShowBiometricModal(false);
     setPendingBiometricData(null);
-    
+
     // User chose to skip biometric, redirect to login
     // They need to login normally next time
     Alert.alert(
@@ -523,7 +523,7 @@ export default function LoginScreen({ navigation }) {
             ? `${Math.ceil(remainingTime / 60)} minutes`
             : `${remainingTime} seconds`
           : 'a few minutes';
-        
+
         Alert.alert(
           'Too Many Attempts',
           `Please wait ${timeMessage} before trying again. This is a security measure to protect your account.`,
@@ -599,25 +599,38 @@ export default function LoginScreen({ navigation }) {
                 </AppText>
 
                 {/* Biometric Icon */}
-                <View style={[styles.biometricIcon, { 
-                  backgroundColor: tokens.colors.background.paper,
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginBottom: tokens.spacing.base,
-                  ...tokens.shadows.md
-                }]}>
-                  <Ionicons name="finger-print" size={50} color={tokens.colors.primary.main} />
-                </View>
+                <TouchableOpacity
+                  onPress={handleBiometricLogin}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                  style={[styles.biometricIcon, { 
+                    backgroundColor: tokens.colors.background.paper,
+                    width: 120,
+                    height: 120,
+                    borderRadius: 60,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: tokens.spacing.lg,
+                    ...tokens.shadows.md
+                  }]}
+                >
+                  <Ionicons name="finger-print" size={64} color={tokens.colors.primary.main} />
+                </TouchableOpacity>
 
                 <AppText 
-                  variant="body1" 
-                  color={tokens.colors.text.secondary} 
-                  style={{ marginBottom: tokens.spacing.md, textAlign: 'center' }}
+                  variant="h3" 
+                  weight="semibold"
+                  style={{ marginBottom: tokens.spacing.sm, textAlign: 'center' }}
                 >
-                  Tap the button below to authenticate with {capabilities.biometricType || 'biometric'}
+                  Welcome Back
+                </AppText>
+
+                <AppText 
+                  variant="body2" 
+                  color={tokens.colors.text.secondary} 
+                  style={{ marginBottom: tokens.spacing.xl, textAlign: 'center' }}
+                >
+                  Tap the fingerprint icon to login with {capabilities.biometricType || 'biometric'}
                 </AppText>
 
                 <AppButton
@@ -627,7 +640,7 @@ export default function LoginScreen({ navigation }) {
                   disabled={loading}
                   fullWidth
                   size="lg"
-                  style={{ marginBottom: tokens.spacing.xl, maxWidth: 300 }}
+                  style={{ marginBottom: tokens.spacing.base, maxWidth: 300 }}
                   icon={<Ionicons name="finger-print" size={24} color="#fff" />}
                 >
                   Login with {capabilities.biometricType || 'Biometric'}
@@ -832,8 +845,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   biometricIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    // TouchableOpacity styles are inline
   },
   alternativeOptions: {
     alignItems: 'center',
