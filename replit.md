@@ -73,6 +73,32 @@ Connexa is a full-featured VTU bill payment platform with React Native mobile ap
   - Build step: Builds admin dashboard into backend/admin-web/dist
   - Production: Single server on port 5000 serves both API and admin UI
 
+**November 17, 2025 - COMPREHENSIVE PAYMENT FLOW & BACKEND FIXES**
+- **✅ Fixed Backend Transaction Model Enum Validation** (PRODUCTION BLOCKER RESOLVED):
+  - Extended Transaction model enum to include all service types: 'education', 'insurance', 'internet', 'betting'
+  - Fixed all transaction creation in serviceController.js to use correct fields:
+    - type: 'debit' (for purchases) or 'credit' (for wallet funding)
+    - category: 'airtime', 'data', 'electricity', 'tv', 'education', 'insurance', 'internet', 'betting', 'wallet_funding'
+    - status: 'completed', 'failed', 'pending' (not 'success')
+    - paymentGateway: 'vtpass', 'monnify', 'manual'
+  - Fixed walletController.js to use type='credit' and filter by correct field
+  - Resolved 400/500 API errors caused by enum validation failures
+- **✅ Eliminated Double Authentication** (CRITICAL UX FIX):
+  - Updated PaymentPreviewSheet to pass biometric success flag to payment screens
+  - Modified all 6 payment screens (Airtime, Data, TV, Electricity, Internet, Betting) to:
+    - Skip PIN verification when biometric authentication succeeds
+    - Fall back to PIN when biometric fails or is not available
+  - Payment flow now: Biometric OR PIN (not both) for seamless user experience
+- **✅ Consistent Payment Flow Across All Screens**:
+  - Standardized confirm/process function pattern across all payment screens
+  - Added 30-second timeout detection for API calls
+  - Implemented robust error handling with network/timeout detection
+  - Added form cleanup on successful transactions
+  - Fixed processing overlay state management
+- **✅ Login Screen Logo Enhanced**:
+  - Increased logo size from 60x60 to 100x100 pixels for better visibility
+  - Improved spacing and alignment for OPay-style professional appearance
+
 **November 6, 2025 - CRITICAL PRODUCTION FIXES: Biometric Authentication & Homescreen UI**
 - **✅ Fixed Biometric Authentication System Prompt** (PRODUCTION BLOCKER RESOLVED):
   - Updated `useBiometric.ts` `enableBiometric()` function to trigger system biometric authentication BEFORE saving credentials
