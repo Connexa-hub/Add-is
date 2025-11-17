@@ -219,57 +219,82 @@ export default function InternetScreen() {
     }
   };
 
-  const confirmSubscription = async (usedCashback: number) => {
+  const confirmSubscription = async (usedCashback: number, biometricSuccess: boolean = false) => {
     setShowPaymentPreview(false);
 
-    navigation.navigate('PINVerify', {
-      title: 'Confirm Subscription',
-      message: `Enter your PIN to subscribe to ${selectedPlan?.name}`,
-      onSuccess: async () => {
-        setShowProcessing(true);
-        setPaymentStatus('processing');
-
-        try {
-          const token = await AsyncStorage.getItem('token');
-          const response = await axios.post(
-            `${API_BASE_URL}/api/services/internet`,
-            {
-              accountNumber,
-              variation_code: selectedPlan!.id,
-              serviceID: selectedProvider,
-              amount: selectedPlan!.price,
-              usedCashback,
-            },
-            { 
-              headers: { Authorization: `Bearer ${token}` },
-              timeout: 30000,
-            }
-          );
-
-          if (response.data.success) {
-            setTransactionReference(response.data.data.transaction.reference);
-            setPaymentStatus('success');
-            await fetchWalletBalance();
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              Alert.alert('Subscription Failed', response.data.message || 'Failed to subscribe.');
-            }, 2000);
-          }
-        } catch (error: any) {
-          console.error('Subscription error:', error);
-          
-          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
-            setPaymentStatus('pending');
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to subscribe.');
-            }, 2000);
-          }
+    if (biometricSuccess) {
+      await processSubscription(usedCashback);
+    } else {
+      navigation.navigate('PINVerify', {
+        title: 'Confirm Subscription',
+        message: `Enter your PIN to subscribe to ${selectedPlan?.name}`,
+        onSuccess: async () => {
+          await processSubscription(usedCashback);
         }
+      });
+    }
+  };
+
+  const processSubscription = async (usedCashback: number) => {
+    setShowProcessing(true);
+    setPaymentStatus('processing');
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/services/internet`,
+        {
+          accountNumber,
+          variation_code: selectedPlan!.id,
+          serviceID: selectedProvider,
+          amount: selectedPlan!.price,
+          usedCashback,
+        },
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000,
+        }
+      );
+
+      if (response.data.success) {
+        setTransactionReference(response.data.data.transaction.reference);
+        setPaymentStatus('success');
+        await fetchWalletBalance();
+
+        setTimeout(() => {
+          setShowProcessing(false);
+          setAccountNumber('');
+          setSelectedPlan(null);
+          navigation.goBack();
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Subscription Failed', response.data.message || 'Failed to subscribe.');
+        }, 2000);
       }
-    });
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+        setPaymentStatus('pending');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert(
+            'Transaction Pending',
+            'Your transaction is being processed. Please check your transaction history.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Error', error.response?.data?.message || 'Failed to subscribe.');
+        }, 2000);
+      }
+    }
   };
 
   const handleProcessingClose = () => {

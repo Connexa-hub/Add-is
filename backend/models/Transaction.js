@@ -6,7 +6,7 @@ const TransactionSchema = new mongoose.Schema({
   type: { type: String, enum: ['credit', 'debit'] },
   category: { 
     type: String, 
-    enum: ['wallet_funding', 'electricity', 'data', 'tv', 'airtime', 'transfer', 'cashback', 'reversal'] 
+    enum: ['wallet_funding', 'electricity', 'data', 'tv', 'airtime', 'transfer', 'cashback', 'reversal', 'education', 'insurance', 'internet', 'betting'] 
   },
   transactionType: String,
   amount: { type: Number, required: true },

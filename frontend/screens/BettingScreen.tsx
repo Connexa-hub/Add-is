@@ -237,8 +237,23 @@ export default function BettingScreen() {
     }
   };
 
-  const confirmFunding = async (usedCashback: number) => {
+  const confirmFunding = async (usedCashback: number, biometricSuccess: boolean = false) => {
     setShowPaymentPreview(false);
+
+    if (biometricSuccess) {
+      await processFunding(usedCashback);
+    } else {
+      navigation.navigate('PINVerify', {
+        title: 'Confirm Funding',
+        message: `Enter your PIN to fund ₦${parseFloat(amount).toLocaleString()} to your betting wallet`,
+        onSuccess: async () => {
+          await processFunding(usedCashback);
+        }
+      });
+    }
+  };
+
+  const processFunding = async (usedCashback: number) => {
     setShowProcessing(true);
     setPaymentStatus('processing');
 
@@ -262,16 +277,39 @@ export default function BettingScreen() {
         setTransactionReference(response.data.data.transaction.reference);
         setPaymentStatus('success');
         await fetchWalletBalance();
+
+        setTimeout(() => {
+          setShowProcessing(false);
+          setUserId('');
+          setAmount('');
+          navigation.goBack();
+        }, 2000);
       } else {
         setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Transaction Failed', response.data.message || 'Failed to fund betting wallet.');
+        }, 2000);
       }
     } catch (error: any) {
       console.error('Funding error:', error);
       
-      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network')) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
         setPaymentStatus('pending');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert(
+            'Transaction Pending',
+            'Your transaction is being processed. Please check your transaction history.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+        }, 2000);
       } else {
         setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Error', error.response?.data?.message || 'Failed to fund betting wallet.');
+        }, 2000);
       }
     }
   };

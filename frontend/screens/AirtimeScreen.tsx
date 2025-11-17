@@ -274,17 +274,20 @@ export default function AirtimeScreen() {
     }
   };
 
-  const confirmPurchase = async (usedCashback: number) => {
+  const confirmPurchase = async (usedCashback: number, biometricSuccess: boolean = false) => {
     setShowPaymentPreview(false);
 
-    // Navigate to PIN verification (biometric auth already happened in PaymentPreviewSheet)
-    navigation.navigate('PINVerify', {
-      title: 'Confirm Purchase',
-      message: `Enter your PIN to purchase ₦${parseFloat(amount).toLocaleString()} airtime`,
-      onSuccess: async () => {
-        await processPurchase(usedCashback);
-      }
-    });
+    if (biometricSuccess) {
+      await processPurchase(usedCashback);
+    } else {
+      navigation.navigate('PINVerify', {
+        title: 'Confirm Purchase',
+        message: `Enter your PIN to purchase ₦${parseFloat(amount).toLocaleString()} airtime`,
+        onSuccess: async () => {
+          await processPurchase(usedCashback);
+        }
+      });
+    }
   };
 
   const processPurchase = async (usedCashback: number) => {

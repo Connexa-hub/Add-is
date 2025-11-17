@@ -425,14 +425,16 @@ exports.buyEducation = async (req, res, next) => {
 
     const transaction = await Transaction.create({ 
       userId: req.userId, 
-      type: 'Education', 
-      transactionType: 'debit', 
+      type: 'debit',
+      category: 'education',
+      transactionType: 'Education Service', 
       amount, 
       reference,
       recipient: billersCode || phone,
-      status: result.code === '000' ? 'success' : 'failed', 
+      status: result.code === '000' ? 'completed' : 'failed',
+      paymentGateway: 'vtpass', 
       details: result,
-      cashbackAmount
+      metadata: { cashbackAmount }
     });
 
     if (result.code === '000') {
@@ -518,14 +520,16 @@ exports.buyInsurance = async (req, res, next) => {
 
     const transaction = await Transaction.create({ 
       userId: req.userId, 
-      type: 'Insurance', 
-      transactionType: 'debit', 
+      type: 'debit',
+      category: 'insurance',
+      transactionType: 'Insurance Payment', 
       amount, 
       reference,
       recipient: billersCode || phone,
-      status: result.code === '000' ? 'success' : 'failed', 
+      status: result.code === '000' ? 'completed' : 'failed',
+      paymentGateway: 'vtpass', 
       details: result,
-      cashbackAmount
+      metadata: { cashbackAmount }
     });
 
     if (result.code === '000') {
@@ -609,16 +613,24 @@ exports.buyOtherService = async (req, res, next) => {
       }
     }
 
+    // Determine category based on serviceID
+    let category = 'internet'; // default
+    if (serviceID && serviceID.toLowerCase().includes('bet')) {
+      category = 'betting';
+    }
+
     const transaction = await Transaction.create({ 
       userId: req.userId, 
-      type: 'Internet', 
-      transactionType: 'debit', 
+      type: 'debit',
+      category,
+      transactionType: category === 'betting' ? 'Betting Service' : 'Internet Service', 
       amount, 
       reference,
       recipient: billersCode || phone,
-      status: result.code === '000' ? 'success' : 'failed', 
+      status: result.code === '000' ? 'completed' : 'failed',
+      paymentGateway: 'vtpass', 
       details: result,
-      cashbackAmount
+      metadata: { cashbackAmount, serviceID }
     });
 
     if (result.code === '000') {

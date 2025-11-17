@@ -14,7 +14,7 @@ import { useNetwork } from '../../../contexts/NetworkContext';
 export interface PaymentPreviewSheetProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: (usedCashback: number) => void;
+  onConfirm: (usedCashback: number, biometricSuccess?: boolean) => void;
   amount: number;
   serviceType: string;
   serviceName: string;
@@ -190,18 +190,18 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
         );
 
         if (authResult.success) {
-          // Biometric success - close preview and proceed directly to payment processing
+          // Biometric success - close preview and proceed directly to payment processing (skip PIN)
           onClose();
-          onConfirm(cashbackUsed);
+          onConfirm(cashbackUsed, true); // Pass true to indicate biometric was successful
         } else {
           // Biometric cancelled - fallback to PIN input
           onClose();
-          onConfirm(cashbackUsed);
+          onConfirm(cashbackUsed, false); // Pass false to indicate biometric failed
         }
       } else {
         // No biometric - close preview and proceed with PIN verification
         onClose();
-        onConfirm(cashbackUsed);
+        onConfirm(cashbackUsed, false); // Pass false to indicate no biometric
       }
     } catch (error) {
       setLoading(false);

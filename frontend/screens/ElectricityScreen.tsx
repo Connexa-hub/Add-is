@@ -222,57 +222,82 @@ export default function ElectricityScreen() {
     setShowPaymentPreview(true);
   };
 
-  const confirmPayment = async (usedCashback: number) => {
+  const confirmPayment = async (usedCashback: number, biometricSuccess: boolean = false) => {
     setShowPaymentPreview(false);
 
-    navigation.navigate('PINVerify', {
-      title: 'Confirm Payment',
-      message: `Enter your PIN to pay ₦${amount} for electricity`,
-      onSuccess: async () => {
-        setShowProcessing(true);
-        setPaymentStatus('processing');
-
-        try {
-          const token = await AsyncStorage.getItem('token');
-          const response = await axios.post(
-            `${API_BASE_URL}/api/services/pay-electricity`,
-            {
-              meterNumber,
-              variation_code: selectedMeterType,
-              serviceID: selectedProvider,
-              amount: parseFloat(amount),
-              usedCashback,
-            },
-            { 
-              headers: { Authorization: `Bearer ${token}` },
-              timeout: 30000,
-            }
-          );
-
-          if (response.data.success) {
-            setTransactionReference(response.data.data.transaction.reference);
-            setPaymentStatus('success');
-            await fetchWalletBalance();
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              Alert.alert('Transaction Failed', response.data.message || 'Failed to process payment.');
-            }, 2000);
-          }
-        } catch (error: any) {
-          console.error('Payment error:', error);
-
-          if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
-            setPaymentStatus('pending');
-          } else {
-            setPaymentStatus('failed');
-            setTimeout(() => {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to process payment.');
-            }, 2000);
-          }
+    if (biometricSuccess) {
+      await processPayment(usedCashback);
+    } else {
+      navigation.navigate('PINVerify', {
+        title: 'Confirm Payment',
+        message: `Enter your PIN to pay ₦${amount} for electricity`,
+        onSuccess: async () => {
+          await processPayment(usedCashback);
         }
+      });
+    }
+  };
+
+  const processPayment = async (usedCashback: number) => {
+    setShowProcessing(true);
+    setPaymentStatus('processing');
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(
+        `${API_BASE_URL}/api/services/pay-electricity`,
+        {
+          meterNumber,
+          variation_code: selectedMeterType,
+          serviceID: selectedProvider,
+          amount: parseFloat(amount),
+          usedCashback,
+        },
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000,
+        }
+      );
+
+      if (response.data.success) {
+        setTransactionReference(response.data.data.transaction.reference);
+        setPaymentStatus('success');
+        await fetchWalletBalance();
+
+        setTimeout(() => {
+          setShowProcessing(false);
+          setMeterNumber('');
+          setAmount('');
+          navigation.goBack();
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Transaction Failed', response.data.message || 'Failed to process payment.');
+        }, 2000);
       }
-    });
+    } catch (error: any) {
+      console.error('Payment error:', error);
+
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.message?.includes('Network')) {
+        setPaymentStatus('pending');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert(
+            'Transaction Pending',
+            'Your transaction is being processed. Please check your transaction history.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+        }, 2000);
+      } else {
+        setPaymentStatus('failed');
+        setTimeout(() => {
+          setShowProcessing(false);
+          Alert.alert('Error', error.response?.data?.message || 'Failed to process payment.');
+        }, 2000);
+      }
+    }
   };
 
   const handleProcessingClose = () => {

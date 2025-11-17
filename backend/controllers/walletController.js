@@ -44,12 +44,14 @@ exports.fundWallet = async (req, res, next) => {
 
     const transaction = await Transaction.create({
       userId: req.userId,
-      type: 'Wallet Funding',
-      transactionType: 'credit',
+      type: 'credit',
+      category: 'wallet_funding',
+      transactionType: 'Wallet Funding',
       amount,
       reference,
-      status: 'success',
-      details: {
+      status: 'completed',
+      paymentGateway: 'manual',
+      metadata: {
         paymentMethod,
         previousBalance: user.walletBalance,
         newBalance: user.walletBalance + amount
@@ -85,7 +87,7 @@ exports.getWalletTransactions = async (req, res, next) => {
 
     const transactions = await Transaction.find({ 
       userId: req.userId,
-      transactionType: { $in: ['credit', 'debit'] }
+      type: { $in: ['credit', 'debit'] }
     })
       .sort({ createdAt: -1 })
       .limit(limit)
@@ -93,7 +95,7 @@ exports.getWalletTransactions = async (req, res, next) => {
 
     const total = await Transaction.countDocuments({ 
       userId: req.userId,
-      transactionType: { $in: ['credit', 'debit'] }
+      type: { $in: ['credit', 'debit'] }
     });
 
     res.json({
