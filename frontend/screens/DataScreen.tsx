@@ -367,18 +367,12 @@ export default function DataScreen() {
   const handlePaymentCleanup = () => {
     // Reset form when payment is cancelled
     setPhoneNumber('');
-    setAmount('');
-    setSelectedNetwork(null);
+    setSelectedNetwork('');
     setSelectedPlan(null);
-    setErrors({ phoneNumber: '', amount: '' });
+    setErrors({ phoneNumber: '' });
   };
 
-  const handleCleanup = () => {
-    // This cleanup might be for when the PaymentPreviewSheet is closed without confirming
-    // If handlePaymentCleanup is more specific, use that.
-    // For now, let's keep it simple and assume it might reset some state if needed.
-    // If handlePaymentCleanup should be used here, remove this one.
-  };
+  
 
   const tabs: Array<{id: TabType, label: string}> = [
     { id: 'hot', label: 'HOT DEALS' },
