@@ -76,6 +76,12 @@ export default function ElectricityScreen() {
     }
   }, [selectedProvider]);
 
+  useEffect(() => {
+    if (meterNumber && amount && parseFloat(amount) >= 500 && selectedProvider && !showPaymentPreview) {
+      handlePayment();
+    }
+  }, [meterNumber, amount, selectedProvider]);
+
   const fetchWalletBalance = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -311,6 +317,12 @@ export default function ElectricityScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
+  const handleCleanup = () => {
+    setAmount('');
+    setMeterNumber('');
+    setLoading(false);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: tokens.colors.background.default }]}>
       <View style={[styles.header, { backgroundColor: tokens.colors.primary.main, paddingTop: 50 }]}>
@@ -484,42 +496,6 @@ export default function ElectricityScreen() {
           </AppText>
         </View>
 
-        {amount && meterNumber && (
-          <View
-            style={{
-              backgroundColor: tokens.colors.primary.light,
-              padding: tokens.spacing.md,
-              borderRadius: tokens.radius.lg,
-              marginBottom: tokens.spacing.lg,
-            }}
-          >
-            <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.xs }}>
-              Payment Summary
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Provider: {providers.find(p => p.id === selectedProvider)?.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Meter Type: {meterTypes.find(t => t.id === selectedMeterType)?.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Meter Number: {meterNumber}
-            </AppText>
-            <AppText variant="h3" weight="bold" color={tokens.colors.primary.main} style={{ marginTop: tokens.spacing.xs }}>
-              Total: ₦{parseFloat(amount).toLocaleString()}
-            </AppText>
-          </View>
-        )}
-
-        <AppButton
-          onPress={handlePayment}
-          loading={loading}
-          disabled={loading || loadingProviders || !meterNumber || !amount}
-          fullWidth
-          size="lg"
-        >
-          Continue to Payment
-        </AppButton>
       </ScrollView>
 
       <PaymentPreviewSheet
@@ -532,6 +508,7 @@ export default function ElectricityScreen() {
         recipient={meterNumber}
         balance={walletBalance}
         onAddFunds={handleAddFunds}
+        onCleanup={handleCleanup}
       />
 
       <PaymentProcessingScreen

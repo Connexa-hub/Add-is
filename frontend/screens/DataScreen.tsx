@@ -74,6 +74,12 @@ export default function DataScreen() {
     filterPlansByTab();
   }, [selectedTab, dataPlans]);
 
+  useEffect(() => {
+    if (phoneNumber && validatePhoneNumber(phoneNumber) && selectedNetwork && selectedPlan && !showPaymentPreview) {
+      handlePurchase();
+    }
+  }, [phoneNumber, selectedNetwork, selectedPlan]);
+
   const fetchWalletBalance = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -333,6 +339,11 @@ export default function DataScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
+  const handleCleanup = () => {
+    setSelectedPlan(null);
+    setLoading(false);
+  };
+
   const tabs: Array<{id: TabType, label: string}> = [
     { id: 'hot', label: 'HOT DEALS' },
     { id: 'daily', label: 'Daily' },
@@ -535,45 +546,6 @@ export default function DataScreen() {
           )}
         </View>
 
-        {selectedPlan && (
-          <View
-            style={{
-              backgroundColor: tokens.colors.primary.light,
-              padding: tokens.spacing.md,
-              borderRadius: tokens.radius.lg,
-              marginHorizontal: tokens.spacing.lg,
-              marginBottom: tokens.spacing.lg,
-            }}
-          >
-            <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.xs }}>
-              Purchase Summary
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Network: {networks.find(n => n.id === selectedNetwork)?.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Plan: {selectedPlan.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Phone: {phoneNumber || 'Not entered'}
-            </AppText>
-            <AppText variant="h3" weight="bold" color={tokens.colors.primary.main} style={{ marginTop: tokens.spacing.xs }}>
-              Total: ₦{selectedPlan.price.toLocaleString()}
-            </AppText>
-          </View>
-        )}
-
-        <View style={{ paddingHorizontal: tokens.spacing.lg }}>
-          <AppButton
-            onPress={handlePurchase}
-            loading={loading}
-            disabled={loading || loadingNetworks || !selectedPlan || !phoneNumber || !selectedNetwork}
-            fullWidth
-            size="lg"
-          >
-            Purchase Data
-          </AppButton>
-        </View>
       </ScrollView>
 
       <PaymentPreviewSheet
@@ -586,6 +558,7 @@ export default function DataScreen() {
         recipient={phoneNumber}
         balance={walletBalance}
         onAddFunds={handleAddFunds}
+        onCleanup={handleCleanup}
       />
     </View>
   );

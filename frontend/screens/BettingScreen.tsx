@@ -61,6 +61,12 @@ export default function BettingScreen() {
     }
   }, [selectedProvider]);
 
+  useEffect(() => {
+    if (userId && amount && parseFloat(amount) >= 100 && selectedProvider && !showPaymentPreview) {
+      handleFundWallet();
+    }
+  }, [userId, amount, selectedProvider]);
+
   const fetchWalletBalance = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -287,6 +293,12 @@ export default function BettingScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
+  const handleCleanup = () => {
+    setAmount('');
+    setUserId('');
+    setLoading(false);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: tokens.colors.background.default }]}>
       <View style={[styles.header, { backgroundColor: tokens.colors.primary.main, paddingTop: 50 }]}>
@@ -425,39 +437,6 @@ export default function BettingScreen() {
           </AppText>
         </View>
 
-        {amount && userId && (
-          <View
-            style={{
-              backgroundColor: tokens.colors.primary.light,
-              padding: tokens.spacing.md,
-              borderRadius: tokens.radius.lg,
-              marginBottom: tokens.spacing.lg,
-            }}
-          >
-            <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.xs }}>
-              Funding Summary
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Provider: {providers.find(p => p.id === selectedProvider)?.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              User ID: {userId}
-            </AppText>
-            <AppText variant="h3" weight="bold" color={tokens.colors.primary.main} style={{ marginTop: tokens.spacing.xs }}>
-              Total: ₦{parseFloat(amount).toLocaleString()}
-            </AppText>
-          </View>
-        )}
-
-        <AppButton
-          onPress={handleFundWallet}
-          loading={loading}
-          disabled={loading || loadingProviders || !userId || !amount}
-          fullWidth
-          size="lg"
-        >
-          Continue to Payment
-        </AppButton>
       </ScrollView>
 
       <PaymentPreviewSheet
@@ -470,6 +449,7 @@ export default function BettingScreen() {
         recipient={userId}
         balance={walletBalance}
         onAddFunds={handleAddFunds}
+        onCleanup={handleCleanup}
       />
 
       <PaymentProcessingScreen

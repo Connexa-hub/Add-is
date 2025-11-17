@@ -21,6 +21,7 @@ export interface PaymentPreviewSheetProps {
   recipient?: string;
   balance: number;
   onAddFunds: () => void;
+  onCleanup?: () => void;
 }
 
 export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
@@ -33,6 +34,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   recipient,
   balance,
   onAddFunds,
+  onCleanup,
 }) => {
   const { tokens } = useAppTheme();
   const { isOnline } = useNetwork();
@@ -43,6 +45,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   const [loading, setLoading] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [networkError, setNetworkError] = useState({ visible: false, message: '', type: 'network_error' as const });
+  const [previousVisible, setPreviousVisible] = useState(visible);
 
   useEffect(() => {
     if (visible) {
@@ -50,6 +53,13 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
       checkBiometric();
     }
   }, [visible, amount]);
+
+  useEffect(() => {
+    if (previousVisible && !visible && onCleanup) {
+      onCleanup();
+    }
+    setPreviousVisible(visible);
+  }, [visible]);
 
   const fetchCashbackData = async () => {
     try {
@@ -208,7 +218,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
               backgroundColor: tokens.colors.background.paper,
               borderTopLeftRadius: tokens.radius.xl,
               borderTopRightRadius: tokens.radius.xl,
-              maxHeight: '90%',
+              maxHeight: '55%',
             },
           ]}
         >
@@ -450,28 +460,17 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
                 Add Funds to Wallet
               </AppButton>
             ) : (
-              <>
-                <AppButton
-                  onPress={handleConfirm}
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  loading={loading}
-                  disabled={loading}
-                  icon={<Ionicons name={biometricEnabled ? 'finger-print' : 'lock-closed'} size={20} color="#FFFFFF" />}
-                >
-                  {biometricEnabled ? 'Confirm Payment' : 'Confirm Payment'}
-                </AppButton>
-                <AppButton
-                  onPress={onClose}
-                  variant="ghost"
-                  size="lg"
-                  fullWidth
-                  style={{ marginTop: tokens.spacing.sm }}
-                >
-                  Cancel
-                </AppButton>
-              </>
+              <AppButton
+                onPress={handleConfirm}
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={loading}
+                disabled={loading}
+                icon={<Ionicons name={biometricEnabled ? 'finger-print' : 'lock-closed'} size={20} color="#FFFFFF" />}
+              >
+                Pay
+              </AppButton>
             )}
           </ScrollView>
 
@@ -500,8 +499,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sheet: {
-    maxHeight: '90%',
-    minHeight: '60%',
+    maxHeight: '55%',
+    minHeight: '50%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },

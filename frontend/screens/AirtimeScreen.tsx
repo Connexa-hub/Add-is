@@ -75,6 +75,12 @@ export default function AirtimeScreen() {
     }
   }, [phoneNumber]);
 
+  useEffect(() => {
+    if (phoneNumber && validatePhoneNumber(phoneNumber) && selectedNetwork && amount && parseFloat(amount) >= 50 && !showPaymentPreview) {
+      handlePurchase();
+    }
+  }, [phoneNumber, selectedNetwork, amount]);
+
   const fetchWalletBalance = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -305,6 +311,11 @@ export default function AirtimeScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
+  const handleCleanup = () => {
+    setAmount('');
+    setLoading(false);
+  };
+
   const getNetworkIcon = () => {
     if (!selectedNetwork) return null;
     const network = providers.find(n => n.id === selectedNetwork);
@@ -470,39 +481,6 @@ export default function AirtimeScreen() {
           </View>
         )}
 
-        {amount && phoneNumber && selectedNetwork && (
-          <View
-            style={{
-              backgroundColor: tokens.colors.primary.light,
-              padding: tokens.spacing.md,
-              borderRadius: tokens.radius.lg,
-              marginBottom: tokens.spacing.lg,
-            }}
-          >
-            <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.xs }}>
-              Purchase Summary
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Network: {providers.find(n => n.id === selectedNetwork)?.name}
-            </AppText>
-            <AppText variant="body2" color={tokens.colors.text.secondary}>
-              Phone Number: {phoneNumber}
-            </AppText>
-            <AppText variant="h3" weight="bold" color={tokens.colors.primary.main} style={{ marginTop: tokens.spacing.xs }}>
-              Total: ₦{amount}
-            </AppText>
-          </View>
-        )}
-
-        <AppButton
-          onPress={handlePurchase}
-          loading={loading}
-          disabled={loading || !selectedNetwork || !amount || !phoneNumber}
-          fullWidth
-          size="lg"
-        >
-          Purchase Airtime
-        </AppButton>
       </ScrollView>
 
       <PaymentPreviewSheet
@@ -515,6 +493,7 @@ export default function AirtimeScreen() {
         recipient={phoneNumber}
         balance={walletBalance}
         onAddFunds={handleAddFunds}
+        onCleanup={handleCleanup}
       />
     </View>
   );
