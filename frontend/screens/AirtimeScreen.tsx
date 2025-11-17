@@ -275,6 +275,7 @@ export default function AirtimeScreen() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
+      // Determine the correct network ID for the API call
       const serviceID = selectedNetwork === '9mobile' ? 'etisalat' : selectedNetwork;
 
       const response = await axios.post(
@@ -311,7 +312,7 @@ export default function AirtimeScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
-  const handleCleanup = () => {
+  const handlePaymentCleanup = () => {
     setAmount('');
     setLoading(false);
   };
@@ -493,7 +494,7 @@ export default function AirtimeScreen() {
         recipient={phoneNumber}
         balance={walletBalance}
         onAddFunds={handleAddFunds}
-        onCleanup={handleCleanup}
+        onCleanup={handlePaymentCleanup}
       />
     </View>
   );

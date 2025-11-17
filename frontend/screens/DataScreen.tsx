@@ -60,6 +60,9 @@ export default function DataScreen() {
   const [errors, setErrors] = useState({ phoneNumber: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [showProcessing, setShowProcessing] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'failed' | ''>('');
+  const [balance, setBalance] = useState(0); // Assuming balance is for wallet
 
   useEffect(() => {
     fetchWalletBalance();
@@ -89,6 +92,7 @@ export default function DataScreen() {
       );
       if (response.data.success && response.data.data) {
         setWalletBalance(response.data.data.walletBalance || 0);
+        setBalance(response.data.data.walletBalance || 0); // Set balance for payment processing
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
@@ -139,7 +143,6 @@ export default function DataScreen() {
 
     setLoading(true);
     try {
-      // Get the selected network's serviceID
       const network = networks.find(n => n.id === selectedNetwork);
       if (!network) {
         console.log('Network not found:', selectedNetwork);
@@ -158,11 +161,10 @@ export default function DataScreen() {
       console.log('Data plans response:', response.data);
 
       if (response.data.success && response.data.data.products) {
-        // Filter products to only show those matching the selected network
         const networkProducts = response.data.data.products.filter((product: any) => {
           const productNetwork = product.network?.toLowerCase();
           const selectedNet = network.name.toLowerCase();
-          return productNetwork === selectedNet || 
+          return productNetwork === selectedNet ||
                  productNetwork?.includes(selectedNet) ||
                  product.serviceID === network.serviceID;
         });
@@ -202,26 +204,26 @@ export default function DataScreen() {
 
     switch (selectedTab) {
       case 'hot':
-        filtered = dataPlans.filter(plan => 
+        filtered = dataPlans.filter(plan =>
           plan.price >= 1000 && plan.price <= 5000
         ).slice(0, 10);
         break;
       case 'daily':
-        filtered = dataPlans.filter(plan => 
-          plan.validity.toLowerCase().includes('day') || 
+        filtered = dataPlans.filter(plan =>
+          plan.validity.toLowerCase().includes('day') ||
           plan.validity.toLowerCase().includes('1 day') ||
           plan.validity.toLowerCase().includes('24')
         );
         break;
       case 'weekly':
-        filtered = dataPlans.filter(plan => 
-          plan.validity.toLowerCase().includes('week') || 
+        filtered = dataPlans.filter(plan =>
+          plan.validity.toLowerCase().includes('week') ||
           plan.validity.toLowerCase().includes('7 days')
         );
         break;
       case 'monthly':
-        filtered = dataPlans.filter(plan => 
-          plan.validity.toLowerCase().includes('month') || 
+        filtered = dataPlans.filter(plan =>
+          plan.validity.toLowerCase().includes('month') ||
           plan.validity.toLowerCase().includes('30 days') ||
           plan.validity.toLowerCase().includes('30days')
         );
@@ -240,7 +242,7 @@ export default function DataScreen() {
 
   const handlePurchase = async () => {
     let hasError = false;
-    const newErrors = { phoneNumber: '', amount: '' };
+    const newErrors = { phoneNumber: '' };
 
     if (!validatePhoneNumber(phoneNumber)) {
       newErrors.phoneNumber = 'Please enter a valid 11-digit phone number';
@@ -263,7 +265,6 @@ export default function DataScreen() {
     try {
       setLoading(true);
 
-      // Check if user has PIN setup
       const token = await AsyncStorage.getItem('token');
       const pinStatusResponse = await axios.get(
         `${API_BASE_URL}/pin/status`,
@@ -301,37 +302,61 @@ export default function DataScreen() {
   };
 
   const confirmPurchase = async (usedCashback: number) => {
-    setLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/services/buy-data`,
-        {
-          phoneNumber,
-          plan: selectedPlan!.id,
-          network: selectedNetwork,
-          amount: selectedPlan!.price,
-          usedCashback
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    setShowPaymentPreview(false);
 
-      setShowPaymentPreview(false);
-      Alert.alert(
-        'Success',
-        `Data purchase successful! ${selectedPlan!.name} has been sent to ${phoneNumber}`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-      await fetchWalletBalance();
-    } catch (error: any) {
-      setShowPaymentPreview(false);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to purchase data. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
+    navigation.navigate('PINVerify', {
+      title: 'Confirm Purchase',
+      message: `Enter your PIN to purchase ${selectedPlan?.name}`,
+      onSuccess: async () => {
+        setShowProcessing(true);
+        setPaymentStatus('processing');
+
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const response = await axios.post(
+            `${API_BASE_URL}/api/services/buy-data`,
+            {
+              phoneNumber,
+              plan: selectedPlan!.id,
+              network: selectedNetwork,
+              amount: selectedPlan!.price,
+              usedCashback
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          if (response.data.success) {
+            setPaymentStatus('success');
+            setBalance(response.data.balance);
+            // Assuming fetchTransactionHistory exists and is relevant
+            // fetchTransactionHistory(); 
+
+            setTimeout(() => {
+              setShowProcessing(false);
+              setPhoneNumber('');
+              setAmount('');
+              setSelectedPlan(null);
+              navigation.goBack(); // Navigate back after successful purchase
+            }, 2000);
+          } else {
+            setPaymentStatus('failed');
+            setTimeout(() => {
+              setShowProcessing(false); // Close processing modal on failure
+            }, 2000);
+          }
+        } catch (error: any) {
+          console.error('Data purchase error:', error);
+          setPaymentStatus('failed');
+          setTimeout(() => {
+            setShowProcessing(false); // Close processing modal on error
+          }, 2000);
+          Alert.alert(
+            'Error',
+            error.response?.data?.message || 'Failed to purchase data. Please try again.'
+          );
+        }
+      }
+    });
   };
 
   const handleAddFunds = () => {
@@ -339,9 +364,20 @@ export default function DataScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
-  const handleCleanup = () => {
+  const handlePaymentCleanup = () => {
+    // Reset form when payment is cancelled
+    setPhoneNumber('');
+    setAmount('');
+    setSelectedNetwork(null);
     setSelectedPlan(null);
-    setLoading(false);
+    setErrors({ phoneNumber: '', amount: '' });
+  };
+
+  const handleCleanup = () => {
+    // This cleanup might be for when the PaymentPreviewSheet is closed without confirming
+    // If handlePaymentCleanup is more specific, use that.
+    // For now, let's keep it simple and assume it might reset some state if needed.
+    // If handlePaymentCleanup should be used here, remove this one.
   };
 
   const tabs: Array<{id: TabType, label: string}> = [
@@ -365,8 +401,8 @@ export default function DataScreen() {
       <BannerCarousel section="data" />
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: tokens.spacing.xl }} showsVerticalScrollIndicator={false}>
-        <ScreenContentDisplay 
-          screenName="data" 
+        <ScreenContentDisplay
+          screenName="data"
           contentType="tip"
           onNavigate={(screen) => navigation.navigate(screen)}
         />
@@ -451,21 +487,21 @@ export default function DataScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: tokens.spacing.md }}>
             <View style={{ flexDirection: 'row', gap: tokens.spacing.sm }}>
               {tabs.map((tab) => (
-                <Pressable 
+                <Pressable
                   key={tab.id}
                   style={[
-                    styles.tabBtn, 
-                    selectedTab === tab.id && { 
-                      backgroundColor: tokens.colors.primary.main, 
-                      borderBottomWidth: 3, 
-                      borderBottomColor: tokens.colors.primary.main 
+                    styles.tabBtn,
+                    selectedTab === tab.id && {
+                      backgroundColor: tokens.colors.primary.main,
+                      borderBottomWidth: 3,
+                      borderBottomColor: tokens.colors.primary.main
                     }
                   ]}
                   onPress={() => setSelectedTab(tab.id)}
                 >
-                  <AppText 
-                    variant="body2" 
-                    weight={selectedTab === tab.id ? "bold" : "semibold"} 
+                  <AppText
+                    variant="body2"
+                    weight={selectedTab === tab.id ? "bold" : "semibold"}
                     color={selectedTab === tab.id ? "#FFFFFF" : tokens.colors.text.secondary}
                   >
                     {tab.label}
@@ -558,7 +594,7 @@ export default function DataScreen() {
         recipient={phoneNumber}
         balance={walletBalance}
         onAddFunds={handleAddFunds}
-        onCleanup={handleCleanup}
+        onCleanup={handlePaymentCleanup}
       />
     </View>
   );

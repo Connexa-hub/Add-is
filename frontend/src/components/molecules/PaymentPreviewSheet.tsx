@@ -159,11 +159,12 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      setLoading(false);
+
       if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
-        setLoading(false);
         onClose(); // Close payment preview
         
-        // Navigate to PIN setup from the parent navigation
+        // Alert user to set up PIN
         Alert.alert(
           'Set Up Transaction PIN',
           'For security, you need to set up a Transaction PIN before making purchases.',
@@ -172,8 +173,8 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
             {
               text: 'Set Up PIN',
               onPress: () => {
-                // Parent component should handle navigation
-                onClose();
+                // Trigger PIN setup callback
+                if (onCleanup) onCleanup();
               }
             }
           ]
@@ -181,9 +182,9 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
         return;
       }
 
-      // Proceed with payment (authentication will be handled by PINVerify screen)
-      setLoading(false);
+      // Proceed with payment - pass cashback amount to parent for PIN verification
       onConfirm(cashbackUsed);
+      onClose();
     } catch (error) {
       setLoading(false);
       console.error('Failed to check PIN status:', error);
