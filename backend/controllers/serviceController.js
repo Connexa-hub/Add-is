@@ -194,8 +194,21 @@ exports.subscribeTV = async (req, res, next) => {
       await user.save();
     }
 
+    // Update user wallet and cashback BEFORE creating transaction
+    if (result.code === '000') {
+      user.walletBalance -= finalAmount;
+      user.cashbackBalance -= usedCashback;
+      
+      if (cashbackAmount > 0) {
+        user.cashbackBalance += cashbackAmount;
+      }
+
+      await user.save();
+    }
+
     const transaction = await Transaction.create({ 
       userId: req.userId, 
+      user: req.userId,
       type: 'debit',
       category: 'tv', 
       transactionType: 'TV Subscription', 
@@ -212,7 +225,9 @@ exports.subscribeTV = async (req, res, next) => {
         cashbackEarned: cashbackAmount,
         netDebit: finalAmount,
         cashbackBalanceBefore,
-        cashbackBalanceAfter: user.cashbackBalance
+        cashbackBalanceAfter: user.cashbackBalance,
+        serviceID: variation_code,
+        providerName: result.content?.transactions?.product_name || 'TV Subscription'
       }
     });
 

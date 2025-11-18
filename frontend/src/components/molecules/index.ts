@@ -10,3 +10,4 @@ export { default as PaymentProcessingScreen } from './PaymentProcessingScreen';
 export { default as BannerCarousel } from './BannerCarousel';
 export { ScreenContentDisplay } from './ScreenContentDisplay';
 export { default as NetworkErrorCard } from './NetworkErrorCard';
+export { default as PaymentSuccessScreen } from './PaymentSuccessScreen';

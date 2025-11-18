@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { PaymentPreviewSheet, PaymentProcessingScreen, BannerCarousel } from '../src/components/molecules';
+import { PaymentSuccessScreen } from '../src/components/molecules/PaymentSuccessScreen';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -52,9 +53,12 @@ export default function TVScreen() {
   const [errors, setErrors] = useState({ smartcardNumber: '' });
   const [showPaymentPreview, setShowPaymentPreview] = useState(false);
   const [showProcessing, setShowProcessing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'pending' | 'failed'>('processing');
   const [transactionReference, setTransactionReference] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
+  const [cashbackEarned, setCashbackEarned] = useState(0);
+  const [balanceBeforePayment, setBalanceBeforePayment] = useState(0);
 
   useEffect(() => {
     fetchWalletBalance();
@@ -192,6 +196,7 @@ export default function TVScreen() {
   };
 
   const processSubscription = async (usedCashback: number) => {
+    setBalanceBeforePayment(walletBalance);
     setShowProcessing(true);
     setPaymentStatus('processing');
 
@@ -214,13 +219,16 @@ export default function TVScreen() {
 
       if (response.data.success) {
         setTransactionReference(response.data.data.transaction.reference);
-        setPaymentStatus('success');
+        setCashbackEarned(response.data.data.transaction.metadata?.cashbackEarned || 0);
         
-        // Store old balance before updating
-        const oldBalance = walletBalance;
+        // Refresh wallet balance
         await fetchWalletBalance();
         
-        // Don't auto-close, let user dismiss
+        // Close processing and show success screen
+        setTimeout(() => {
+          setShowProcessing(false);
+          setShowSuccess(true);
+        }, 1500);
       } else {
         setPaymentStatus('failed');
         setTimeout(() => {
@@ -501,8 +509,24 @@ export default function TVScreen() {
         reference={transactionReference}
         onClose={handleProcessingClose}
         onRetry={handleRetry}
-        walletBalanceBefore={walletBalance}
-        walletBalanceAfter={walletBalance - (selectedPackage?.price || 0)}
+        walletBalanceBefore={balanceBeforePayment}
+        walletBalanceAfter={walletBalance}
+      />
+
+      <PaymentSuccessScreen
+        visible={showSuccess}
+        onClose={() => {
+          setShowSuccess(false);
+          navigation.goBack();
+        }}
+        amount={selectedPackage?.price || 0}
+        serviceName={`${providers.find(p => p.id === selectedProvider)?.name || ''} - ${selectedPackage?.name || ''}`}
+        recipient={smartcardNumber}
+        reference={transactionReference}
+        cashbackEarned={cashbackEarned}
+        walletBalanceBefore={balanceBeforePayment}
+        walletBalanceAfter={walletBalance}
+        bonusActions={[]}
       />
     </View>
   );

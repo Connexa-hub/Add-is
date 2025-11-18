@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,13 +70,13 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   const fetchCashbackData = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      
+
       // Get available cashback balance
       const cashbackResponse = await axios.get(
         `${API_BASE_URL}/api/admin/cashback/user/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (cashbackResponse.data.success) {
         const totalCashback = cashbackResponse.data.data
           .filter((t: any) => t.cashbackAmount > 0)
@@ -163,7 +162,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
 
       if (pinStatusResponse.data.success && !pinStatusResponse.data.data.isPinSet) {
         onClose(); // Close payment preview
-        
+
         // Alert user to set up PIN
         Alert.alert(
           'Set Up Transaction PIN',
@@ -206,14 +205,14 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
     } catch (error) {
       setLoading(false);
       console.error('Failed to check PIN status:', error);
-      
+
       // Check if it's a network error
       const networkErrorCheck = isNetworkError(error);
       if (networkErrorCheck.isNetwork) {
         showNetworkError(networkErrorCheck.type);
         return;
       }
-      
+
       Alert.alert('Error', 'Failed to verify security settings. Please try again.');
     }
   };
@@ -236,9 +235,8 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
             styles.sheet,
             {
               backgroundColor: tokens.colors.background.paper,
-              borderTopLeftRadius: tokens.radius.xl,
-              borderTopRightRadius: tokens.radius.xl,
-              height: '50%',
+              borderTopLeftRadius: tokens.radius.xxl,
+              borderTopRightRadius: tokens.radius.xxl,
             },
           ]}
         >
@@ -252,7 +250,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
             />
           </View>
 
-          <ScrollView style={styles.content}>
+          <View style={{ flex: 1, padding: tokens.spacing.lg }}>
             {/* Header */}
             <View style={styles.header}>
               <AppText variant="h3" weight="bold">
@@ -285,7 +283,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
                   ₦{balance.toLocaleString()}
                 </AppText>
               </View>
-              
+
               <View style={styles.balanceBreakdown}>
                 <View style={styles.balanceRow}>
                   <AppText variant="body2" color={tokens.colors.text.secondary}>
@@ -295,7 +293,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
                     -₦{finalAmount.toLocaleString()}
                   </AppText>
                 </View>
-                
+
                 <View style={[styles.balanceRow, { marginTop: tokens.spacing.xs, paddingTop: tokens.spacing.xs, borderTopWidth: 1, borderTopColor: tokens.colors.border.default }]}>
                   <AppText variant="subtitle2" weight="semibold">
                     Balance After Payment
@@ -491,7 +489,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
                 Pay
               </AppButton>
             )}
-          </ScrollView>
+          </View>
 
           {/* Network Error Card */}
           <NetworkErrorCard
@@ -518,14 +516,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sheet: {
-    height: '50%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    height: 'auto', // Changed from '50%' to 'auto' to allow bottom sheet behavior
+    borderTopLeftRadius: 36, // Increased radius for larger corner
+    borderTopRightRadius: 36, // Increased radius for larger corner
     marginBottom: 0,
+    justifyContent: 'flex-end', // Align content to the bottom
   },
   handleContainer: {
     alignItems: 'center',
     paddingVertical: 12,
+    backgroundColor: tokens.colors.background.paper, // Ensure handle background matches sheet
   },
   handle: {
     width: 40,
