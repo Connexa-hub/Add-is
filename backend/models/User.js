@@ -21,6 +21,7 @@ const UserSchema = new mongoose.Schema({
     type: Date
   },
   walletBalance: { type: Number, default: 0 },
+  cashbackBalance: { type: Number, default: 0 },
   virtualAccountNumber: { type: String, default: () => '247' + Math.floor(Math.random() * 10000000).toString().padStart(7, '0') },
   monnifyAccountReference: String,
   monnifyAccounts: [{

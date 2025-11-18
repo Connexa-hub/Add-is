@@ -72,15 +72,30 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res, next) => {
   }
 });
 
-// Get user's cashback history
+// Get user's cashback history and balance
 router.get('/user/history', verifyToken, async (req, res, next) => {
   try {
+    const user = await User.findById(req.userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
     const transactions = await Transaction.find({
       userId: req.userId,
-      cashbackAmount: { $gt: 0 }
+      'metadata.cashbackEarned': { $gt: 0 }
     }).sort({ createdAt: -1 });
     
-    res.json({ success: true, data: transactions });
+    res.json({ 
+      success: true, 
+      data: {
+        cashbackBalance: user.cashbackBalance,
+        transactions
+      }
+    });
   } catch (error) {
     next(error);
   }
