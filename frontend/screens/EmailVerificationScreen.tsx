@@ -71,15 +71,26 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
           ['hasSeenOnboarding', 'true']
         ]);
 
-        // For new users after email verification, go directly to main app
-        // InitialSetup (PIN setup) will be prompted from within the app
+        // For new users after email verification, navigate to InitialSetup
+        // to configure biometric and session preferences before going to Main
         if (navigation?.reset) {
           navigation.reset({
             index: 0,
-            routes: [{ name: 'Main' }],
+            routes: [{ 
+              name: 'InitialSetup',
+              params: {
+                userId: res.data.data.user?.id,
+                email: res.data.data.user?.email,
+                token: token
+              }
+            }],
           });
         } else {
-          navigation.replace('Main');
+          navigation.replace('InitialSetup', {
+            userId: res.data.data.user?.id,
+            email: res.data.data.user?.email,
+            token: token
+          });
         }
       } else {
         setError('Verification failed. Please try again.');

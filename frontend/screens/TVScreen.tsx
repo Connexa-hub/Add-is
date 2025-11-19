@@ -276,6 +276,11 @@ export default function TVScreen() {
     navigation.navigate('WalletFunding' as never);
   };
 
+  const handleCleanup = () => {
+    setSmartcardNumber('');
+    setLoading(false);
+  };
+
   const handleSubscribe = async () => {
     if (!validateSmartcardNumber(smartcardNumber)) {
       setErrors({ smartcardNumber: 'Please enter a valid 10-11 digit smartcard number' });
@@ -498,6 +503,7 @@ export default function TVScreen() {
         recipient={smartcardNumber}
         balance={walletBalance}
         onAddFunds={handleAddFunds}
+        onCleanup={handleCleanup}
       />
 
       <PaymentProcessingScreen

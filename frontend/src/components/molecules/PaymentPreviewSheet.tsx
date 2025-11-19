@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AppText, AppButton, AppDivider } from '../atoms';
+import { AppText, AppButton } from '../atoms';
 import NetworkErrorCard from './NetworkErrorCard';
+import BottomSheet from './BottomSheet';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -218,373 +219,212 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
   };
 
   return (
-    <Modal
+    <BottomSheet
       visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
+      onClose={onClose}
+      title="Payment Preview"
+      height="50%"
+      scrollable={false}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
-          onPress={onClose}
-        />
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: tokens.colors.background.paper,
-              borderTopLeftRadius: tokens.radius.xxl,
-              borderTopRightRadius: tokens.radius.xxl,
-            },
-          ]}
-        >
-          {/* Handle */}
-          <View style={styles.handleContainer}>
-            <View
-              style={[
-                styles.handle,
-                { backgroundColor: tokens.colors.border.default },
-              ]}
-            />
+      <View style={styles.compactContainer}>
+        {/* Balance and Service Info - Compact Row */}
+        <View style={[styles.infoCard, {
+          backgroundColor: insufficientFunds ? tokens.colors.error.light : tokens.colors.primary.light,
+          borderRadius: tokens.radius.md,
+          padding: tokens.spacing.sm,
+          marginBottom: tokens.spacing.sm,
+        }]}>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="caption" color={tokens.colors.text.secondary}>Balance</AppText>
+              <AppText variant="h3" weight="bold" color={insufficientFunds ? tokens.colors.error.main : tokens.colors.primary.main}>
+                ₦{balance.toLocaleString()}
+              </AppText>
+            </View>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <AppText variant="caption" color={tokens.colors.text.secondary}>After Payment</AppText>
+              <AppText variant="h3" weight="bold" color={balance - finalAmount >= 0 ? tokens.colors.success.main : tokens.colors.error.main}>
+                ₦{Math.max(0, balance - finalAmount).toLocaleString()}
+              </AppText>
+            </View>
           </View>
-
-          <View style={{ flex: 1, padding: tokens.spacing.lg }}>
-            {/* Header */}
-            <View style={styles.header}>
-              <AppText variant="h3" weight="bold">
-                Payment Preview
-              </AppText>
-              <TouchableOpacity onPress={onClose}>
-                <Ionicons name="close" size={24} color={tokens.colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Balance Section - Prominent Display */}
-            <View
-              style={[
-                styles.balanceCard,
-                {
-                  backgroundColor: insufficientFunds ? tokens.colors.error.light : tokens.colors.primary.light,
-                  borderRadius: tokens.radius.lg,
-                  padding: tokens.spacing.lg,
-                  marginBottom: tokens.spacing.base,
-                  borderWidth: 2,
-                  borderColor: insufficientFunds ? tokens.colors.error.main : tokens.colors.primary.main,
-                },
-              ]}
-            >
-              <View style={{ marginBottom: tokens.spacing.md }}>
-                <AppText variant="caption" color={tokens.colors.text.secondary}>
-                  Current Wallet Balance
-                </AppText>
-                <AppText variant="h1" weight="bold" color={insufficientFunds ? tokens.colors.error.main : tokens.colors.primary.main}>
-                  ₦{balance.toLocaleString()}
-                </AppText>
-              </View>
-
-              <View style={styles.balanceBreakdown}>
-                <View style={styles.balanceRow}>
-                  <AppText variant="body2" color={tokens.colors.text.secondary}>
-                    Payment Amount
-                  </AppText>
-                  <AppText variant="body1" weight="semibold">
-                    -₦{finalAmount.toLocaleString()}
-                  </AppText>
-                </View>
-
-                <View style={[styles.balanceRow, { marginTop: tokens.spacing.xs, paddingTop: tokens.spacing.xs, borderTopWidth: 1, borderTopColor: tokens.colors.border.default }]}>
-                  <AppText variant="subtitle2" weight="semibold">
-                    Balance After Payment
-                  </AppText>
-                  <AppText 
-                    variant="h3" 
-                    weight="bold" 
-                    color={balance - finalAmount >= 0 ? tokens.colors.success.main : tokens.colors.error.main}
-                  >
-                    ₦{Math.max(0, balance - finalAmount).toLocaleString()}
-                  </AppText>
-                </View>
-              </View>
-            </View>
-
-            {/* Service Details */}
-            <View style={styles.section}>
-              <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.sm }}>
-                Service Details
-              </AppText>
-              <View style={styles.detailRow}>
-                <AppText variant="body2" color={tokens.colors.text.secondary}>
-                  Service
-                </AppText>
-                <AppText variant="body2" weight="semibold">
-                  {serviceName}
-                </AppText>
-              </View>
-              {recipient && (
-                <View style={styles.detailRow}>
-                  <AppText variant="body2" color={tokens.colors.text.secondary}>
-                    Recipient
-                  </AppText>
-                  <AppText variant="body2" weight="semibold">
-                    {recipient}
-                  </AppText>
-                </View>
-              )}
-              <View style={styles.detailRow}>
-                <AppText variant="body2" color={tokens.colors.text.secondary}>
-                  Amount
-                </AppText>
-                <AppText variant="body2" weight="semibold">
-                  ₦{amount.toLocaleString()}
-                </AppText>
-              </View>
-            </View>
-
-            <AppDivider />
-
-            {/* Cashback Section */}
-            {availableCashback > 0 && (
-              <>
-                <TouchableOpacity
-                  style={[styles.cashbackCard, {
-                    backgroundColor: useCashback ? tokens.colors.success.light : tokens.colors.background.default,
-                    borderRadius: tokens.radius.lg,
-                    padding: tokens.spacing.base,
-                    borderWidth: 1,
-                    borderColor: useCashback ? tokens.colors.success.main : tokens.colors.border.default,
-                  }]}
-                  onPress={() => setUseCashback(!useCashback)}
-                >
-                  <View style={styles.cashbackHeader}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Ionicons
-                        name={useCashback ? 'checkbox' : 'square-outline'}
-                        size={24}
-                        color={useCashback ? tokens.colors.success.main : tokens.colors.text.secondary}
-                      />
-                      <AppText variant="subtitle2" weight="semibold" style={{ marginLeft: tokens.spacing.sm }}>
-                        Use Available Cashback
-                      </AppText>
-                    </View>
-                    <AppText variant="h3" weight="bold" color={tokens.colors.success.main}>
-                      ₦{availableCashback.toLocaleString()}
-                    </AppText>
-                  </View>
-                  {useCashback && (
-                    <View style={{ marginTop: tokens.spacing.sm }}>
-                      <AppText variant="caption" color={tokens.colors.success.main}>
-                        ✓ Cashback of ₦{cashbackUsed.toLocaleString()} will be applied
-                      </AppText>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <AppDivider />
-              </>
-            )}
-
-            {/* Cashback to Earn */}
-            <View
-              style={[
-                styles.earnCard,
-                {
-                  backgroundColor: tokens.colors.warning.light,
-                  borderRadius: tokens.radius.lg,
-                  padding: tokens.spacing.base,
-                },
-              ]}
-            >
-              <View style={styles.earnRow}>
-                <Ionicons name="gift" size={24} color={tokens.colors.warning.main} />
-                <View style={{ marginLeft: tokens.spacing.sm, flex: 1 }}>
-                  <AppText variant="body2" weight="semibold">
-                    Cashback Reward
-                  </AppText>
-                  <AppText variant="caption" color={tokens.colors.text.secondary}>
-                    You'll earn from this transaction
-                  </AppText>
-                </View>
-                <AppText variant="h3" weight="bold" color={tokens.colors.warning.main}>
-                  +₦{cashbackToEarn.toLocaleString()}
-                </AppText>
-              </View>
-            </View>
-
-            <AppDivider />
-
-            {/* Payment Summary */}
-            <View style={styles.section}>
-              <AppText variant="subtitle2" weight="semibold" style={{ marginBottom: tokens.spacing.sm }}>
-                Payment Summary
-              </AppText>
-              <View style={styles.summaryRow}>
-                <AppText variant="body2" color={tokens.colors.text.secondary}>
-                  Subtotal
-                </AppText>
-                <AppText variant="body2">₦{amount.toLocaleString()}</AppText>
-              </View>
-              {useCashback && cashbackUsed > 0 && (
-                <View style={styles.summaryRow}>
-                  <AppText variant="body2" color={tokens.colors.success.main}>
-                    Cashback Applied
-                  </AppText>
-                  <AppText variant="body2" color={tokens.colors.success.main}>
-                    -₦{cashbackUsed.toLocaleString()}
-                  </AppText>
-                </View>
-              )}
-              <View style={[styles.summaryRow, { marginTop: tokens.spacing.sm }]}>
-                <AppText variant="h3" weight="bold">
-                  Total
-                </AppText>
-                <AppText variant="h2" weight="bold" color={tokens.colors.primary.main}>
-                  ₦{finalAmount.toLocaleString()}
-                </AppText>
-              </View>
-            </View>
-
-            {/* Insufficient Funds Warning */}
-            {insufficientFunds && (
-              <View
-                style={[
-                  styles.warningCard,
-                  {
-                    backgroundColor: tokens.colors.error.light,
-                    borderRadius: tokens.radius.lg,
-                    padding: tokens.spacing.base,
-                    marginBottom: tokens.spacing.base,
-                  },
-                ]}
-              >
-                <AppText variant="body2" color={tokens.colors.error.main} weight="semibold">
-                  ⚠️ Insufficient Balance
-                </AppText>
-                <AppText variant="caption" color={tokens.colors.error.main}>
-                  You need ₦{(finalAmount - balance).toLocaleString()} more to complete this transaction
-                </AppText>
-              </View>
-            )}
-
-            {/* Action Buttons */}
-            {insufficientFunds ? (
-              <AppButton
-                onPress={onAddFunds}
-                variant="primary"
-                size="lg"
-                fullWidth
-                icon={<Ionicons name="add-circle" size={20} color="#FFFFFF" />}
-              >
-                Add Funds to Wallet
-              </AppButton>
-            ) : (
-              <AppButton
-                onPress={handleConfirm}
-                variant="primary"
-                size="lg"
-                fullWidth
-                loading={loading}
-                disabled={loading}
-              >
-                Pay
-              </AppButton>
-            )}
-          </View>
-
-          {/* Network Error Card */}
-          <NetworkErrorCard
-            visible={networkError.visible}
-            message={networkError.message}
-            errorType={networkError.type}
-            onRetry={handleRetryPayment}
-            onDismiss={handleDismissError}
-            position="bottom"
-          />
         </View>
+
+        {/* Service Details - Compact */}
+        <View style={[styles.detailsCard, {
+          backgroundColor: tokens.colors.background.paper,
+          borderRadius: tokens.radius.md,
+          padding: tokens.spacing.sm,
+          marginBottom: tokens.spacing.sm,
+        }]}>
+          <View style={styles.detailRow}>
+            <AppText variant="body2" color={tokens.colors.text.secondary}>Service</AppText>
+            <AppText variant="body2" weight="semibold">{serviceName}</AppText>
+          </View>
+          {recipient && (
+            <View style={styles.detailRow}>
+              <AppText variant="body2" color={tokens.colors.text.secondary}>Recipient</AppText>
+              <AppText variant="body2" weight="semibold">{recipient}</AppText>
+            </View>
+          )}
+          <View style={styles.detailRow}>
+            <AppText variant="body2" color={tokens.colors.text.secondary}>Amount</AppText>
+            <AppText variant="body2" weight="semibold">₦{amount.toLocaleString()}</AppText>
+          </View>
+        </View>
+
+        {/* Cashback Section - Only if available */}
+        {availableCashback > 0 && (
+          <TouchableOpacity
+            style={[styles.cashbackCard, {
+              backgroundColor: useCashback ? tokens.colors.success.light : tokens.colors.background.paper,
+              borderRadius: tokens.radius.md,
+              padding: tokens.spacing.sm,
+              marginBottom: tokens.spacing.sm,
+              borderWidth: 1,
+              borderColor: useCashback ? tokens.colors.success.main : tokens.colors.border.default,
+            }]}
+            onPress={() => setUseCashback(!useCashback)}
+          >
+            <View style={styles.row}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Ionicons
+                  name={useCashback ? 'checkbox' : 'square-outline'}
+                  size={20}
+                  color={useCashback ? tokens.colors.success.main : tokens.colors.text.secondary}
+                />
+                <AppText variant="body2" weight="semibold" style={{ marginLeft: tokens.spacing.xs }}>
+                  Use Cashback
+                </AppText>
+              </View>
+              <AppText variant="subtitle1" weight="bold" color={tokens.colors.success.main}>
+                ₦{availableCashback.toLocaleString()}
+              </AppText>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Payment Summary - Compact */}
+        <View style={[styles.summaryCard, {
+          backgroundColor: tokens.colors.background.paper,
+          borderRadius: tokens.radius.md,
+          padding: tokens.spacing.sm,
+          marginBottom: tokens.spacing.sm,
+        }]}>
+          <View style={styles.summaryRow}>
+            <AppText variant="body2" color={tokens.colors.text.secondary}>Subtotal</AppText>
+            <AppText variant="body2">₦{amount.toLocaleString()}</AppText>
+          </View>
+          {useCashback && cashbackUsed > 0 && (
+            <View style={styles.summaryRow}>
+              <AppText variant="body2" color={tokens.colors.success.main}>Cashback</AppText>
+              <AppText variant="body2" color={tokens.colors.success.main}>-₦{cashbackUsed.toLocaleString()}</AppText>
+            </View>
+          )}
+          <View style={styles.summaryRow}>
+            <AppText variant="caption" color={tokens.colors.text.secondary}>
+              <Ionicons name="gift" size={12} color={tokens.colors.warning.main} /> Earn Cashback
+            </AppText>
+            <AppText variant="caption" color={tokens.colors.warning.main}>+₦{cashbackToEarn.toLocaleString()}</AppText>
+          </View>
+          <View style={[styles.summaryRow, { 
+            marginTop: tokens.spacing.xs, 
+            paddingTop: tokens.spacing.xs, 
+            borderTopWidth: 1, 
+            borderTopColor: tokens.colors.border.default 
+          }]}>
+            <AppText variant="subtitle1" weight="bold">Total</AppText>
+            <AppText variant="h3" weight="bold" color={tokens.colors.primary.main}>₦{finalAmount.toLocaleString()}</AppText>
+          </View>
+        </View>
+
+        {/* Insufficient Funds Warning */}
+        {insufficientFunds && (
+          <View style={[styles.warningCard, {
+            backgroundColor: tokens.colors.error.light,
+            borderRadius: tokens.radius.md,
+            padding: tokens.spacing.sm,
+            marginBottom: tokens.spacing.sm,
+          }]}>
+            <AppText variant="caption" color={tokens.colors.error.main} weight="semibold">
+              ⚠️ Insufficient Balance - Need ₦{(finalAmount - balance).toLocaleString()} more
+            </AppText>
+          </View>
+        )}
+
+        {/* Action Button */}
+        {insufficientFunds ? (
+          <AppButton
+            onPress={onAddFunds}
+            variant="primary"
+            size="lg"
+            fullWidth
+            icon={<Ionicons name="add-circle" size={20} color="#FFFFFF" />}
+          >
+            Add Funds to Wallet
+          </AppButton>
+        ) : (
+          <AppButton
+            onPress={handleConfirm}
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={loading}
+            disabled={loading}
+          >
+            Pay
+          </AppButton>
+        )}
       </View>
-    </Modal>
+
+      {/* Network Error Card */}
+      <NetworkErrorCard
+        visible={networkError.visible}
+        message={networkError.message}
+        errorType={networkError.type}
+        onRetry={handleRetryPayment}
+        onDismiss={handleDismissError}
+        position="bottom"
+      />
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  compactContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  sheet: {
-    height: 'auto', // Changed from '50%' to 'auto' to allow bottom sheet behavior
-    borderTopLeftRadius: 36, // Increased radius for larger corner
-    borderTopRightRadius: 36, // Increased radius for larger corner
-    marginBottom: 0,
-    justifyContent: 'flex-end', // Align content to the bottom
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    backgroundColor: tokens.colors.background.paper, // Ensure handle background matches sheet
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  balanceCard: {
-    marginBottom: 16,
-  },
-  balanceBreakdown: {
-    marginTop: 8,
-  },
-  balanceRow: {
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  section: {
-    marginVertical: 16,
+  infoCard: {
+    // Dynamic styles applied inline
+  },
+  detailsCard: {
+    // Dynamic styles applied inline
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   cashbackCard: {
-    marginVertical: 16,
+    // Dynamic styles applied inline
   },
-  cashbackHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  earnCard: {
-    marginVertical: 16,
-  },
-  earnRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  summaryCard: {
+    // Dynamic styles applied inline
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   warningCard: {
-    marginBottom: 16,
+    // Dynamic styles applied inline
   },
 });
 
