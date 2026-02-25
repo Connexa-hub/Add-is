@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: true,
     hmr: {
       clientPort: 443,
-      host: process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost'
+      host: process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : '0.0.0.0'
     },
     proxy: {
       '/api': {
