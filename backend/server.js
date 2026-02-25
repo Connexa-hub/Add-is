@@ -167,10 +167,10 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 5000 });
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || "mongodb://localhost:27017/addis", { serverSelectionTimeoutMS: 5000 });
     console.log('✅ MongoDB connected successfully');
 
-    const host = '0.0.0.0';
+    const host = 'localhost';
     app.listen(PORT, host, () => {
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log(`🚀 Server running on http://${host}:${PORT}`);
