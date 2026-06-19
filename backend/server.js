@@ -142,7 +142,7 @@ app.use('/api/wallet/funding', walletFundingRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin/onboarding', adminOnboardingRoutes);
 app.use('/api/admin/security', adminSecurityRoutes);
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production' && require('fs').existsSync(path.join(__dirname, 'admin-web', 'dist'))) {
   const adminDistPath = path.join(__dirname, 'admin-web', 'dist');
 
   // Serve static files
@@ -170,7 +170,7 @@ const startServer = async () => {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || 'mongodb://localhost:27017/addis' || "mongodb://localhost:27017/addis", { serverSelectionTimeoutMS: 5000 });
     console.log('✅ MongoDB connected successfully');
 
-    const host = 'localhost';
+    const host = '0.0.0.0';
     app.listen(PORT, host, () => {
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log(`🚀 Server running on http://${host}:${PORT}`);
