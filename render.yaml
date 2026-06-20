@@ -6,6 +6,7 @@ services:
     # The build command needs to install dependencies for root and admin-web.
     buildCommand: |
       npm install
+      npm install --prefix backend
       npm install --prefix backend/admin-web
       npm run build --prefix backend/admin-web
     # The app runs from the root, so start command should be:
