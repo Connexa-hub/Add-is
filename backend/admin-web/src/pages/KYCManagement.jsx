@@ -236,10 +236,10 @@ const KYCManagement = () => {
                     <div key={idx} className="border rounded-lg p-3">
                       <p className="text-sm font-medium mb-2">{doc.type.replace('_', ' ').toUpperCase()}</p>
                       <img
-                        src={`http://localhost:3001${doc.url}`}
+                        src={doc.url}
                         alt={doc.type}
                         className="w-full h-32 object-cover rounded cursor-pointer"
-                        onClick={() => window.open(`http://localhost:3001${doc.url}`, '_blank')}
+                        onClick={() => window.open(doc.url, '_blank')}
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         {new Date(doc.uploadedAt).toLocaleDateString()}
