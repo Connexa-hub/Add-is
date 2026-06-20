@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: addis-backend
+    runtime: node
+    # Since package.json is in the root, build should be at root.
+    # The build command needs to install dependencies for root and admin-web.
+    buildCommand: |
+      npm install
+      npm install --prefix backend/admin-web
+      npm run build --prefix backend/admin-web
+    # The app runs from the root, so start command should be:
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
