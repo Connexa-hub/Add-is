@@ -15,6 +15,7 @@ const {
   getWalletTransactions
 } = require('../controllers/walletController');
 const { registerValidation, loginValidation, profileUpdateValidation, walletFundValidation, transactionQueryValidation } = require('../middleware/validation');
+const { redactEmail, redactAccountNumber, debugLog } = require('../utils/redact');
 
 // Verify token endpoint
 router.get('/verify-token', verifyToken, async (req, res) => {
@@ -38,12 +39,12 @@ router.get('/profile', verifyToken, async (req, res, next) => {
     }
 
     // Auto-create virtual account if not exists - ALWAYS for sandbox/testing
-    console.log('🔍 Checking Monnify accounts for user:', user.email);
-    console.log('Current monnifyAccounts:', user.monnifyAccounts);
-    console.log('Current monnifyAccountReference:', user.monnifyAccountReference);
+    debugLog('🔍 Checking Monnify accounts for user:', redactEmail(user.email));
+    debugLog('Current monnifyAccounts count:', user.monnifyAccounts?.length || 0);
+    debugLog('Has monnifyAccountReference:', !!user.monnifyAccountReference);
 
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
-      console.log('⚠️ User has no Monnify accounts, attempting to create/fetch for user:', user.email);
+      debugLog('⚠️ User has no Monnify accounts, attempting to create/fetch for user:', redactEmail(user.email));
 
       // Automatic Monnify account provisioning
       const accountReference = `USER_${user._id}`;
@@ -51,9 +52,9 @@ router.get('/profile', verifyToken, async (req, res, next) => {
       // Check if we have a monnifyAccountReference but no accounts array
       if (user.monnifyAccountReference && (!user.monnifyAccounts || user.monnifyAccounts.length === 0)) {
         try {
-          console.log('🔄 Fetching existing Monnify account:', user.monnifyAccountReference);
+          debugLog('🔄 Fetching existing Monnify account reference (redacted length):', user.monnifyAccountReference?.length || 0);
           const accountDetails = await monnifyClient.getReservedAccountDetails(user.monnifyAccountReference);
-          console.log('📥 Account details response:', JSON.stringify(accountDetails, null, 2));
+          debugLog('📥 Account details response received:', accountDetails?.success);
 
           if (accountDetails.success && accountDetails.data && accountDetails.data.accounts) {
             user.monnifyAccounts = accountDetails.data.accounts.map(acc => ({
@@ -65,7 +66,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
               collectionChannel: acc.collectionChannel
             }));
             await user.save();
-            console.log('✅ Monnify accounts fetched and saved:', user.monnifyAccounts.length);
+            debugLog('✅ Monnify accounts fetched and saved:', user.monnifyAccounts.length);
           } else {
             console.error('❌ Failed to fetch - clearing invalid reference');
             user.monnifyAccountReference = null;
@@ -79,7 +80,7 @@ router.get('/profile', verifyToken, async (req, res, next) => {
       // If still no accounts, try to create or fetch existing ones
       if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
         try {
-          console.log('🔄 Processing Monnify account for', user.email);
+          debugLog('🔄 Processing Monnify account for', redactEmail(user.email));
 
           // createReservedAccount now handles R42 errors internally and auto-retrieves
           const monnifyResult = await monnifyClient.createReservedAccount({
@@ -103,8 +104,8 @@ router.get('/profile', verifyToken, async (req, res, next) => {
                 collectionChannel: acc.collectionChannel
               }));
               await user.save();
-              console.log(`✅ Saved ${accounts.length} account(s) for ${user.email}`);
-              console.log('Accounts:', user.monnifyAccounts.map(a => `${a.bankName}: ${a.accountNumber}`).join(', '));
+              debugLog(`✅ Saved ${accounts.length} account(s) for ${redactEmail(user.email)}`);
+              debugLog('Accounts:', user.monnifyAccounts.map(a => `${a.bankName}: ${redactAccountNumber(a.accountNumber)}`).join(', '));
             } else {
               console.error('❌ No accounts found in response');
             }
@@ -118,17 +119,17 @@ router.get('/profile', verifyToken, async (req, res, next) => {
           }
         }
       } else {
-        console.log('✅ User has existing Monnify accounts:', user.monnifyAccounts.length);
+        debugLog('✅ User has existing Monnify accounts:', user.monnifyAccounts.length);
       }
     }
 
     // Log what we're sending back
-    console.log(`📤 Sending profile for ${user.email}:`);
-    console.log(`   Monnify Reference: ${user.monnifyAccountReference}`);
-    console.log(`   Monnify Accounts: ${user.monnifyAccounts?.length || 0}`);
+    debugLog(`📤 Sending profile for ${redactEmail(user.email)}:`);
+    debugLog('   Has Monnify Reference:', !!user.monnifyAccountReference);
+    debugLog(`   Monnify Accounts: ${user.monnifyAccounts?.length || 0}`);
     if (user.monnifyAccounts && user.monnifyAccounts.length > 0) {
       user.monnifyAccounts.forEach((acc, idx) => {
-        console.log(`   ${idx + 1}. ${acc.bankName}: ${acc.accountNumber}`);
+        debugLog(`   ${idx + 1}. ${acc.bankName}: ${redactAccountNumber(acc.accountNumber)}`);
       });
     }
 
@@ -229,7 +230,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
     // Create Monnify reserved account for the user
     try {
       const accountReference = `USER_${newUser._id}`;
-      console.log(`🔄 Creating Monnify account for ${newUser.email} with reference: ${accountReference}`);
+      debugLog(`🔄 Creating Monnify account for ${redactEmail(newUser.email)} with reference: ${accountReference}`);
 
       const monnifyResult = await monnifyClient.createReservedAccount({
         accountReference,
@@ -238,7 +239,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
         customerName: name,
       });
 
-      console.log('📥 Monnify result:', JSON.stringify(monnifyResult, null, 2));
+      debugLog('📥 Monnify result received, success:', monnifyResult?.success);
 
       if (monnifyResult.success && monnifyResult.data) {
         const accounts = monnifyResult.data.accounts || [];
@@ -261,15 +262,15 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
           // Verify the save
           const verifiedUser = await User.findById(newUser._id);
-          console.log(`✅ Monnify account created and saved:`);
+          debugLog(`✅ Monnify account created and saved:`);
           console.log(`   Reference: ${verifiedUser.monnifyAccountReference}`);
           console.log(`   Accounts in DB: ${verifiedUser.monnifyAccounts.length}`);
           verifiedUser.monnifyAccounts.forEach((acc, idx) => {
-            console.log(`   ${idx + 1}. ${acc.bankName}: ${acc.accountNumber} (${acc.accountName})`);
+            debugLog(`   ${idx + 1}. ${acc.bankName}: ${redactAccountNumber(acc.accountNumber)}`);
           });
         } else {
           console.error('❌ No accounts returned from Monnify');
-          console.error('   Full response:', JSON.stringify(monnifyResult, null, 2));
+          console.error('   Monnify account creation returned no accounts');
         }
       } else {
         console.error('❌ Monnify account creation failed:', monnifyResult);
@@ -386,7 +387,7 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
     if (!user.monnifyAccounts || user.monnifyAccounts.length === 0) {
       try {
         const accountReference = `USER_${user._id}`;
-        console.log('Creating missing Monnify account for:', user.email);
+        debugLog('Creating missing Monnify account for:', redactEmail(user.email));
 
         const monnifyResult = await monnifyClient.createReservedAccount({
           accountReference,
@@ -406,7 +407,7 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
             reservationReference: acc.reservationReference,
             collectionChannel: acc.collectionChannel
           }));
-          console.log('Monnify accounts created on login:', user.monnifyAccounts);
+          debugLog('Monnify accounts created on login, count:', user.monnifyAccounts.length);
         }
       } catch (monnifyError) {
         console.error('Error creating Monnify account on login:', monnifyError.message);
@@ -831,11 +832,11 @@ router.delete('/delete-account', verifyToken, async (req, res, next) => {
     // Deallocate Monnify reserved account if exists
     if (user.monnifyAccountReference) {
       try {
-        console.log(`Attempting to deallocate Monnify account: ${user.monnifyAccountReference}`);
+        debugLog('Attempting to deallocate Monnify account for user:', redactEmail(user.email));
         const deallocateResult = await monnifyClient.deallocateReservedAccount(user.monnifyAccountReference);
 
         if (deallocateResult.success) {
-          console.log(`✅ Successfully deallocated Monnify account for ${user.email}`);
+          debugLog('✅ Successfully deallocated Monnify account for user:', redactEmail(user.email));
           logSecurityEvent('MONNIFY_ACCOUNT_DEALLOCATED', {
             userId: user._id,
             email: user.email,

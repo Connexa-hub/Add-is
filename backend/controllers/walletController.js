@@ -28,56 +28,25 @@ exports.getWalletBalance = async (req, res, next) => {
   }
 };
 
-exports.fundWallet = async (req, res, next) => {
-  try {
-    const { amount, paymentMethod = 'card' } = req.body;
-
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    const reference = `FUND-${uuidv4()}`;
-
-    const transaction = await Transaction.create({
-      userId: req.userId,
-      type: 'credit',
-      category: 'wallet_funding',
-      transactionType: 'Wallet Funding',
-      amount,
-      reference,
-      status: 'completed',
-      paymentGateway: 'manual',
-      metadata: {
-        paymentMethod,
-        previousBalance: user.walletBalance,
-        newBalance: user.walletBalance + amount
-      }
-    });
-
-    user.walletBalance += amount;
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Wallet funded successfully',
-      data: {
-        transaction: {
-          id: transaction._id,
-          reference,
-          amount,
-          newBalance: user.walletBalance,
-          status: transaction.status,
-          createdAt: transaction.createdAt
-        }
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
+// REMOVED (2026-07-15, Phase 1 security fix): this endpoint used to credit
+// user.walletBalance directly from client-supplied `amount` with zero payment
+// verification — any authenticated user could mint arbitrary funds into their
+// own wallet. Wallet crediting must ONLY ever happen after a payment provider
+// confirms funds were actually received. That flow already exists correctly
+// at POST /api/wallet/funding/initialize -> /verify, and via the signature-
+// verified webhook at POST /api/wallet/funding/webhook
+// (see backend/controllers/walletFundingController.js). Use those instead.
+//
+// This export is kept as a stub that always fails closed, so any client still
+// pointed at the old route gets a clear error instead of silently succeeding
+// or 404ing in a way that looks like a transient bug.
+exports.fundWallet = async (_req, res) => {
+  return res.status(410).json({
+    success: false,
+    message:
+      'This endpoint has been removed for security reasons. Use POST /api/wallet/funding/initialize ' +
+      'to start a verified payment, then /api/wallet/funding/verify or the provider webhook to complete it.'
+  });
 };
 
 exports.getWalletTransactions = async (req, res, next) => {

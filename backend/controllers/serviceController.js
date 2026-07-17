@@ -3,6 +3,7 @@ const User = require('../models/User');
 const { requestVTPass } = require('../utils/vtpassClient');
 const { v4: uuidv4 } = require('uuid');
 const { createTransactionNotification, createCashbackNotification } = require('../utils/notificationHelper');
+const { reserveWalletFunds, refundWalletFunds, applyCashbackDelta } = require('../utils/walletLedger');
 
 exports.payElectricity = async (req, res, next) => {
   try {
@@ -24,17 +25,21 @@ exports.payElectricity = async (req, res, next) => {
     }
 
     const finalAmount = amount - usedCashback;
-
-    if (user.walletBalance < finalAmount) {
-      return res.status(400).json({ 
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}` 
-      });
-    }
-
     const reference = `ELEC-${uuidv4()}`;
     const balanceBefore = user.walletBalance;
     const cashbackBalanceBefore = user.cashbackBalance;
+
+    // Atomically reserve funds BEFORE calling the upstream provider — closes
+    // the race where two concurrent requests could both pass a plain balance
+    // check and both get fulfilled by VTPass before either debit landed.
+    const reservation = await reserveWalletFunds(req.userId, finalAmount);
+    if (!reservation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}`
+      });
+    }
+    user.walletBalance = reservation.user.walletBalance;
 
     const result = await requestVTPass(serviceID, {
       billersCode: meterNumber,
@@ -59,14 +64,12 @@ exports.payElectricity = async (req, res, next) => {
     }
 
     if (result.code === '000') {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-      
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
+      const updatedUser = await applyCashbackDelta(req.userId, cashbackAmount - usedCashback);
+      user.cashbackBalance = updatedUser.cashbackBalance;
+    } else {
+      // Provider call failed — refund the reserved funds; cashback was never touched.
+      const refundedUser = await refundWalletFunds(req.userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
     }
 
     const transaction = await Transaction.create({ 
@@ -150,17 +153,19 @@ exports.subscribeTV = async (req, res, next) => {
     }
 
     const finalAmount = amount - usedCashback;
-
-    if (user.walletBalance < finalAmount) {
-      return res.status(400).json({ 
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}` 
-      });
-    }
-
     const reference = `TV-${uuidv4()}`;
     const balanceBefore = user.walletBalance;
     const cashbackBalanceBefore = user.cashbackBalance;
+
+    // Atomically reserve funds BEFORE calling the upstream provider.
+    const reservation = await reserveWalletFunds(req.userId, finalAmount);
+    if (!reservation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}`
+      });
+    }
+    user.walletBalance = reservation.user.walletBalance;
 
     const result = await requestVTPass(serviceID, {
       billersCode: smartcardNumber,
@@ -184,26 +189,14 @@ exports.subscribeTV = async (req, res, next) => {
     }
 
     if (result.code === '000') {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-      
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
-    }
-
-    // Update user wallet and cashback BEFORE creating transaction
-    if (result.code === '000') {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-      
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
+      const updatedUser = await applyCashbackDelta(req.userId, cashbackAmount - usedCashback);
+      user.cashbackBalance = updatedUser.cashbackBalance;
+    } else {
+      // Provider call failed — refund the reserved funds (this also fixes a
+      // prior bug where this function used to deduct the balance TWICE on
+      // every successful purchase via a duplicated block).
+      const refundedUser = await refundWalletFunds(req.userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
     }
 
     const transaction = await Transaction.create({ 
@@ -335,15 +328,18 @@ exports.buyAirtime = async (req, res) => {
 
     const finalAmount = amount - usedCashback;
 
-    if (user.walletBalance < finalAmount) {
-      return res.status(400).json({ 
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}` 
-      });
-    }
-
     const balanceBefore = user.walletBalance;
     const cashbackBalanceBefore = user.cashbackBalance;
+
+    // Atomically reserve funds BEFORE calling the upstream provider.
+    const reservation = await reserveWalletFunds(userId, finalAmount);
+    if (!reservation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}`
+      });
+    }
+    user.walletBalance = reservation.user.walletBalance;
 
     let vtpassResponse;
     try {
@@ -353,6 +349,9 @@ exports.buyAirtime = async (req, res) => {
       });
     } catch (vtpassError) {
       console.error('VTPass API error:', vtpassError);
+      // Refund the reservation — the provider call never went through.
+      const refundedUser = await refundWalletFunds(userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
       return res.status(500).json({ 
         message: 'Failed to process purchase with service provider. Please try again.' 
       });
@@ -375,14 +374,11 @@ exports.buyAirtime = async (req, res) => {
     }
 
     if (isSuccess) {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-      
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
+      const updatedUser = await applyCashbackDelta(userId, cashbackAmount - usedCashback);
+      user.cashbackBalance = updatedUser.cashbackBalance;
+    } else {
+      const refundedUser = await refundWalletFunds(userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
     }
 
     const transaction = new Transaction({
@@ -476,15 +472,18 @@ exports.buyData = async (req, res) => {
 
     const finalAmount = amount - usedCashback;
 
-    if (user.walletBalance < finalAmount) {
-      return res.status(400).json({ 
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}` 
-      });
-    }
-
     const balanceBefore = user.walletBalance;
     const cashbackBalanceBefore = user.cashbackBalance;
+
+    // Atomically reserve funds BEFORE calling the upstream provider.
+    const reservation = await reserveWalletFunds(userId, finalAmount);
+    if (!reservation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}`
+      });
+    }
+    user.walletBalance = reservation.user.walletBalance;
 
     let vtpassResponse;
     try {
@@ -496,6 +495,8 @@ exports.buyData = async (req, res) => {
       });
     } catch (vtpassError) {
       console.error('VTPass API error:', vtpassError);
+      const refundedUser = await refundWalletFunds(userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
       return res.status(500).json({ 
         message: 'Failed to process purchase with service provider. Please try again.' 
       });
@@ -518,14 +519,11 @@ exports.buyData = async (req, res) => {
     }
 
     if (isSuccess) {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-      
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
+      const updatedUser = await applyCashbackDelta(userId, cashbackAmount - usedCashback);
+      user.cashbackBalance = updatedUser.cashbackBalance;
+    } else {
+      const refundedUser = await refundWalletFunds(userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
     }
 
     const transaction = new Transaction({
@@ -612,17 +610,18 @@ exports.buyEducation = async (req, res, next) => {
     }
 
     const finalAmount = amount - usedCashback;
-
-    if (user.walletBalance < finalAmount) {
-      return res.status(400).json({ 
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}` 
-      });
-    }
-
     const reference = `EDU-${uuidv4()}`;
     const balanceBefore = user.walletBalance;
     const cashbackBalanceBefore = user.cashbackBalance;
+
+    const reservation = await reserveWalletFunds(req.userId, finalAmount);
+    if (!reservation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}`
+      });
+    }
+    user.walletBalance = reservation.user.walletBalance;
 
     const result = await requestVTPass(serviceID, {
       billersCode: billersCode || phone,
@@ -647,14 +646,11 @@ exports.buyEducation = async (req, res, next) => {
     }
 
     if (result.code === '000') {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
+      const updatedUser = await applyCashbackDelta(req.userId, cashbackAmount - usedCashback);
+      user.cashbackBalance = updatedUser.cashbackBalance;
+    } else {
+      const refundedUser = await refundWalletFunds(req.userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
     }
 
     const transaction = await Transaction.create({ 
@@ -737,17 +733,18 @@ exports.buyInsurance = async (req, res, next) => {
     }
 
     const finalAmount = amount - usedCashback;
-
-    if (user.walletBalance < finalAmount) {
-      return res.status(400).json({ 
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}` 
-      });
-    }
-
     const reference = `INS-${uuidv4()}`;
     const balanceBefore = user.walletBalance;
     const cashbackBalanceBefore = user.cashbackBalance;
+
+    const reservation = await reserveWalletFunds(req.userId, finalAmount);
+    if (!reservation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}`
+      });
+    }
+    user.walletBalance = reservation.user.walletBalance;
 
     const result = await requestVTPass(serviceID, {
       billersCode: billersCode || phone,
@@ -772,14 +769,11 @@ exports.buyInsurance = async (req, res, next) => {
     }
 
     if (result.code === '000') {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
+      const updatedUser = await applyCashbackDelta(req.userId, cashbackAmount - usedCashback);
+      user.cashbackBalance = updatedUser.cashbackBalance;
+    } else {
+      const refundedUser = await refundWalletFunds(req.userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
     }
 
     const transaction = await Transaction.create({ 
@@ -862,17 +856,18 @@ exports.buyOtherService = async (req, res, next) => {
     }
 
     const finalAmount = amount - usedCashback;
-
-    if (user.walletBalance < finalAmount) {
-      return res.status(400).json({ 
-        success: false,
-        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}` 
-      });
-    }
-
     const reference = `SVC-${uuidv4()}`;
     const balanceBefore = user.walletBalance;
     const cashbackBalanceBefore = user.cashbackBalance;
+
+    const reservation = await reserveWalletFunds(req.userId, finalAmount);
+    if (!reservation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient wallet balance. Required: ₦${finalAmount}, Available: ₦${user.walletBalance}`
+      });
+    }
+    user.walletBalance = reservation.user.walletBalance;
 
     const result = await requestVTPass(serviceID, {
       billersCode: billersCode || phone,
@@ -902,14 +897,11 @@ exports.buyOtherService = async (req, res, next) => {
     }
 
     if (result.code === '000') {
-      user.walletBalance -= finalAmount;
-      user.cashbackBalance -= usedCashback;
-
-      if (cashbackAmount > 0) {
-        user.cashbackBalance += cashbackAmount;
-      }
-
-      await user.save();
+      const updatedUser = await applyCashbackDelta(req.userId, cashbackAmount - usedCashback);
+      user.cashbackBalance = updatedUser.cashbackBalance;
+    } else {
+      const refundedUser = await refundWalletFunds(req.userId, finalAmount);
+      user.walletBalance = refundedUser.walletBalance;
     }
 
     const transaction = await Transaction.create({ 

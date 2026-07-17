@@ -143,15 +143,46 @@ const verifyWalletFunding = async (req, res) => {
     });
 
     if (verification.isPaid) {
-      const user = await User.findById(userId);
-      
-      user.walletBalance += transaction.amount;
-      transaction.balanceAfter = user.walletBalance;
-      transaction.status = 'completed';
-      transaction.completedAt = new Date();
-      transaction.metadata = verification.data;
+      // Atomically claim this transaction so a concurrent /verify call or the
+      // webhook firing for the same reference can't both credit the wallet.
+      // Only the caller that successfully flips status pending -> completed
+      // proceeds to credit the balance.
+      const claimed = await Transaction.findOneAndUpdate(
+        { _id: transaction._id, status: { $ne: 'completed' } },
+        {
+          $set: {
+            status: 'completed',
+            completedAt: new Date(),
+            metadata: verification.data
+          }
+        },
+        { new: false } // return the pre-update doc so we know if we won the race
+      );
 
-      await Promise.all([user.save(), transaction.save()]);
+      if (!claimed || claimed.status === 'completed') {
+        // Someone else (webhook or a parallel verify call) already completed it.
+        const current = await Transaction.findById(transaction._id);
+        return res.json({
+          success: true,
+          message: 'Transaction already completed',
+          data: {
+            status: 'completed',
+            amount: current.amount,
+            transactionId: current._id
+          }
+        });
+      }
+
+      // Atomic increment — no read-modify-write, immune to concurrent updates.
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $inc: { walletBalance: transaction.amount } },
+        { new: true }
+      );
+      await Transaction.updateOne(
+        { _id: transaction._id },
+        { $set: { balanceAfter: user.walletBalance } }
+      );
 
       await Notification.create({
         userId,
@@ -238,25 +269,39 @@ const handleMonnifyWebhook = async (req, res) => {
         return res.json({ success: true, message: 'Transaction not found' });
       }
 
-      if (transaction.status === 'completed') {
+      // Atomically claim the transaction: only proceed if we're the one
+      // flipping it from a non-completed state to 'completed'. This makes the
+      // webhook safe to receive more than once (Monnify retries webhooks) and
+      // safe to race against a client-initiated /verify call for the same
+      // paymentReference.
+      const claimed = await Transaction.findOneAndUpdate(
+        { _id: transaction._id, status: { $ne: 'completed' } },
+        {
+          $set: {
+            status: 'completed',
+            completedAt: new Date(),
+            metadata: { ...transaction.metadata, webhookData: eventData }
+          }
+        },
+        { new: false }
+      );
+
+      if (!claimed || claimed.status === 'completed') {
         return res.json({ success: true, message: 'Already processed' });
       }
 
-      const user = await User.findById(transaction.userId);
+      const user = await User.findByIdAndUpdate(
+        transaction.userId,
+        { $inc: { walletBalance: transaction.amount } },
+        { new: true }
+      );
       if (!user) {
         return res.json({ success: false, message: 'User not found' });
       }
-
-      user.walletBalance += transaction.amount;
-      transaction.balanceAfter = user.walletBalance;
-      transaction.status = 'completed';
-      transaction.completedAt = new Date();
-      transaction.metadata = {
-        ...transaction.metadata,
-        webhookData: eventData
-      };
-
-      await Promise.all([user.save(), transaction.save()]);
+      await Transaction.updateOne(
+        { _id: transaction._id },
+        { $set: { balanceAfter: user.walletBalance } }
+      );
 
       await Notification.create({
         userId: user._id,

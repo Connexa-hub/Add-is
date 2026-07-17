@@ -23,9 +23,35 @@ const { securityEventLogger } = require('./middleware/securityLogger');
 app.set('trust proxy', 1);
 
 // Security headers
+//
+// CSP is defined explicitly rather than relying on Helmet's generic default.
+// This app serves the admin-web SPA same-origin in production (backend/admin-web/dist)
+// and it calls the API via a relative `/api` path with no external CDN/font
+// dependencies (verified against backend/admin-web/src and index.html), so a
+// tight self-only policy is viable — anything broader would just be
+// unused attack surface.
 app.use(
   helmet({
-    contentSecurityPolicy: isProduction ? undefined : false,
+    contentSecurityPolicy: isProduction
+      ? {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            // React/Vite production builds can emit some inline styles for
+            // critical CSS; styles carry far lower XSS risk than scripts so
+            // 'unsafe-inline' is scoped to style-src only, never script-src.
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'blob:'],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            upgradeInsecureRequests: []
+          }
+        }
+      : false,
     crossOriginEmbedderPolicy: isProduction ? undefined : false,
   })
 );

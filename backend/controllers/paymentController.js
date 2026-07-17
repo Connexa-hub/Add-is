@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const monnifyClient = require('../utils/monnifyClient');
 const crypto = require('crypto');
+const { redactEmail } = require('../utils/redact');
 
 exports.initializePayment = async (req, res) => {
   try {
@@ -118,13 +119,33 @@ exports.verifyPayment = async (req, res) => {
 
       const user = await User.findById(userId);
       const balanceBefore = user.walletBalance;
-      user.walletBalance += paidAmount;
-      await user.save();
 
-      transaction.status = 'completed';
-      transaction.completedAt = new Date();
+      // Atomically claim the transaction before crediting — see the same
+      // pattern in walletFundingController.js. Prevents this call racing
+      // against monnifyWebhook() below for the same reference.
+      const claimed = await Transaction.findOneAndUpdate(
+        { _id: transaction._id, status: { $ne: 'completed' } },
+        { $set: { status: 'completed', completedAt: new Date() } },
+        { new: false }
+      );
+
+      if (!claimed || claimed.status === 'completed') {
+        const current = await Transaction.findById(transaction._id);
+        return res.json({
+          success: true,
+          message: 'Payment already verified',
+          data: current
+        });
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $inc: { walletBalance: paidAmount } },
+        { new: true }
+      );
+
       transaction.balanceBefore = balanceBefore;
-      transaction.balanceAfter = user.walletBalance;
+      transaction.balanceAfter = updatedUser.walletBalance;
       transaction.amount = paidAmount;
       transaction.metadata = verificationResult.data;
       await transaction.save();
@@ -144,7 +165,7 @@ exports.verifyPayment = async (req, res) => {
         message: 'Payment verified successfully',
         data: {
           transaction,
-          newBalance: user.walletBalance,
+          newBalance: updatedUser.walletBalance,
           cardData
         }
       });
@@ -234,19 +255,36 @@ exports.monnifyWebhook = async (req, res) => {
         });
       }
 
-      const balanceBefore = user.walletBalance;
-      user.walletBalance += amountPaid;
-      await user.save();
+      // Atomically claim before crediting — see walletFundingController.js for
+      // the same pattern. Protects against Monnify retrying this webhook, and
+      // against this webhook racing verifyPayment() above for the same ref.
+      const claimed = await Transaction.findOneAndUpdate(
+        { _id: transaction._id, status: { $ne: 'completed' } },
+        { $set: { status: 'completed', completedAt: new Date(paidOn) } },
+        { new: false }
+      );
 
-      transaction.status = 'completed';
-      transaction.completedAt = new Date(paidOn);
+      if (!claimed || claimed.status === 'completed') {
+        return res.status(200).json({
+          success: true,
+          message: 'Transaction already processed'
+        });
+      }
+
+      const balanceBefore = user.walletBalance;
+      const updatedUser = await User.findByIdAndUpdate(
+        transaction.user,
+        { $inc: { walletBalance: amountPaid } },
+        { new: true }
+      );
+
       transaction.balanceBefore = balanceBefore;
-      transaction.balanceAfter = user.walletBalance;
+      transaction.balanceAfter = updatedUser.walletBalance;
       transaction.amount = amountPaid;
       transaction.metadata = eventData;
       await transaction.save();
 
-      console.log(`✅ Wallet credited: User ${user.email} - ₦${amountPaid}`);
+      console.log(`✅ Wallet credited: User ${redactEmail(user.email)} - ₦${amountPaid}`);
 
       return res.status(200).json({ 
         success: true, 

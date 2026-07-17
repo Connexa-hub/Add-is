@@ -6,6 +6,7 @@ const isAdmin = require('../middleware/isAdmin');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
+const { logSecurityEvent } = require('../middleware/securityLogger');
 
 // Get dashboard stats
 router.get('/stats', verifyToken, isAdmin, async (req, res, next) => {
@@ -106,32 +107,69 @@ router.get('/users/:userId', verifyToken, isAdmin, async (req, res, next) => {
 router.put('/users/:userId/wallet', verifyToken, isAdmin, async (req, res, next) => {
   try {
     const { amount, action, reason } = req.body;
-    const user = await User.findById(req.params.userId);
-    
+    const parsedAmount = parseFloat(amount);
+
+    if (!parsedAmount || parsedAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'A positive amount is required' });
+    }
+    if (!['credit', 'debit'].includes(action)) {
+      return res.status(400).json({ success: false, message: "action must be 'credit' or 'debit'" });
+    }
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, message: 'A reason is required for manual wallet adjustments' });
+    }
+
+    let user;
+    if (action === 'credit') {
+      user = await User.findByIdAndUpdate(
+        req.params.userId,
+        { $inc: { walletBalance: parsedAmount } },
+        { new: true }
+      );
+    } else {
+      // Atomic check-and-debit — same guard as customer-facing purchase flows,
+      // so a manual debit can't race another concurrent debit into overdraft.
+      user = await User.findOneAndUpdate(
+        { _id: req.params.userId, walletBalance: { $gte: parsedAmount } },
+        { $inc: { walletBalance: -parsedAmount } },
+        { new: true }
+      );
+      if (!user) {
+        const exists = await User.exists({ _id: req.params.userId });
+        if (!exists) {
+          return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        return res.status(400).json({ success: false, message: 'Insufficient balance' });
+      }
+    }
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    
-    if (action === 'credit') {
-      user.walletBalance += parseFloat(amount);
-    } else if (action === 'debit') {
-      if (user.walletBalance < parseFloat(amount)) {
-        return res.status(400).json({ success: false, message: 'Insufficient balance' });
-      }
-      user.walletBalance -= parseFloat(amount);
-    }
-    
-    await user.save();
-    
+
     await Transaction.create({
       userId: user._id,
       type: action === 'credit' ? 'credit' : 'debit',
-      amount: parseFloat(amount),
-      description: reason || `Admin ${action}`,
+      amount: parsedAmount,
+      description: reason,
       status: 'completed',
-      balanceAfter: user.walletBalance
+      balanceAfter: user.walletBalance,
+      metadata: {
+        adminAdjustment: true,
+        adminId: req.userId,
+        reason
+      }
     });
-    
+
+    logSecurityEvent('ADMIN_WALLET_ADJUSTMENT', {
+      adminId: req.userId,
+      targetUserId: user._id,
+      action,
+      amount: parsedAmount,
+      reason,
+      ip: req.ip || req.connection.remoteAddress
+    });
+
     res.json({
       success: true,
       message: 'Wallet updated successfully',
@@ -785,19 +823,28 @@ router.post('/transactions/:transactionId/refund', verifyToken, isAdmin, async (
     if (!transaction) {
       return res.status(404).json({ success: false, message: 'Transaction not found' });
     }
-    
-    if (transaction.status !== 'failed') {
+
+    // Atomically claim the transaction: only proceed if we're the request that
+    // flips it from 'failed' to 'cancelled'. Prevents a double-click or a
+    // concurrent request from crediting the refund twice.
+    const claimed = await Transaction.findOneAndUpdate(
+      { _id: transactionId, status: 'failed' },
+      { $set: { status: 'cancelled' } },
+      { new: false }
+    );
+    if (!claimed) {
       return res.status(400).json({ success: false, message: 'Only failed transactions can be refunded' });
     }
-    
-    const user = await User.findById(transaction.userId);
-    
+
+    const user = await User.findByIdAndUpdate(
+      transaction.userId,
+      { $inc: { walletBalance: transaction.amount } },
+      { new: true }
+    );
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    
-    user.walletBalance += transaction.amount;
-    await user.save();
     
     await Transaction.create({
       userId: user._id,
@@ -809,12 +856,18 @@ router.post('/transactions/:transactionId/refund', verifyToken, isAdmin, async (
       description: `Refund for failed transaction: ${reason}`,
       metadata: {
         originalTransactionId: transaction._id,
-        reason
+        reason,
+        adminId: req.userId
       }
     });
-    
-    transaction.status = 'cancelled';
-    await transaction.save();
+
+    logSecurityEvent('ADMIN_TRANSACTION_REFUND', {
+      adminId: req.userId,
+      transactionId: transaction._id,
+      userId: user._id,
+      amount: transaction.amount,
+      reason
+    });
     
     res.json({
       success: true,
