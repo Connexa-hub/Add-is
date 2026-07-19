@@ -23,6 +23,7 @@ export default function LoginScreen({ navigation }) {
     enableBiometric,
     isBiometricEnabled,
     saveCredentials,
+    saveRotatedBiometricToken,
   } = useBiometric();
 
   const [email, setEmail] = useState('');
@@ -241,7 +242,7 @@ export default function LoginScreen({ navigation }) {
 
         const response = await axios.post(
           `${API_BASE_URL}/api/auth/biometric-login`, 
-          { biometricToken: result.biometricToken },
+          { biometricToken: result.biometricToken, deviceId: result.deviceId },
           { signal: controller.signal }
         );
 
@@ -252,11 +253,23 @@ export default function LoginScreen({ navigation }) {
           const userEmail = response.data.data.user?.email || '';
           const userName = response.data.data.user?.name || '';
           const token = response.data.data.token;
+          const refreshToken = response.data.data.refreshToken;
+          const newBiometricToken = response.data.data.biometricToken;
 
           console.log('Biometric login successful, storing credentials...');
 
           // Critical: Store token FIRST using tokenService
-          await tokenService.setToken(token);
+          if (refreshToken) {
+            await tokenService.setTokens(token, refreshToken);
+          } else {
+            await tokenService.setToken(token);
+          }
+
+          // The server rotates the biometric credential on every successful
+          // use — persist the new one or the NEXT biometric login will fail.
+          if (newBiometricToken && userId) {
+            await saveRotatedBiometricToken(userId, newBiometricToken);
+          }
 
           // Then store other data
           await AsyncStorage.multiSet([
@@ -445,9 +458,14 @@ export default function LoginScreen({ navigation }) {
         const userEmail = res.data.data.user?.email || '';
         const userName = res.data.data.user?.name || '';
         const token = res.data.data.token;
+        const refreshToken = res.data.data.refreshToken;
 
         // Store auth data
-        await tokenService.setToken(token);
+        if (refreshToken) {
+          await tokenService.setTokens(token, refreshToken);
+        } else {
+          await tokenService.setToken(token);
+        }
         await AsyncStorage.multiSet([
           ['userId', userId],
           ['userEmail', userEmail],

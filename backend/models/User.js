@@ -6,7 +6,19 @@ const UserSchema = new mongoose.Schema({
   password: String,
   phoneNumber: String,
   profilePicture: String,
+  // DEPRECATED: kept (but no longer written to) so existing documents don't
+  // break schema validation during the migration window. Replaced by
+  // biometricDevices below — a single global bearer token shared across
+  // every device on the account had no way to revoke one device without
+  // logging out all of them, and never expired or rotated.
   biometricToken: String,
+  biometricDevices: [{
+    deviceId: { type: String, required: true }, // client-generated, stable per install
+    tokenHash: { type: String, required: true }, // sha256 of the device's biometric credential — never store it raw
+    label: String, // e.g. "iPhone 14" — best-effort from client
+    createdAt: { type: Date, default: Date.now },
+    lastUsedAt: Date
+  }],
   isActive: {
     type: Boolean,
     default: true

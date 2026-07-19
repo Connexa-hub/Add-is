@@ -111,25 +111,35 @@ const verifyPin = async (req, res) => {
     const isValid = await bcrypt.compare(pin, user.transactionPin.hash);
 
     if (!isValid) {
-      user.transactionPin.failedAttempts = (user.transactionPin.failedAttempts || 0) + 1;
+      // Atomic increment — a plain read-modify-write here would let two
+      // concurrent guesses both read the same pre-increment count and
+      // under-count failed attempts, letting an attacker bypass the
+      // lockout threshold by firing requests in parallel.
+      const updated = await User.findOneAndUpdate(
+        { _id: userId },
+        { $inc: { 'transactionPin.failedAttempts': 1 } },
+        { new: true }
+      );
+      const failedAttempts = updated.transactionPin.failedAttempts;
 
-      if (user.transactionPin.failedAttempts >= MAX_PIN_ATTEMPTS) {
-        user.transactionPin.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION);
-        await user.save();
+      if (failedAttempts >= MAX_PIN_ATTEMPTS) {
+        const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION);
+        await User.updateOne(
+          { _id: userId },
+          { $set: { 'transactionPin.lockedUntil': lockedUntil } }
+        );
 
         return res.status(429).json({
           success: false,
           message: 'Too many failed attempts. Account locked for 15 minutes.',
-          lockedUntil: user.transactionPin.lockedUntil
+          lockedUntil
         });
       }
-
-      await user.save();
 
       return res.status(401).json({
         success: false,
         message: 'Invalid PIN',
-        remainingAttempts: MAX_PIN_ATTEMPTS - user.transactionPin.failedAttempts
+        remainingAttempts: MAX_PIN_ATTEMPTS - failedAttempts
       });
     }
 

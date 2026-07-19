@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
+import * as Crypto from 'expo-crypto';
 import { Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -20,15 +21,44 @@ export interface BiometricAuthResult {
 
 const BIOMETRIC_ENABLED_KEY = 'biometricEnabled';
 const CREDENTIALS_KEY_PREFIX = 'biometric_credentials_';
+const DEVICE_ID_KEY = 'biometric_device_id';
 
-const requestBiometricToken = async (authToken: string): Promise<string | null> => {
+// SecureStore options that additionally gate access behind the OS biometric
+// prompt at the keystore layer (iOS Keychain / Android Keystore), not just
+// at the application-logic layer. Without this, the stored credential can
+// in principle be read by any code path that calls getItemAsync — the app
+// calling LocalAuthentication.authenticateAsync() first is a convention,
+// not an OS-enforced guarantee. With requireAuthentication, the OS itself
+// refuses to release the value until biometric/passcode unlock succeeds.
+const secureStoreBiometricOptions = {
+  requireAuthentication: true,
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
+
+/** Stable per-install device id, generated once and persisted. Sent to the
+ * backend so each device's biometric credential can be individually rotated
+ * and revoked, instead of one shared secret for the whole account. */
+const getOrCreateDeviceId = async (): Promise<string> => {
+  let deviceId = await AsyncStorage.getItem(DEVICE_ID_KEY);
+  if (!deviceId) {
+    deviceId = Crypto.randomUUID();
+    await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
+  }
+  return deviceId;
+};
+
+const requestBiometricToken = async (
+  authToken: string,
+  deviceId: string,
+  deviceLabel?: string
+): Promise<string | null> => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/enable-biometric`,
-      {},
+      { deviceId, deviceLabel: deviceLabel || `${Platform.OS} device` },
       {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -201,8 +231,10 @@ export const useBiometric = () => {
         }
       }
 
+      const deviceId = await getOrCreateDeviceId();
+
       // Request biometric token from server
-      const biometricToken = await requestBiometricToken(authToken);
+      const biometricToken = await requestBiometricToken(authToken, deviceId);
       if (!biometricToken) {
         // CRITICAL: Don't save biometric settings if backend request fails
         Alert.alert(
@@ -213,10 +245,16 @@ export const useBiometric = () => {
         return false;
       }
 
-      // Save biometric settings ONLY after successful backend token generation
+      // Save biometric settings ONLY after successful backend token generation.
+      // The credential itself is stored with requireAuthentication so the OS
+      // won't release it again without another biometric/passcode unlock.
       await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
       await AsyncStorage.setItem('biometric_user_id', userId);
-      await SecureStore.setItemAsync(`${CREDENTIALS_KEY_PREFIX}${userId}`, biometricToken);
+      await SecureStore.setItemAsync(
+        `${CREDENTIALS_KEY_PREFIX}${userId}`,
+        biometricToken,
+        secureStoreBiometricOptions
+      );
 
       Alert.alert('Success!', `${capabilities.biometricType || 'Biometric'} authentication enabled successfully!`);
       return true;
@@ -239,6 +277,23 @@ export const useBiometric = () => {
 
   const disableBiometric = async (): Promise<boolean> => {
     try {
+      // Revoke server-side too — clearing only local storage would leave the
+      // credential still valid if it were ever extracted from the device
+      // (e.g. a compromised backup). Best-effort: proceed with local
+      // cleanup even if this call fails, since the user's intent to disable
+      // biometric login locally should still succeed.
+      try {
+        const deviceId = await getOrCreateDeviceId();
+        const authToken = await SecureStore.getItemAsync('auth_token');
+        if (authToken) {
+          await axios.delete(`${API_BASE_URL}/api/auth/biometric-devices/${deviceId}`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          });
+        }
+      } catch (revokeError) {
+        console.error('Error revoking biometric device server-side:', revokeError);
+      }
+
       await AsyncStorage.removeItem(BIOMETRIC_ENABLED_KEY);
       await AsyncStorage.removeItem('biometric_user_id');
 
@@ -317,7 +372,8 @@ export const useBiometric = () => {
   const getStoredBiometricToken = async (userId: string): Promise<string | null> => {
     try {
       const biometricToken = await SecureStore.getItemAsync(
-        `${CREDENTIALS_KEY_PREFIX}${userId}`
+        `${CREDENTIALS_KEY_PREFIX}${userId}`,
+        secureStoreBiometricOptions
       );
 
       return biometricToken;
@@ -327,10 +383,27 @@ export const useBiometric = () => {
     }
   };
 
+  /** Call this after a successful /biometric-login response — the backend
+   * rotates the credential on every use (same principle as refresh-token
+   * rotation), so the old stored value is no longer valid and must be
+   * overwritten with the new one the server just returned. */
+  const saveRotatedBiometricToken = async (userId: string, newToken: string): Promise<void> => {
+    try {
+      await SecureStore.setItemAsync(
+        `${CREDENTIALS_KEY_PREFIX}${userId}`,
+        newToken,
+        secureStoreBiometricOptions
+      );
+    } catch (error) {
+      console.error('Error saving rotated biometric token:', error);
+    }
+  };
+
   const authenticateForLogin = async (): Promise<{
     success: boolean;
     biometricToken?: string;
     userId?: string;
+    deviceId?: string;
     error?: string;
   }> => {
     try {
@@ -375,11 +448,14 @@ export const useBiometric = () => {
         };
       }
 
+      const deviceId = await getOrCreateDeviceId();
+
       console.log('Biometric login successful');
       return {
         success: true,
         biometricToken,
         userId,
+        deviceId,
       };
     } catch (error) {
       console.error('Error authenticating for login:', error);
@@ -424,6 +500,8 @@ export const useBiometric = () => {
     disableBiometric,
     saveCredentials,
     getStoredBiometricToken,
+    saveRotatedBiometricToken,
+    getOrCreateDeviceId,
     authenticateForLogin,
     promptEnableBiometric,
     checkBiometricCapabilities,

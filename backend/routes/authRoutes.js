@@ -9,6 +9,8 @@ const { logSecurityEvent } = require('../middleware/securityLogger');
 const crypto = require('crypto');
 const emailService = require('../utils/emailService');
 const monnifyClient = require('../utils/monnifyClient');
+const { issueSession, rotateSession, revokeSessionByToken, revokeAllSessions } = require('../utils/authSession');
+const Session = require('../models/Session');
 const {
   getWalletBalance,
   fundWallet,
@@ -416,11 +418,7 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
 
     await user.save();
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const { accessToken, refreshToken } = await issueSession(user, req, req.body.deviceLabel);
 
     logSecurityEvent('SUCCESSFUL_LOGIN', {
       userId: user._id,
@@ -432,7 +430,11 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
       success: true,
       message: 'Login successful',
       data: {
-        token,
+        // `token` kept for backward compatibility with any client still
+        // reading the old field name — treat it as the access token.
+        token: accessToken,
+        accessToken,
+        refreshToken,
         user: {
           id: user._id,
           name: user.name,
@@ -448,17 +450,165 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
   }
 });
 
+// Exchange a refresh token for a new access token (and a new, rotated
+// refresh token). Access tokens currently last 24h (see authSession.js for
+// why — interim bridge until the mobile app's refresh-on-401 wiring covers
+// every screen, target is 15m). Clients are expected to call this whenever
+// a request comes back 401/TOKEN_EXPIRED.
+router.post('/refresh', async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'refreshToken is required' });
+    }
+
+    // We need to know which user this token belongs to before we can look
+    // up the session (the session lookup is scoped by userId). The refresh
+    // token itself doesn't carry the user id, so we find the session by
+    // hash first without the userId filter, purely to identify the user,
+    // then re-run the real validation inside rotateSession scoped to them.
+    const { hashToken } = require('../utils/authSession');
+    const candidate = await Session.findOne({ refreshTokenHash: hashToken(refreshToken) });
+    if (!candidate) {
+      return res.status(401).json({ success: false, message: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
+    }
+
+    const user = await User.findById(candidate.userId);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
+    }
+
+    const result = await rotateSession(refreshToken, user, req);
+
+    if (!result.ok) {
+      if (result.reason === 'reuse_detected') {
+        logSecurityEvent('REFRESH_TOKEN_REUSE_DETECTED', {
+          userId: user._id,
+          email: user.email,
+          ip: req.ip || req.connection.remoteAddress
+        });
+        return res.status(401).json({
+          success: false,
+          message: 'This session is no longer valid. Please log in again.',
+          code: 'SESSION_REVOKED'
+        });
+      }
+      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token', code: 'INVALID_REFRESH_TOKEN' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        token: result.accessToken,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Log out the current device only (revokes just this refresh token's session).
+router.post('/logout', verifyToken, async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await revokeSessionByToken(refreshToken, req.userId);
+    }
+    res.json({ success: true, message: 'Logged out' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Log out of every device. Bumps tokenVersion so any access token still
+// held by another device stops working within one verifyToken check
+// (up to 15 minutes, its max remaining lifetime), not just when its
+// refresh token is next used.
+router.post('/logout-all', verifyToken, async (req, res, next) => {
+  try {
+    await revokeAllSessions(req.userId, 'logout_all');
+    await User.updateOne({ _id: req.userId }, { $inc: { tokenVersion: 1 } });
+
+    logSecurityEvent('LOGOUT_ALL_DEVICES', {
+      userId: req.userId,
+      ip: req.ip || req.connection.remoteAddress
+    });
+
+    res.json({ success: true, message: 'Logged out of all devices' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// List this user's active sessions/devices.
+router.get('/sessions', verifyToken, async (req, res, next) => {
+  try {
+    const { hashToken } = require('../utils/authSession');
+    const currentRefreshToken = req.body?.refreshToken || req.headers['x-refresh-token'];
+    const currentHash = currentRefreshToken ? hashToken(currentRefreshToken) : null;
+
+    const sessions = await Session.find({
+      userId: req.userId,
+      revoked: false,
+      expiresAt: { $gt: new Date() }
+    }).sort({ lastUsedAt: -1 }).lean();
+
+    res.json({
+      success: true,
+      data: sessions.map(s => ({
+        id: s._id,
+        deviceLabel: s.deviceLabel,
+        ip: s.ip,
+        createdAt: s.createdAt,
+        lastUsedAt: s.lastUsedAt,
+        isCurrent: currentHash ? s.refreshTokenHash === currentHash : false
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Revoke a specific session/device by id.
+router.delete('/sessions/:sessionId', verifyToken, async (req, res, next) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.sessionId, userId: req.userId });
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    await Session.updateOne(
+      { _id: session._id },
+      { $set: { revoked: true, revokedReason: 'logout' } }
+    );
+    res.json({ success: true, message: 'Device logged out' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Registers (or re-registers/rotates) a biometric credential for ONE
+// specific device. The raw credential is returned to the client exactly
+// once and must be stored via the OS keystore gated behind biometric
+// unlock (e.g. Expo SecureStore with `requireAuthentication: true`) — only
+// its SHA-256 hash is kept server-side, matching how refresh tokens are
+// stored. Re-enabling for a deviceId that's already registered replaces
+// (rotates) that device's credential; it does not touch other devices.
 router.post('/enable-biometric', verifyToken, async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId);
-
-    if (!user) {
-      return res.status(404).json({
+    const { deviceId, deviceLabel } = req.body;
+    if (!deviceId || typeof deviceId !== 'string') {
+      return res.status(400).json({
         success: false,
-        message: 'User not found'
+        message: 'deviceId is required — generate and persist a stable UUID per app install on the client.'
       });
     }
 
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     if (!user.emailVerified) {
       return res.status(403).json({
         success: false,
@@ -466,15 +616,29 @@ router.post('/enable-biometric', verifyToken, async (req, res, next) => {
       });
     }
 
-    const biometricToken = crypto.randomBytes(32).toString('hex');
+    const rawCredential = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawCredential).digest('hex');
 
-    user.biometricToken = biometricToken;
+    user.biometricDevices = (user.biometricDevices || []).filter(d => d.deviceId !== deviceId);
+    if (user.biometricDevices.length >= 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum number of biometric-enabled devices reached. Remove an existing device first.'
+      });
+    }
+    user.biometricDevices.push({
+      deviceId,
+      tokenHash,
+      label: deviceLabel || 'Unknown device',
+      createdAt: new Date()
+    });
     user.biometricEnabled = true;
     await user.save();
 
     logSecurityEvent('BIOMETRIC_ENABLED', {
       userId: user._id,
       email: user.email,
+      deviceId,
       ip: req.ip || req.connection.remoteAddress
     });
 
@@ -482,7 +646,12 @@ router.post('/enable-biometric', verifyToken, async (req, res, next) => {
       success: true,
       message: 'Biometric authentication enabled successfully',
       data: {
-        biometricToken
+        // Client must store this behind the OS biometric-gated keystore and
+        // never persist it anywhere else. It rotates on every successful
+        // biometric login — treat the value returned here (or by
+        // /biometric-login) as the only copy that will ever be valid.
+        biometricToken: rawCredential,
+        deviceId
       }
     });
   } catch (error) {
@@ -492,16 +661,20 @@ router.post('/enable-biometric', verifyToken, async (req, res, next) => {
 
 router.post('/biometric-login', async (req, res, next) => {
   try {
-    const { biometricToken } = req.body;
+    const { biometricToken, deviceId } = req.body;
 
-    if (!biometricToken) {
+    if (!biometricToken || !deviceId) {
       return res.status(400).json({
         success: false,
-        message: 'Biometric token is required'
+        message: 'biometricToken and deviceId are required'
       });
     }
 
-    const user = await User.findOne({ biometricToken });
+    const tokenHash = crypto.createHash('sha256').update(biometricToken).digest('hex');
+    const user = await User.findOne({
+      biometricDevices: { $elemMatch: { deviceId, tokenHash } }
+    });
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -518,14 +691,27 @@ router.post('/biometric-login', async (req, res, next) => {
       });
     }
 
-    user.lastLogin = new Date();
-    await user.save();
+    // Rotate the credential — a captured/replayed token only ever works
+    // once, same principle as refresh-token rotation above.
+    const newRawCredential = crypto.randomBytes(32).toString('hex');
+    const newTokenHash = crypto.createHash('sha256').update(newRawCredential).digest('hex');
+    await User.updateOne(
+      { _id: user._id, 'biometricDevices.deviceId': deviceId },
+      {
+        $set: {
+          'biometricDevices.$.tokenHash': newTokenHash,
+          'biometricDevices.$.lastUsedAt': new Date(),
+          lastLogin: new Date()
+        }
+      }
+    );
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const { accessToken, refreshToken } = await issueSession(user, req);
 
     logSecurityEvent('BIOMETRIC_LOGIN', {
       userId: user._id,
       email: user.email,
+      deviceId,
       ip: req.ip || req.connection.remoteAddress
     });
 
@@ -533,7 +719,12 @@ router.post('/biometric-login', async (req, res, next) => {
       success: true,
       message: 'Biometric login successful',
       data: {
-        token,
+        token: accessToken,
+        accessToken,
+        refreshToken,
+        // Client must overwrite its stored biometricToken with this new
+        // value — the one just used is no longer valid.
+        biometricToken: newRawCredential,
         user: {
           id: user._id,
           name: user.name,
@@ -544,6 +735,19 @@ router.post('/biometric-login', async (req, res, next) => {
         }
       }
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Remove biometric login for one specific device (e.g. "forget this phone").
+router.delete('/biometric-devices/:deviceId', verifyToken, async (req, res, next) => {
+  try {
+    await User.updateOne(
+      { _id: req.userId },
+      { $pull: { biometricDevices: { deviceId: req.params.deviceId } } }
+    );
+    res.json({ success: true, message: 'Biometric device removed' });
   } catch (error) {
     next(error);
   }
@@ -636,7 +840,19 @@ router.post('/reset-password', async (req, res, next) => {
     user.password = hashed;
     user.resetPasswordOTP = undefined;
     user.resetPasswordExpires = undefined;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
+
+    // If someone else's session was live on this account (e.g. the reset
+    // was triggered because of a suspected compromise), a password reset
+    // should kick every device out, not just the one doing the reset.
+    await revokeAllSessions(user._id, 'password_changed');
+
+    logSecurityEvent('PASSWORD_RESET', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip || req.connection.remoteAddress
+    });
 
     res.json({
       success: true,
@@ -685,13 +901,15 @@ router.post('/verify-email', async (req, res, next) => {
       // Don't fail the verification - user is already verified
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const { accessToken, refreshToken } = await issueSession(user, req);
 
     res.json({
       success: true,
       message: 'Email verified successfully! Welcome aboard!',
       data: {
-        token,
+        token: accessToken,
+        accessToken,
+        refreshToken,
         user: {
           id: user._id,
           name: user.name,

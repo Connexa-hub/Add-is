@@ -2,11 +2,14 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AUTH_TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 const LEGACY_TOKEN_KEY = 'token';
 
 export interface TokenService {
   getToken(): Promise<string | null>;
   setToken(token: string): Promise<void>;
+  getRefreshToken(): Promise<string | null>;
+  setTokens(accessToken: string, refreshToken: string): Promise<void>;
   clearToken(): Promise<void>;
 }
 
@@ -44,6 +47,25 @@ class SecureTokenService implements TokenService {
     }
   }
 
+  async getRefreshToken(): Promise<string | null> {
+    try {
+      return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    } catch (error) {
+      console.error('Error getting refresh token:', error);
+      return null;
+    }
+  }
+
+  async setTokens(accessToken: string, refreshToken: string): Promise<void> {
+    await this.setToken(accessToken);
+    try {
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+    } catch (error) {
+      console.error('Error setting refresh token:', error);
+      throw error;
+    }
+  }
+
   async setToken(token: string): Promise<void> {
     try {
       // Validate token is a string
@@ -67,6 +89,7 @@ class SecureTokenService implements TokenService {
     try {
       await Promise.all([
         SecureStore.deleteItemAsync(AUTH_TOKEN_KEY),
+        SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
         AsyncStorage.removeItem('token'),
         AsyncStorage.removeItem(LEGACY_TOKEN_KEY),
       ]);
