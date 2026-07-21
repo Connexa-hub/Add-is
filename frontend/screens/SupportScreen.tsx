@@ -12,7 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton, AppDivider } from '../src/components/atoms';
@@ -88,7 +88,7 @@ export default function SupportScreen() {
     try {
       setLoading(true);
       const token = await tokenService.getToken();
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/admin/support/user`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -129,7 +129,7 @@ export default function SupportScreen() {
     setSubmitting(true);
     try {
       const token = await tokenService.getToken();
-      const response = await axios.post(
+      const response = await apiClient.post(
         `${API_BASE_URL}/api/admin/support`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -151,7 +151,7 @@ export default function SupportScreen() {
   const fetchTicketDetails = async (ticketId: string) => {
     try {
       const token = await tokenService.getToken();
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/admin/support/${ticketId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -180,7 +180,7 @@ export default function SupportScreen() {
     setSendingReply(true);
     try {
       const token = await tokenService.getToken();
-      const response = await axios.post(
+      const response = await apiClient.post(
         `${API_BASE_URL}/api/admin/support/${ticketDetails._id}/reply`,
         { message: replyText },
         { headers: { Authorization: `Bearer ${token}` } }

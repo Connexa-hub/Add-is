@@ -11,6 +11,7 @@ import { BiometricModal, NetworkErrorCard } from '../src/components/molecules';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { useBiometric } from '../hooks/useBiometric';
 import { tokenService } from '../utils/tokenService';
+import { apiClient } from '../utils/apiClient';
 import { useNetwork } from '../contexts/NetworkContext';
 
 export default function LoginScreen({ navigation }) {
@@ -64,8 +65,12 @@ export default function LoginScreen({ navigation }) {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-          const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
-            headers: { Authorization: `Bearer ${token}` },
+          // Routed through apiClient: if the access token merely expired
+          // (not fully invalid — e.g. refresh token still good), the
+          // interceptor silently refreshes and retries instead of this
+          // falling into the catch block and force-logging the user out on
+          // every app relaunch past the 24h access-token TTL.
+          const response = await apiClient.get(`${API_BASE_URL}/api/auth/profile`, {
             signal: controller.signal
           });
 

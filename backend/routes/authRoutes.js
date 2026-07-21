@@ -11,6 +11,7 @@ const emailService = require('../utils/emailService');
 const monnifyClient = require('../utils/monnifyClient');
 const { issueSession, rotateSession, revokeSessionByToken, revokeAllSessions } = require('../utils/authSession');
 const Session = require('../models/Session');
+const { generateOTP } = require('../utils/otp');
 const {
   getWalletBalance,
   fundWallet,
@@ -218,7 +219,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOTP();
 
     const newUser = await User.create({
       name,
@@ -347,9 +348,9 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
 
     if (!user.emailVerified) {
       // Generate new OTP and resend verification email
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otp = generateOTP();
       user.verificationOTP = otp;
-      user.verificationExpires = Date.now() + 3600000; // 1 hour
+      user.verificationExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
       await user.save();
 
       // Send verification email
@@ -451,10 +452,8 @@ router.post('/login', trackLoginAttempt, loginValidation, async (req, res, next)
 });
 
 // Exchange a refresh token for a new access token (and a new, rotated
-// refresh token). Access tokens currently last 24h (see authSession.js for
-// why — interim bridge until the mobile app's refresh-on-401 wiring covers
-// every screen, target is 15m). Clients are expected to call this whenever
-// a request comes back 401/TOKEN_EXPIRED.
+// refresh token). Access tokens last 15 minutes — clients are expected to
+// call this whenever a request comes back 401/TOKEN_EXPIRED.
 router.post('/refresh', async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
@@ -773,11 +772,11 @@ router.post('/forgot-password', async (req, res, next) => {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOTP();
 
     // Store OTP with expiry (1 hour)
     user.resetPasswordOTP = otp;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
     // Send email with OTP
@@ -957,10 +956,10 @@ router.post('/resend-verification', async (req, res, next) => {
       });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOTP();
 
     user.verificationOTP = otp;
-    user.verificationExpires = Date.now() + 3600000;
+    user.verificationExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
     try {

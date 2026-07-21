@@ -10,17 +10,16 @@ import { tokenService } from './tokenService';
  *   2. a 401 with code TOKEN_EXPIRED triggers a silent refresh + retry
  *      instead of bouncing the user back to the login screen.
  *
- * MIGRATION STATUS: as of this change, only the login and biometric-login
- * flows use this client. ~57 other call sites across frontend/screens still
- * call `axios` directly with a manually-attached bearer token and won't get
- * auto-refresh. That's why the backend's access token TTL is currently 24h
- * instead of the target 15m (see backend/utils/authSession.js) — until
- * those screens are migrated to `apiClient`, a short-lived token would log
- * users out mid-session on any unmigrated screen. Migrating them is
- * mechanical (replace `axios.post(`${API_BASE_URL}/api/...`, body, {headers:
- * {Authorization: ...}})` with `apiClient.post('/api/...', body)`) but
- * touches a lot of files, so it's tracked as a follow-up rather than done
- * blind in this pass.
+ * MIGRATION STATUS (complete as of 2026-07-20): every authenticated call
+ * site in frontend/screens, frontend/hooks, frontend/src, App.tsx, and
+ * NotificationsScreen/etc. now goes through this client. The only
+ * remaining raw-`axios` calls are LoginScreen.tsx's own `/login` and
+ * `/biometric-login` requests, which are unauthenticated bootstrap calls
+ * that don't need refresh handling. Because of this, the backend's access
+ * token TTL is the target 15 minutes (backend/utils/authSession.js) rather
+ * than a longer bridge value. If a new screen is added with its own direct
+ * `axios` call to an authenticated endpoint, it will start failing after
+ * 15 minutes with no retry — route it through `apiClient` instead.
  */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -10,6 +10,7 @@ import { lightTheme, darkTheme } from './src/theme';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { NetworkProvider } from './contexts/NetworkContext';
 import { tokenService } from './utils/tokenService';
+import { apiClient } from './utils/apiClient';
 import { API_BASE_URL } from './constants/api';
 
 SplashScreen.preventAutoHideAsync();
@@ -73,10 +74,12 @@ export default function App() {
       const token = await tokenService.getToken();
       
       if (token) {
-        // Verify account still exists
-        const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // Verify account still exists. Routed through apiClient: a merely-
+        // expired access token now silently refreshes and retries instead
+        // of hitting the catch block below, which used to treat ANY 401
+        // (including "just expired, refresh token still fine") the same as
+        // "account was deleted" and wiped all local data.
+        const response = await apiClient.get(`${API_BASE_URL}/api/auth/profile`);
 
         if (!response.data.success) {
           // Account doesn't exist, clear all data

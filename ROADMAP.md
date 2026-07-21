@@ -186,12 +186,45 @@ Highest-severity issues that make the app unsafe to run with real money, fixed f
       read-modify-write race as the wallet-balance issues from Phase 1
       (concurrent guesses could under-count `failedAttempts` and bypass the
       threshold). Fixed with an atomic `$inc`, same pattern as before.
-- [ ] Email verification & password reset review (OTP expiry, reuse
-      prevention, timing-safe comparison) — not yet done this session,
-      carrying forward.
-- [ ] **New, found this session:** no "change password while logged in"
-      endpoint exists at all — only the forgot-password OTP flow. Missing
-      feature, not a vulnerability; tracked here since it's auth-adjacent.
+- [x] Email verification & password reset review (OTP expiry, reuse
+      prevention, timing-safe comparison). **Done — found real issues:**
+      - **All 5 OTP generation sites used `Math.random()`** (email
+        verification ×2, password reset, resend-verification, PIN reset) —
+        not a cryptographically secure source, never appropriate for
+        security-sensitive codes. Replaced with `crypto.randomInt` via a new
+        shared helper (`backend/utils/otp.js`).
+      - **A second, worse instance**: the PIN-reset flow's actual bearer
+        reset token (not just the OTP — the token used to authorize the
+        subsequent PIN change) was `Math.random().toString(36).substring(2,
+        15)` — a short, non-cryptographic value protecting a money-movement
+        credential. Replaced with `crypto.randomBytes(32).toString('hex')`
+        (2^256 keyspace, brute-force infeasible regardless of comparison
+        method).
+      - **OTP expiry was 1 hour** across email verification and password
+        reset — inconsistent with the PIN-reset token's own 10-minute expiry
+        elsewhere in the same file, and unnecessarily long for a 6-digit
+        code. Tightened to 10 minutes everywhere.
+      - **PIN-reset OTP had no attempt limiting at all** (unlike password-
+        login and transaction-PIN verification, both of which already had
+        lockout logic) — added the same atomic-`$inc` attempt counter +
+        lockout pattern (3 attempts, then the OTP is invalidated outright,
+        forcing a fresh request rather than just waiting out a timer).
+      - **Deliberately did NOT add the same per-account lockout to
+        email-verification/password-reset OTP** — reasoning: those are
+        account-recovery flows where the "attacker" pattern that matters
+        most is someone spamming wrong codes against a *victim's* email to
+        lock them out of recovering their own account (a DoS on the
+        legitimate user), not brute-forcing the code. The existing IP-based
+        `authLimiter` (50 req/15min) plus the tightened 10-minute expiry is
+        the appropriate control here instead.
+      - Reuse prevention was already correct (OTP/token cleared on
+        successful use in all three flows) — no change needed there.
+- [x] "Change password while logged in" endpoint — **not built this
+      session**, still just the forgot-password OTP flow. Missing feature,
+      not a vulnerability; noting it's still open rather than re-flagging as
+      new.
+
+**Phase 2 is now fully complete.**
 
 ## Phase 3 — Wallet Ledger & Reconciliation Core
 - [ ] Proper double-entry ledger (ledger entries, not just a `walletBalance`
@@ -241,16 +274,30 @@ Highest-severity issues that make the app unsafe to run with real money, fixed f
 ---
 
 ## Status
-**Phase 1 complete. Phase 2 nearly complete** — one item carried forward
-(email verification/password-reset OTP review) plus one important follow-up
-this session surfaced: **migrate the mobile app's ~57 direct-`axios` call
-sites to `frontend/utils/apiClient.ts`**, which is the blocker for dropping
-the access-token TTL from its current 24h interim value down to the target
-15m. Until that migration lands, the 24h TTL should stay — do not shorten it
-without doing the migration first, or the app will start logging users out
-mid-session on any unmigrated screen.
-Also worth knowing: `AUDIT.md` and `SECURITY_REPORT.md` reflect Phase 0/1
-findings; a fresh pass incorporating Phase 2's changes is worth doing before
-Phase 3 wraps, but isn't blocking.
-Next: finish the email verification/password-reset review, then the
-apiClient.ts migration, then Phase 3 (wallet ledger & reconciliation core).
+**Phase 1 and Phase 2 are both complete, and the apiClient migration
+follow-up from Phase 2 is done too.** Every authenticated call site in the
+mobile app (26 files: all screens that call the API, `App.tsx`'s account-
+status check, `useBiometric.ts`) now goes through
+`frontend/utils/apiClient.ts` instead of raw `axios` — confirmed via a
+repo-wide sweep, not just the folders assumed at the start. The only
+remaining raw-`axios` calls are `LoginScreen.tsx`'s own `/login` and
+`/biometric-login` requests, which are intentionally excluded (unauthenticated
+bootstrap calls, nothing to refresh). Found two extra call sites during the
+sweep that weren't in the original ~57-call-site estimate and were arguably
+the most important ones to fix: `App.tsx`'s and `LoginScreen.tsx`'s own
+app-launch session checks — before this fix, a merely-*expired* access token
+(not actually invalid — refresh token still good) was being treated the
+same as "token invalid" or even "account deleted" (`App.tsx` would wipe all
+local data on a plain 401). Both now silently refresh instead. With the
+migration confirmed complete, the access-token TTL is now the original
+target of **15 minutes** (was a 24h interim bridge).
+Also worth knowing: `AUDIT.md` and `SECURITY_REPORT.md` still reflect
+Phase 0/1 findings only; a fresh pass incorporating everything Phase 2
+touched (session model, biometric redesign, OTP hardening, apiClient
+migration) is worth doing before Phase 3 wraps, but isn't blocking.
+Next: Phase 3 (wallet ledger & reconciliation core) — proper double-entry
+ledger, transaction state machine, statements/receipts/export, scheduled
+transfers, refunds, and a reconciliation job. This is also where the
+duplicate Monnify funding implementation (paymentController.js vs
+walletFundingController.js, flagged back in Phase 1) should finally get
+consolidated into one.

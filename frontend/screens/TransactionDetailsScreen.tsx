@@ -4,7 +4,7 @@ import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { AppText, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
@@ -24,7 +24,7 @@ export default function TransactionDetailsScreen() {
   const fetchTransactionDetails = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/transactions/${reference}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );

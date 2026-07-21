@@ -5,7 +5,7 @@ import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { apiClient } from '../../utils/apiClient';
 import * as SecureStore from 'expo-secure-store';
 import { useTheme } from '../../contexts/ThemeContext';
 import { lightColors, darkColors } from '../theme/colors';
@@ -110,7 +110,7 @@ export default function AppNavigator() {
   // Preload onboarding slides during splash
   const preloadOnboardingSlides = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/onboarding`, {
+      const response = await apiClient.get(`${API_BASE_URL}/api/onboarding`, {
         timeout: 3000 // 3 second timeout
       });
 

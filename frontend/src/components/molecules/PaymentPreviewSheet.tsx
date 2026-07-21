@@ -6,7 +6,7 @@ import NetworkErrorCard from './NetworkErrorCard';
 import BottomSheet from './BottomSheet';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { apiClient } from '../../../utils/apiClient';
 import { API_BASE_URL } from '../../../constants/api';
 import { useBiometric } from '../../../hooks/useBiometric';
 import { useNetwork } from '../../../contexts/NetworkContext';
@@ -73,7 +73,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
       const token = await AsyncStorage.getItem('token');
 
       // Get available cashback balance
-      const cashbackResponse = await axios.get(
+      const cashbackResponse = await apiClient.get(
         `${API_BASE_URL}/api/admin/cashback/user/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -154,7 +154,7 @@ export const PaymentPreviewSheet: React.FC<PaymentPreviewSheetProps> = ({
     // Check if PIN is set up before allowing payment
     try {
       const token = await AsyncStorage.getItem('token');
-      const pinStatusResponse = await axios.get(
+      const pinStatusResponse = await apiClient.get(
         `${API_BASE_URL}/api/pin/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );

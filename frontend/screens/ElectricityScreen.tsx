@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
@@ -85,7 +85,7 @@ export default function ElectricityScreen() {
   const fetchWalletBalance = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/auth/profile`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -100,7 +100,7 @@ export default function ElectricityScreen() {
   const fetchProviders = async () => {
     setLoadingProviders(true);
     try {
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/vtu/products?category=electricity-bill`
       );
 
@@ -157,7 +157,7 @@ export default function ElectricityScreen() {
 
     setLoadingQuickAmounts(true);
     try {
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/vtu/quick-amounts/electricity-bill/${selectedProvider}`
       );
 
@@ -244,7 +244,7 @@ export default function ElectricityScreen() {
 
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.post(
+      const response = await apiClient.post(
         `${API_BASE_URL}/api/services/pay-electricity`,
         {
           meterNumber,

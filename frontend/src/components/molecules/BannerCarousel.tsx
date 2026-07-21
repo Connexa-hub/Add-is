@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Dimensions, Image, TouchableOpacity, Link
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PromoBanner } from './PromoBanner';
 import { API_BASE_URL } from '../../../constants/api';
-import axios from 'axios';
+import { apiClient } from '../../../utils/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -122,7 +122,7 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
   useEffect(() => {
     banners.forEach(async (banner) => {
       try {
-        await axios.post(`${API_BASE_URL}/api/banners/${banner._id}/impression`);
+        await apiClient.post(`${API_BASE_URL}/api/banners/${banner._id}/impression`);
       } catch (error) {
         console.error('Failed to track impression:', error);
       }
@@ -133,7 +133,7 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ section }) => {
   const handleBannerPress = async (banner: Banner) => {
     try {
       // Track click asynchronously (don't block user interaction)
-      axios.post(`${API_BASE_URL}/api/banners/${banner._id}/click`).catch(err => 
+      apiClient.post(`${API_BASE_URL}/api/banners/${banner._id}/click`).catch(err => 
         console.warn('Failed to track banner click:', err)
       );
 

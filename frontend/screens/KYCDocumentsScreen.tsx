@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
@@ -95,7 +95,7 @@ export default function KYCDocumentsScreen({ navigation, route }) {
         
         const token = await AsyncStorage.getItem('token');
         
-        const uploadResponse = await axios.post(
+        const uploadResponse = await apiClient.post(
           `${API_BASE_URL}/uploads`,
           {
             file: base64data,

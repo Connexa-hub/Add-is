@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
@@ -70,7 +70,7 @@ export default function BettingScreen() {
   const fetchWalletBalance = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/auth/profile`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -85,7 +85,7 @@ export default function BettingScreen() {
   const fetchProviders = async () => {
     setLoadingProviders(true);
     try {
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/vtu/products?category=betting`
       );
 
@@ -129,7 +129,7 @@ export default function BettingScreen() {
     
     setLoadingQuickAmounts(true);
     try {
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/vtu/quick-amounts/betting/${selectedProvider}`
       );
       
@@ -202,7 +202,7 @@ export default function BettingScreen() {
 
       // Check if user has PIN setup
       const token = await AsyncStorage.getItem('token');
-      const pinStatusResponse = await axios.get(
+      const pinStatusResponse = await apiClient.get(
         `${API_BASE_URL}/api/pin/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -259,7 +259,7 @@ export default function BettingScreen() {
 
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.post(
+      const response = await apiClient.post(
         `${API_BASE_URL}/api/services/betting`,
         {
           customerId: userId,

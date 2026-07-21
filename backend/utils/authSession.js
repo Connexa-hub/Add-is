@@ -3,16 +3,15 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const Session = require('../models/Session');
 
-// Deliberately NOT 15 minutes yet, even though that's the target: the mobile
-// app has ~57 screens calling axios directly with no centralized client and
-// no refresh-on-401 wiring except the new apiClient.ts (see frontend/utils/
-// apiClient.ts) which only login/biometric-login use so far. Shipping a
-// short-lived access token before that migration is finished would log
-// users out mid-session on every unmigrated screen. 24h is a safe bridge —
-// still a massive reduction from the old 7-day token — while the rest of
-// the app's screens get migrated to apiClient.ts (tracked in ROADMAP.md).
-// Drop this to 15m once that migration is complete.
-const ACCESS_TOKEN_TTL = '24h';
+// Migration complete (2026-07-20): every authenticated call site in the
+// mobile app now goes through frontend/utils/apiClient.ts, which attaches
+// the access token automatically and silently refreshes+retries on a 401
+// TOKEN_EXPIRED instead of failing. The only remaining raw-axios calls are
+// LoginScreen.tsx's own /login and /biometric-login requests, which are
+// unauthenticated bootstrap calls that don't need refresh handling. Safe to
+// use the target short TTL now — do not raise this again without checking
+// whether new screens have been added that bypass apiClient.
+const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function hashToken(rawToken) {

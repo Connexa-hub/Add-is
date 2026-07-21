@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView } from 'react-native';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     setLoading(true);
     setError('');
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email });
+      await apiClient.post(`${API_BASE_URL}/api/auth/forgot-password`, { email });
       navigation.navigate('ResetPassword', { email });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset code. Please try again.');

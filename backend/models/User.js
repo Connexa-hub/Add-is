@@ -49,6 +49,7 @@ const UserSchema = new mongoose.Schema({
   resetPasswordExpires: Date,
   resetPinOTP: String,
   resetPinExpires: Date,
+  resetPinOTPAttempts: { type: Number, default: 0 },
   pinResetToken: String,
   pinResetTokenExpires: Date,
   tokenVersion: { type: Number, default: 0 },

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
@@ -62,7 +62,7 @@ export default function PINChangeScreen({ navigation }) {
 
       const token = await AsyncStorage.getItem('token');
 
-      const response = await axios.post(
+      const response = await apiClient.post(
         `${API_BASE_URL}/pin/change`,
         {
           currentPin,

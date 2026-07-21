@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppDivider } from '../src/components/atoms';
@@ -42,7 +42,7 @@ export default function NotificationsScreen() {
     try {
       setRefreshing(true);
       const token = await tokenService.getToken();
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/notifications`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -69,7 +69,7 @@ export default function NotificationsScreen() {
   const markAsRead = async (notificationId: string) => {
     try {
       const token = await tokenService.getToken();
-      await axios.put(
+      await apiClient.put(
         `${API_BASE_URL}/api/notifications/${notificationId}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -89,7 +89,7 @@ export default function NotificationsScreen() {
   const markAllAsRead = async () => {
     try {
       const token = await tokenService.getToken();
-      await axios.put(
+      await apiClient.put(
         `${API_BASE_URL}/api/notifications/mark-all-read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -105,7 +105,7 @@ export default function NotificationsScreen() {
   const deleteNotification = async (notificationId: string) => {
     try {
       const token = await tokenService.getToken();
-      await axios.delete(
+      await apiClient.delete(
         `${API_BASE_URL}/api/notifications/${notificationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppText, AppInput, AppButton, SkeletonLoader, SkeletonList } from '../src/components/atoms';
@@ -87,7 +87,7 @@ export default function DataScreen() {
   const fetchWalletBalance = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/auth/profile`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -103,7 +103,7 @@ export default function DataScreen() {
   const fetchNetworks = async () => {
     setLoadingNetworks(true);
     try {
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/vtu/providers/data`
       );
 
@@ -155,7 +155,7 @@ export default function DataScreen() {
 
       console.log('Fetching data plans for network:', network.name, 'serviceID:', network.serviceID);
 
-      const response = await axios.get(
+      const response = await apiClient.get(
         `${API_BASE_URL}/api/vtu/products?category=data&network=${network.name}`
       );
 
@@ -267,7 +267,7 @@ export default function DataScreen() {
       setLoading(true);
 
       const token = await AsyncStorage.getItem('token');
-      const pinStatusResponse = await axios.get(
+      const pinStatusResponse = await apiClient.get(
         `${API_BASE_URL}/pin/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -324,7 +324,7 @@ export default function DataScreen() {
 
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.post(
+      const response = await apiClient.post(
         `${API_BASE_URL}/api/services/buy-data`,
         {
           phoneNumber,

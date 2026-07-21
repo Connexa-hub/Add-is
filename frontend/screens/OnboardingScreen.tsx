@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { AppText, AppButton } from '../src/components/atoms';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { API_BASE_URL } from '../constants/api';
@@ -103,7 +103,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const fetchSlidesInBackground = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/onboarding`, {
+      const response = await apiClient.get(`${API_BASE_URL}/api/onboarding`, {
         timeout: 5000
       });
       if (response.data.success && response.data.data.length > 0) {
@@ -128,7 +128,7 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
 
   const fetchSlidesFromAPI = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/onboarding`);
+      const response = await apiClient.get(`${API_BASE_URL}/api/onboarding`);
 
       if (response.data.success && response.data.data.length > 0) {
         const sortedSlides = response.data.data.sort((a: OnboardingSlide, b: OnboardingSlide) => a.order - b.order);

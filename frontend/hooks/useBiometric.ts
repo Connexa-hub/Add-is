@@ -5,6 +5,7 @@ import * as Crypto from 'expo-crypto';
 import { Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { API_BASE_URL } from '../constants/api';
 
 export interface BiometricCapabilities {
@@ -56,15 +57,16 @@ const requestBiometricToken = async (
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    const response = await axios.post(
+    // Routed through apiClient (not raw axios) so a 401 here triggers the
+    // same auto-refresh-and-retry as everywhere else, instead of just
+    // failing. apiClient's interceptor attaches the current stored access
+    // token automatically — the `authToken` param is still accepted for
+    // API-compatibility with callers, but no longer needs to be attached
+    // manually here.
+    const response = await apiClient.post(
       `${API_BASE_URL}/api/auth/enable-biometric`,
       { deviceId, deviceLabel: deviceLabel || `${Platform.OS} device` },
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        signal: controller.signal,
-      }
+      { signal: controller.signal }
     );
 
     clearTimeout(timeoutId);
@@ -284,12 +286,7 @@ export const useBiometric = () => {
       // biometric login locally should still succeed.
       try {
         const deviceId = await getOrCreateDeviceId();
-        const authToken = await SecureStore.getItemAsync('auth_token');
-        if (authToken) {
-          await axios.delete(`${API_BASE_URL}/api/auth/biometric-devices/${deviceId}`, {
-            headers: { Authorization: `Bearer ${authToken}` },
-          });
-        }
+        await apiClient.delete(`${API_BASE_URL}/api/auth/biometric-devices/${deviceId}`);
       } catch (revokeError) {
         console.error('Error revoking biometric device server-side:', revokeError);
       }

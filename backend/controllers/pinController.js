@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { generateOTP } = require('../utils/otp');
 
 const MAX_PIN_ATTEMPTS = 3;
 const LOCKOUT_DURATION = 15 * 60 * 1000;
@@ -314,10 +316,11 @@ const requestPinReset = async (req, res) => {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOTP();
     
     user.resetPinOTP = otp;
-    user.resetPinExpires = new Date(Date.now() + 3600000); // 1 hour
+    user.resetPinExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.resetPinOTPAttempts = 0;
     await user.save();
 
     // Send email
@@ -377,16 +380,43 @@ const verifyPinResetOTP = async (req, res) => {
     }
 
     if (user.resetPinOTP !== otp) {
+      // Atomic increment — same reasoning as PIN verification above: a
+      // plain read-modify-write would let concurrent guesses under-count
+      // attempts and bypass the lockout.
+      const updated = await User.findOneAndUpdate(
+        { _id: userId },
+        { $inc: { resetPinOTPAttempts: 1 } },
+        { new: true }
+      );
+
+      if (updated.resetPinOTPAttempts >= MAX_PIN_ATTEMPTS) {
+        // Invalidate the OTP outright rather than just locking — forces a
+        // fresh /request-pin-reset call, so a locked-out guesser can't just
+        // wait out a timer against the same still-valid code.
+        await User.updateOne(
+          { _id: userId },
+          { $set: { resetPinOTP: undefined, resetPinExpires: undefined, resetPinOTPAttempts: 0 } }
+        );
+        return res.status(429).json({
+          success: false,
+          message: 'Too many incorrect attempts. Please request a new reset code.'
+        });
+      }
+
       return res.status(401).json({
         success: false,
-        message: 'Invalid reset code'
+        message: 'Invalid reset code',
+        remainingAttempts: MAX_PIN_ATTEMPTS - updated.resetPinOTPAttempts
       });
     }
 
-    // Generate reset token
-    const resetToken = Math.random().toString(36).substring(2, 15);
+    // Generate reset token — crypto.randomBytes, not Math.random(), since
+    // this token is itself the bearer credential the client uses to
+    // actually perform the PIN reset in the next step.
+    const resetToken = crypto.randomBytes(32).toString('hex');
     user.pinResetToken = resetToken;
     user.pinResetTokenExpires = new Date(Date.now() + 600000); // 10 minutes
+    user.resetPinOTPAttempts = 0;
     await user.save();
 
     res.json({

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
@@ -50,7 +50,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/verify-email`, { email, otp });
+      const res = await apiClient.post(`${API_BASE_URL}/api/auth/verify-email`, { email, otp });
 
       if (res.data.success && res.data.data?.token) {
         // Validate token is a string
@@ -106,7 +106,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
     setResendLoading(true);
     setError('');
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/resend-verification`, { email });
+      const response = await apiClient.post(`${API_BASE_URL}/api/auth/resend-verification`, { email });
 
       // Check if email was actually sent
       if (response.data.success) {

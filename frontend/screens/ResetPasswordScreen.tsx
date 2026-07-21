@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, SafeAreaView } from 'react-native';
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../constants/api';
 import { AppText, AppInput, AppButton } from '../src/components/atoms';
@@ -75,7 +75,7 @@ export default function ResetPasswordScreen({ route, navigation }: any) {
 
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
+      await apiClient.post(`${API_BASE_URL}/api/auth/reset-password`, {
         email,
         otp,
         newPassword
