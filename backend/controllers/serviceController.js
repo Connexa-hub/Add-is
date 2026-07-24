@@ -3,7 +3,7 @@ const User = require('../models/User');
 const { requestVTPass } = require('../utils/vtpassClient');
 const { v4: uuidv4 } = require('uuid');
 const { createTransactionNotification, createCashbackNotification } = require('../utils/notificationHelper');
-const { reserveWalletFunds, refundWalletFunds, applyCashbackDelta } = require('../utils/walletLedger');
+const { reserveWalletFunds, refundWalletFunds, applyCashbackDelta, postPurchaseLedgerEntry } = require('../utils/walletLedger');
 
 exports.payElectricity = async (req, res, next) => {
   try {
@@ -95,6 +95,8 @@ exports.payElectricity = async (req, res, next) => {
     });
 
     if (result.code === '000') {
+      await postPurchaseLedgerEntry(transaction._id, req.userId, finalAmount, 'Electricity bill payment');
+
       await createTransactionNotification(req.userId, transaction, 'success', {
         newBalance: user.walletBalance,
         cashbackEarned: cashbackAmount,
@@ -225,6 +227,8 @@ exports.subscribeTV = async (req, res, next) => {
     });
 
     if (result.code === '000') {
+      await postPurchaseLedgerEntry(transaction._id, req.userId, finalAmount, 'TV subscription');
+
       await createTransactionNotification(req.userId, transaction, 'success', {
         newBalance: user.walletBalance,
         cashbackEarned: cashbackAmount,
@@ -408,6 +412,8 @@ exports.buyAirtime = async (req, res) => {
     await transaction.save();
 
     if (isSuccess) {
+      await postPurchaseLedgerEntry(transaction._id, userId, finalAmount, `${network.toUpperCase()} airtime purchase`);
+
       await createTransactionNotification(userId, transaction, 'success', {
         newBalance: user.walletBalance,
         cashbackEarned: cashbackAmount,
@@ -554,6 +560,8 @@ exports.buyData = async (req, res) => {
     await transaction.save();
 
     if (isSuccess) {
+      await postPurchaseLedgerEntry(transaction._id, userId, finalAmount, `${network.toUpperCase()} data purchase`);
+
       await createTransactionNotification(userId, transaction, 'success', {
         newBalance: user.walletBalance,
         cashbackEarned: cashbackAmount,
@@ -676,6 +684,8 @@ exports.buyEducation = async (req, res, next) => {
     });
 
     if (result.code === '000') {
+      await postPurchaseLedgerEntry(transaction._id, req.userId, finalAmount, 'Education service purchase');
+
       await createTransactionNotification(req.userId, transaction, 'success', {
         newBalance: user.walletBalance,
         cashbackEarned: cashbackAmount,
@@ -799,6 +809,8 @@ exports.buyInsurance = async (req, res, next) => {
     });
 
     if (result.code === '000') {
+      await postPurchaseLedgerEntry(transaction._id, req.userId, finalAmount, 'Insurance purchase');
+
       await createTransactionNotification(req.userId, transaction, 'success', {
         newBalance: user.walletBalance,
         cashbackEarned: cashbackAmount,
@@ -928,6 +940,8 @@ exports.buyOtherService = async (req, res, next) => {
     });
 
     if (result.code === '000') {
+      await postPurchaseLedgerEntry(transaction._id, req.userId, finalAmount, `${category} service purchase`);
+
       await createTransactionNotification(req.userId, transaction, 'success', {
         newBalance: user.walletBalance,
         cashbackEarned: cashbackAmount,

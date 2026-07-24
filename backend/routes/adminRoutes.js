@@ -147,7 +147,7 @@ router.put('/users/:userId/wallet', verifyToken, isAdmin, async (req, res, next)
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    await Transaction.create({
+    const adjustmentTransaction = await Transaction.create({
       userId: user._id,
       type: action === 'credit' ? 'credit' : 'debit',
       amount: parsedAmount,
@@ -160,6 +160,25 @@ router.put('/users/:userId/wallet', verifyToken, isAdmin, async (req, res, next)
         reason
       }
     });
+
+    try {
+      const { postSimpleTransfer } = require('../utils/ledger');
+      if (action === 'credit') {
+        await postSimpleTransfer(adjustmentTransaction._id, {
+          fromAccountType: 'system', fromAccountRef: 'admin_adjustment',
+          toAccountType: 'user_wallet', toAccountRef: user._id,
+          amount: parsedAmount, description: `Admin credit: ${reason}`
+        });
+      } else {
+        await postSimpleTransfer(adjustmentTransaction._id, {
+          fromAccountType: 'user_wallet', fromAccountRef: user._id,
+          toAccountType: 'system', toAccountRef: 'admin_adjustment',
+          amount: parsedAmount, description: `Admin debit: ${reason}`
+        });
+      }
+    } catch (ledgerErr) {
+      console.error('LEDGER POSTING FAILED for admin wallet adjustment, user', user._id, ledgerErr);
+    }
 
     logSecurityEvent('ADMIN_WALLET_ADJUSTMENT', {
       adminId: req.userId,
@@ -846,7 +865,7 @@ router.post('/transactions/:transactionId/refund', verifyToken, isAdmin, async (
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
-    await Transaction.create({
+    const refundTransaction = await Transaction.create({
       userId: user._id,
       type: 'credit',
       category: 'reversal',
@@ -860,6 +879,17 @@ router.post('/transactions/:transactionId/refund', verifyToken, isAdmin, async (
         adminId: req.userId
       }
     });
+
+    try {
+      const { postSimpleTransfer } = require('../utils/ledger');
+      await postSimpleTransfer(refundTransaction._id, {
+        fromAccountType: 'system', fromAccountRef: 'admin_adjustment',
+        toAccountType: 'user_wallet', toAccountRef: user._id,
+        amount: transaction.amount, description: `Refund: ${reason}`
+      });
+    } catch (ledgerErr) {
+      console.error('LEDGER POSTING FAILED for admin refund, user', user._id, ledgerErr);
+    }
 
     logSecurityEvent('ADMIN_TRANSACTION_REFUND', {
       adminId: req.userId,

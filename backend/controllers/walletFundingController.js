@@ -1,88 +1,40 @@
-const User = require('../models/User');
 const Card = require('../models/Card');
 const Transaction = require('../models/Transaction');
-const Notification = require('../models/Notification');
+const User = require('../models/User');
 const monnifyClient = require('../utils/monnifyClient');
-const { v4: uuidv4 } = require('uuid');
+const {
+  FundingError,
+  coreInitializeFunding,
+  coreVerifyFunding,
+  coreProcessMonnifyWebhook
+} = require('../utils/walletFundingCore');
+
+// Thin Express-handler wrapper around the shared funding core (see
+// backend/utils/walletFundingCore.js — this used to be a full, independent
+// duplicate of paymentController.js's funding logic; consolidated in Phase 3).
 
 const initializeWalletFunding = async (req, res) => {
   try {
-    const userId = req.userId;
-    const { amount, saveCard = false } = req.body;
-
-    if (!amount || amount < 100) {
-      return res.status(400).json({
-        success: false,
-        message: 'Amount must be at least ₦100'
-      });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    const paymentReference = `WF-${Date.now()}-${uuidv4().slice(0, 8)}`;
-
-    const transaction = await Transaction.create({
-      user: userId,
-      userId,
-      type: 'credit',
-      category: 'wallet_funding',
-      transactionType: 'wallet_funding',
-      amount: parseFloat(amount),
-      balanceBefore: user.walletBalance,
-      reference: paymentReference,
-      paymentReference,
-      paymentGateway: 'monnify',
-      status: 'pending',
-      description: 'Wallet funding via card payment',
-      metadata: { saveCard }
-    });
-
-    const monnifyResponse = await monnifyClient.initializeTransaction({
-      amount: parseFloat(amount),
-      customerName: user.name,
-      customerEmail: user.email,
-      paymentReference,
-      paymentDescription: 'Wallet Funding',
-      redirectUrl: process.env.PAYMENT_REDIRECT_URL || 'https://app.example.com/payment/callback'
-    });
-
-    if (!monnifyResponse.success || !monnifyResponse.data) {
-      throw new Error('Failed to initialize payment with Monnify');
-    }
-
-    const monnifyData = monnifyResponse.data;
-    transaction.monnifyTransactionReference = monnifyData.transactionReference || monnifyData.paymentReference;
-    transaction.monnifyPaymentReference = monnifyData.paymentReference;
-    await transaction.save();
-
-    console.log('Monnify initialized:', {
-      transactionRef: transaction.monnifyTransactionReference,
-      paymentRef: transaction.monnifyPaymentReference
-    });
+    const { amount } = req.body;
+    const { transaction, monnifyData } = await coreInitializeFunding(req.userId, amount);
 
     res.status(201).json({
       success: true,
       message: 'Payment initialization successful',
       data: {
         transactionId: transaction._id,
-        paymentReference,
+        paymentReference: transaction.paymentReference,
         monnifyReference: transaction.monnifyTransactionReference,
         checkoutUrl: monnifyData.checkoutUrl,
-        amount: parseFloat(amount)
+        amount: transaction.amount
       }
     });
   } catch (error) {
     console.error('Initialize funding error:', error);
-    res.status(500).json({
+    const statusCode = error instanceof FundingError ? error.statusCode : 500;
+    res.status(statusCode).json({
       success: false,
-      message: error.message || 'Failed to initialize payment',
-      error: error.message
+      message: error.message || 'Failed to initialize payment'
     });
   }
 };
@@ -90,155 +42,41 @@ const initializeWalletFunding = async (req, res) => {
 const verifyWalletFunding = async (req, res) => {
   try {
     const { paymentReference } = req.body;
-    const userId = req.userId;
-
     if (!paymentReference) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment reference is required'
-      });
+      return res.status(400).json({ success: false, message: 'Payment reference is required' });
     }
 
-    const transaction = await Transaction.findOne({
-      paymentReference,
-      userId
-    });
+    const result = await coreVerifyFunding(req.userId, paymentReference);
 
-    if (!transaction) {
-      return res.status(404).json({
-        success: false,
-        message: 'Transaction not found'
-      });
-    }
-
-    if (transaction.status === 'completed') {
+    if (result.status === 'completed') {
       return res.json({
         success: true,
-        message: 'Transaction already completed',
+        message: result.alreadyProcessed ? 'Transaction already completed' : 'Payment verified successfully',
         data: {
           status: 'completed',
-          amount: transaction.amount,
-          transactionId: transaction._id
+          amount: result.transaction.amount,
+          newBalance: result.newBalance,
+          transactionId: result.transaction._id,
+          cardData: result.cardData
         }
       });
     }
 
-    const referenceToVerify = transaction.monnifyTransactionReference || transaction.monnifyPaymentReference;
-    
-    if (!referenceToVerify) {
-      console.error('No Monnify reference found for transaction:', transaction._id);
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid transaction - no Monnify reference found'
-      });
-    }
-
-    console.log('Verifying Monnify transaction with reference:', referenceToVerify);
-    const verification = await monnifyClient.verifyTransaction(referenceToVerify);
-    
-    console.log('Monnify verification response:', {
-      isPaid: verification.isPaid,
-      status: verification.status,
-      amount: verification.amount
+    return res.json({
+      success: false,
+      message: result.isPending ? 'Payment is being processed' : 'Payment not confirmed',
+      data: {
+        status: result.status,
+        transactionId: result.transaction._id,
+        isPending: result.isPending
+      }
     });
-
-    if (verification.isPaid) {
-      // Atomically claim this transaction so a concurrent /verify call or the
-      // webhook firing for the same reference can't both credit the wallet.
-      // Only the caller that successfully flips status pending -> completed
-      // proceeds to credit the balance.
-      const claimed = await Transaction.findOneAndUpdate(
-        { _id: transaction._id, status: { $ne: 'completed' } },
-        {
-          $set: {
-            status: 'completed',
-            completedAt: new Date(),
-            metadata: verification.data
-          }
-        },
-        { new: false } // return the pre-update doc so we know if we won the race
-      );
-
-      if (!claimed || claimed.status === 'completed') {
-        // Someone else (webhook or a parallel verify call) already completed it.
-        const current = await Transaction.findById(transaction._id);
-        return res.json({
-          success: true,
-          message: 'Transaction already completed',
-          data: {
-            status: 'completed',
-            amount: current.amount,
-            transactionId: current._id
-          }
-        });
-      }
-
-      // Atomic increment — no read-modify-write, immune to concurrent updates.
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { $inc: { walletBalance: transaction.amount } },
-        { new: true }
-      );
-      await Transaction.updateOne(
-        { _id: transaction._id },
-        { $set: { balanceAfter: user.walletBalance } }
-      );
-
-      await Notification.create({
-        userId,
-        title: 'Wallet Funded',
-        message: `Your wallet has been credited with ₦${transaction.amount.toLocaleString()}`,
-        type: 'success',
-        actionType: 'wallet',
-        actionData: { transactionId: transaction._id }
-      });
-
-      const cardData = verification.data.paymentMethod === 'CARD' ? {
-        cardToken: verification.data.cardToken,
-        last4: verification.data.cardNumber?.slice(-4),
-        brand: verification.data.cardType?.toLowerCase(),
-        expiryMonth: verification.data.expiryMonth,
-        expiryYear: verification.data.expiryYear,
-        authorizationCode: verification.data.authorizationCode,
-        bin: verification.data.cardNumber?.slice(0, 6)
-      } : null;
-
-      return res.json({
-        success: true,
-        message: 'Payment verified successfully',
-        data: {
-          status: 'completed',
-          amount: transaction.amount,
-          newBalance: user.walletBalance,
-          transactionId: transaction._id,
-          cardData
-        }
-      });
-    } else {
-      // Don't mark as failed immediately - payment might still be processing
-      const isPending = ['PENDING', 'INITIATED'].includes(verification.status);
-      
-      if (!isPending && verification.status === 'FAILED') {
-        transaction.status = 'failed';
-        await transaction.save();
-      }
-
-      return res.json({
-        success: false,
-        message: isPending ? 'Payment is being processed' : 'Payment not confirmed',
-        data: {
-          status: isPending ? 'pending' : verification.status,
-          transactionId: transaction._id,
-          isPending
-        }
-      });
-    }
   } catch (error) {
     console.error('Verify funding error:', error);
-    res.status(500).json({
+    const statusCode = error instanceof FundingError ? error.statusCode : 500;
+    res.status(statusCode).json({
       success: false,
-      message: 'Failed to verify payment',
-      error: error.message
+      message: error.message || 'Failed to verify payment'
     });
   }
 };
@@ -253,69 +91,8 @@ const handleMonnifyWebhook = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid signature' });
     }
 
-    const { eventType, eventData } = payload;
-
-    if (eventType === 'SUCCESSFUL_TRANSACTION') {
-      const transaction = await Transaction.findOne({
-        $or: [
-          { monnifyTransactionReference: eventData.transactionReference },
-          { monnifyPaymentReference: eventData.paymentReference },
-          { paymentReference: eventData.paymentReference }
-        ]
-      });
-
-      if (!transaction) {
-        console.log('Transaction not found for webhook:', eventData.transactionReference);
-        return res.json({ success: true, message: 'Transaction not found' });
-      }
-
-      // Atomically claim the transaction: only proceed if we're the one
-      // flipping it from a non-completed state to 'completed'. This makes the
-      // webhook safe to receive more than once (Monnify retries webhooks) and
-      // safe to race against a client-initiated /verify call for the same
-      // paymentReference.
-      const claimed = await Transaction.findOneAndUpdate(
-        { _id: transaction._id, status: { $ne: 'completed' } },
-        {
-          $set: {
-            status: 'completed',
-            completedAt: new Date(),
-            metadata: { ...transaction.metadata, webhookData: eventData }
-          }
-        },
-        { new: false }
-      );
-
-      if (!claimed || claimed.status === 'completed') {
-        return res.json({ success: true, message: 'Already processed' });
-      }
-
-      const user = await User.findByIdAndUpdate(
-        transaction.userId,
-        { $inc: { walletBalance: transaction.amount } },
-        { new: true }
-      );
-      if (!user) {
-        return res.json({ success: false, message: 'User not found' });
-      }
-      await Transaction.updateOne(
-        { _id: transaction._id },
-        { $set: { balanceAfter: user.walletBalance } }
-      );
-
-      await Notification.create({
-        userId: user._id,
-        title: 'Wallet Funded',
-        message: `Your wallet has been credited with ₦${transaction.amount.toLocaleString()}`,
-        type: 'success',
-        actionType: 'wallet',
-        actionData: { transactionId: transaction._id }
-      });
-
-      console.log(`Wallet funding completed via webhook: ${transaction._id}`);
-    }
-
-    res.json({ success: true });
+    const result = await coreProcessMonnifyWebhook(payload.eventType, payload.eventData);
+    res.json({ success: true, message: result.message });
   } catch (error) {
     console.error('Webhook error:', error);
     res.status(500).json({ success: false, message: 'Webhook processing failed' });
@@ -412,9 +189,9 @@ const saveCardAfterPayment = async (req, res) => {
 const chargeCard = async (req, res) => {
   try {
     const userId = req.userId;
-    const { cardId, amount } = req.body;
+    const { cardId } = req.body;
 
-    if (!cardId || !amount || amount < 100) {
+    if (!cardId || !req.body.amount || req.body.amount < 100) {
       return res.status(400).json({
         success: false,
         message: 'Card ID and amount (min ₦100) are required'
@@ -429,13 +206,16 @@ const chargeCard = async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      message: 'Card charging not fully implemented - use Monnify SDK for recurring charges',
+    // NOT IMPLEMENTED: recurring/saved-card charging requires Monnify's
+    // tokenized card charge API, which this integration doesn't call yet.
+    // Flagged explicitly (see ROADMAP.md Phase 3) rather than silently
+    // returning success — this must not be mistaken for a working feature.
+    res.status(501).json({
+      success: false,
+      message: 'Charging a saved card is not implemented yet. Use the standard funding flow (checkout URL) instead.',
       data: {
         cardId: card._id,
-        last4: card.last4,
-        note: 'Implement Monnify card charging API when available'
+        last4: card.last4
       }
     });
   } catch (error) {

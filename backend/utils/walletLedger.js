@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { postSimpleTransfer } = require('./ledger');
 
 /**
  * Atomically reserve (debit) funds from a user's wallet.
@@ -64,4 +65,32 @@ async function applyCashbackDelta(userId, delta) {
   );
 }
 
-module.exports = { reserveWalletFunds, refundWalletFunds, applyCashbackDelta };
+/**
+ * Post a balanced ledger entry for a successful VTU/bill purchase — call
+ * this once, after the Transaction document exists and the purchase is
+ * confirmed successful (the amount that was actually reserved/debited from
+ * the wallet, i.e. after any cashback applied — not the face value of the
+ * purchase). Money leaves the user's wallet (credit — balance decreases)
+ * and lands in a system expense account representing what's now owed to
+ * the upstream provider (debit — balance increases). Same fire-and-log
+ * pattern as the funding core: a ledger-write failure must never surface
+ * as a failure of the purchase itself, since the customer has already been
+ * charged and the provider has already fulfilled the service.
+ */
+async function postPurchaseLedgerEntry(transactionId, userId, amount, description) {
+  if (!(amount > 0)) return; // fully cashback-covered purchases move no wallet funds
+  try {
+    await postSimpleTransfer(transactionId, {
+      fromAccountType: 'user_wallet',
+      fromAccountRef: userId,
+      toAccountType: 'system',
+      toAccountRef: 'vtpass_expense',
+      amount,
+      description
+    });
+  } catch (ledgerErr) {
+    console.error('LEDGER POSTING FAILED for purchase transaction', transactionId, ledgerErr);
+  }
+}
+
+module.exports = { reserveWalletFunds, refundWalletFunds, applyCashbackDelta, postPurchaseLedgerEntry };

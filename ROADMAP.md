@@ -227,8 +227,65 @@ Highest-severity issues that make the app unsafe to run with real money, fixed f
 **Phase 2 is now fully complete.**
 
 ## Phase 3 — Wallet Ledger & Reconciliation Core
-- [ ] Proper double-entry ledger (ledger entries, not just a `walletBalance`
-      integer mutated in place)
+- [x] **Consolidated the duplicate Monnify funding implementation** flagged
+      back in Phase 1 (this was a prerequisite — building a ledger on top of
+      two divergent code paths would have meant instrumenting, and
+      eventually debugging, both). `paymentController.js` (`/api/payment/*`)
+      and `walletFundingController.js` (`/api/wallet/funding/*`) both had
+      their own complete, independent copy of initialize/verify/webhook
+      logic. Extracted the actual logic into one shared module,
+      `backend/utils/walletFundingCore.js`; both controllers are now thin
+      wrappers that call into it and shape the response for their own
+      existing API contract. **Both routes stay live** — there's no way to
+      know from the repo alone which webhook URL is actually configured in
+      Monnify's dashboard, so rather than guess and possibly break
+      production webhooks, both endpoints now run the exact same code.
+      Bonus find during this consolidation: `chargeCard` (saved-card
+      recurring charging) was a placeholder that returned `success: true`
+      with a "not fully implemented" message — an honest-looking failure
+      disguised as success. Changed it to a proper `501 Not Implemented`
+      response so it can't be mistaken for a working feature by a client.
+- [x] Proper double-entry ledger — **now posts everywhere `walletBalance` is
+      mutated, still not yet the authoritative source of truth.**
+      `backend/models/LedgerEntry.js` + `backend/utils/ledger.js`: every
+      posting is a balanced set of debit/credit entries (validated to sum to
+      zero before anything is written), posted atomically via a Mongo
+      session/transaction (requires a replica set — true of any real MongoDB
+      Atlas deployment, including the free tier). Wired into every place
+      money moves:
+      - Wallet funding (the now-consolidated core) — `credit
+        system:monnify_settlement` / `debit user_wallet`
+      - All 7 VTU purchase types (airtime, data, electricity, TV, education,
+        insurance, internet/betting) — `credit user_wallet` / `debit
+        system:vtpass_expense`, posted only on confirmed success, for the
+        net amount actually reserved (after cashback), via a new shared
+        `postPurchaseLedgerEntry` helper in `backend/utils/walletLedger.js`
+        so it isn't duplicated across the 7 call sites
+      - Admin manual wallet adjustment (both credit and debit directions) —
+        against a `system:admin_adjustment` account
+      - Admin transaction refund — same `system:admin_adjustment` account
+      Caught a bug in my own first pass here: initially passed the *user's*
+      ID as the ledger posting's `transactionId` instead of the actual
+      `Transaction` document's ID — fixed before it shipped by capturing the
+      created transaction's return value.
+      **`User.walletBalance` is still what the app actually reads** — the
+      ledger runs alongside it as an audit trail, not yet the authoritative
+      balance. Ledger-write failures are caught and logged loudly rather
+      than failing the request (a ledger bug must never undo real money a
+      provider already confirmed, or a purchase that already succeeded).
+      **Not yet done:** switching `walletBalance` to be *derived from* the
+      ledger instead of a parallel field (a bigger, riskier change — needs
+      its own careful migration, not bundled into this pass).
+- [x] Reconciliation script (not yet a scheduled job — see Phase 7).
+      `backend/scripts/reconcileLedger.js`: checks the ledger's internal
+      balance (global debits == credits, catching anything that bypassed
+      `postLedgerEntries`), then compares each user's ledger-derived wallet
+      movement against their actual `walletBalance`, flagging drift. Takes
+      an optional `--baseline-file` since every user who had a balance
+      before Phase 3 will otherwise show "drift" equal to their pre-ledger
+      balance — that's expected noise, not a bug, until a baseline snapshot
+      is captured. Wiring this into an actual scheduled job (cron / worker)
+      is Phase 7 (background services) — tracked, not done.
 - [ ] Transaction state machine (pending → processing → completed/failed/reversed)
 - [ ] Statements, receipts, export (CSV/PDF)
 - [ ] Scheduled transfers, refunds
@@ -295,9 +352,19 @@ Also worth knowing: `AUDIT.md` and `SECURITY_REPORT.md` still reflect
 Phase 0/1 findings only; a fresh pass incorporating everything Phase 2
 touched (session model, biometric redesign, OTP hardening, apiClient
 migration) is worth doing before Phase 3 wraps, but isn't blocking.
-Next: Phase 3 (wallet ledger & reconciliation core) — proper double-entry
-ledger, transaction state machine, statements/receipts/export, scheduled
-transfers, refunds, and a reconciliation job. This is also where the
-duplicate Monnify funding implementation (paymentController.js vs
-walletFundingController.js, flagged back in Phase 1) should finally get
-consolidated into one.
+**Phase 3 is in progress, and the ledger is now the real thing, not just a
+demo.** Done: the duplicate Monnify funding implementation is consolidated
+into one shared core (`backend/utils/walletFundingCore.js`); the
+double-entry ledger (`LedgerEntry` model + `backend/utils/ledger.js`) posts
+balanced entries everywhere `walletBalance` moves — wallet funding, all 7
+VTU purchase types, admin manual adjustments, and admin refunds; and a
+reconciliation script (`backend/scripts/reconcileLedger.js`) exists to check
+the ledger balances internally and flag drift against `walletBalance`.
+`User.walletBalance` is still the authoritative field the app reads — the
+ledger is a complete audit trail running alongside it, not a replacement
+yet. Wiring the reconciliation script into an actual scheduled job is
+Phase 7 (background services) territory.
+Next: the transaction state machine (pending → processing →
+completed/failed/reversed — right now status is set ad hoc per code path,
+not through a formal set of allowed transitions), then statements/receipts/
+export, then scheduled transfers/refunds.
